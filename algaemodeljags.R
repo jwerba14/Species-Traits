@@ -29,23 +29,24 @@ mod2 <- function() {
   for (i in 2:N) {
     for (j in 1:K) {
       
-    y[i, j] ~ dlnorm( mu[i, j], sigma ) 
-    mu[i, j] <- (a*z[i-1,j]/(S+z[i-1,j]))*y[i-1,j] #- D*y[i-1,j]^2
+    chl[i, j] ~ dlnorm( mu[i, j], sigma ) 
+    mu[i, j] <- chl[i-1,j]+
+    (a*nh4[i-1,j]/(S+nh4[i-1,j]))*chl[i-1,j] - (d1*chl[i-1,j]^(1/d2))*chl[i-1,j]
   }
   }
   sigma ~ dunif(0.001, 1000)
     a ~ dunif(0.001,1000)
     S ~ dunif(0.001,1000)
- #   D ~ dunif(0.001,1000)
-
+    d1 ~ dunif(0.001,1000)
+    d2 ~ dunif(0.001,1000)
 }
 
-mod.fit <- jags(data = list('N'= nrow(ch1),
-                            'y'= ch1,
-                            'K'= ncol(ch1),
-                            'z'=nh1
+mod.fit <- jags(data = list('N'= nrow(obs_chl),
+                            'chl'= obs_chl,
+                            'K'= ncol(obs_chl),
+                            'nh4'=obs_chl_n
                           ),
-              parameters.to.save = c("a", "sigma","S", "mu"), 
+              parameters.to.save = c("a","S", "d1","d2"), 
               n.chains = 3,
               n.iter = 10000,
               n.burnin = 2000,

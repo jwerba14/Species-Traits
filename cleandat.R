@@ -14,5 +14,3 @@ colnames(nh)<- c("date1","nh4","rep1")
 nh1 <- nh %>% 
   spread(rep1,nh4)
 nh1 <- nh1[,-1]
-
-
