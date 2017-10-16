@@ -34,4 +34,65 @@ for(i in ss){
   assign(nam1,nh1)
 }
 
+##need clean_sim.R
 
+newparam <- fun(dat=faux,a=0.03,s=684,z=0.9,sd_chl_proc=1, sd_nh4_proc=1, 
+                sd_chl_obs=1, sd_nh4_obs=1)
+par(mfrow = c(2, 1)); with(newparam[[2]],
+                           plot(time, nh4)); with(newparam[[2]], plot(time, log(chl)))
+
+# so run 7 iterations of jags model and record (powerpoint) save densities and the chains rs
+
+
+plot.new()
+plot(proc_chl[,1],col="white")
+lines(proc_chl[,1],col="black")
+lines(proc_chl[,2],col="black")
+lines(proc_chl[,3],col="black")
+lines(proc_chl[,4],col="black")
+lines(proc_chl[,5],col="black")
+lines(no_error[, 1], col = "blue", lwd = 2)
+
+
+#simulate data with parameters found from data
+pred <- data.frame(
+  time = rep(seq(1,11),each=30),
+  ind = rep(seq(1,30), 11),
+  chl = c(dat$chl[1:30],rep(0,300)),
+  nh4 = dat$nh4)
+
+fun <- function (dat,a, s) {
+  for (i in 1:length(unique(pred$ind))) {  #to follow an individual replicate
+    for (j in 2:length(unique(pred$time))) { #over each time point
+      
+      pred[pred$ind == unique(pred$ind)[i] & pred$time == unique(pred$time)[j], ]$chl <-
+        pred[pred$ind == unique(pred$ind)[i] & pred$time == unique(pred$time)[j-1], ]$chl+
+        (a*pred[pred$ind==unique(pred$ind)[i]&pred$time==unique(pred$time)[j-1],]$nh4)/
+        (s+pred[pred$ind==unique(pred$ind)[i]&pred$time==unique(pred$time)[j-1],]$nh4)
+      
+      
+    }
+  }
+  
+  return(pred)
+}
+pred_out <- fun(dat=pred,a=39,s=4.7)
+
+
+# graph simulated data with parameters from model
+pred_out$treat <- rep(rep(c(0.5,3,9,27,54,108), each = 5),11)
+
+pg <- pred_out %>%
+  group_by(time,treat)
+
+pg <- pg %>%
+  summarise_all(funs(mean(., na.rm=TRUE),sd(.,na.rm=TRUE))) #-c('date',"treat","rep","date1"))
+
+
+#Graph the trends in chlorophyll
+
+
+pg$treat <- as.factor(pg$treat)
+
+pg1 <- ggplot(newdat, aes(time, chl_mean)) + geom_line(aes(colour = treat), size = 1)
+#+ geom_errorbar(aes(ymin=chl_mean-chl_sd, ymax=chl_mean+chl_sd), width = 0.1)
