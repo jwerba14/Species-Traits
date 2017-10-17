@@ -8,29 +8,12 @@ faux <- data.frame(
 
 faux_out <- vector("list", 16)
 
-## mich men growth
-mikmen <- function(a, s, nh4) {
- # nh4 <- seq(0.01, 40, by = 0.1)
- a * nh4 / (s + nh4)
- # plot(nh4, out)
-}
-death <- function(a,b,chl){
-  a*chl^(1/b)
-}
 
-death2 <- function(a, chl,int){
-  (a*chl^2)+int
-}
-
-par(mfrow = c(1,1));plot(death2(0.00005, seq(40, 200, by = 10), 0.5)) 
-par(mfrow = c(1,1));plot(death(0.25, 10, seq(40, 200, by = 10))) 
-par(mfrow = c(1,1)); plot(mikmen(.31, 684, seq(1, 40, by = 1)))
-
-#need nh4 to make sense??? need its own function some sort of decreasing function over time
-fun <- function (dat,a, s,z, sd_chl_proc, sd_nh4_proc, sd_chl_obs, sd_nh4_obs) {
+fun <- function (dat,a, s,z, sd_chl_proc, sd_nh4_proc, sd_chl_obs, sd_nh4_obs,d1,d2) {
   for (i in 1:length(unique(faux$ind))) {  #to follow an individual replicate
     for (j in 2:length(unique(faux$time))) { #over each time point
       
+      #need nh4 to make sense??? need its own function - decreasing function over time
       faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j], ]$nh4 <-   
         z *  subset(faux, ind == unique(faux$ind)[i] & time == unique(faux$time)[j-1])$nh4 
     
@@ -47,10 +30,11 @@ fun <- function (dat,a, s,z, sd_chl_proc, sd_nh4_proc, sd_chl_obs, sd_nh4_obs) {
               (s+faux[faux$ind==unique(faux$ind)[i]&faux$time==unique(faux$time)[j-1],]$nh4)*
             # yesterdays chl-
         faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl) - 
-        #(D * yesterdays chl)* yesterdays chl so that D is density dependent
-        death2(0.000005, faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl)*
+        #(D * yesterdays chl)* yesterdays chl 
+        death2(d1, faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl,d2)*
   faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl
     
+      #remove any replicate that hits 0 population
     if (faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j], ]$chl < 0) {
       faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j], ]$chl <- 0
     }
@@ -68,36 +52,36 @@ fun <- function (dat,a, s,z, sd_chl_proc, sd_nh4_proc, sd_chl_obs, sd_nh4_obs) {
   faux$nh4 <- rlnorm(length(faux$nh4), log(faux$nh4),log(sd_nh4_obs))
   
   return(list(c(a=a,s=s,z=z,sd_chl_proc=sd_chl_proc, sd_nh4_proc=sd_nh4_proc, 
-                sd_chl_obs=sd_chl_obs, sd_nh4_obs=sd_nh4_obs), faux))
+                sd_chl_obs=sd_chl_obs, sd_nh4_obs=sd_nh4_obs,d1,d2), faux))
 }
 
 faux_out[c(1,2)] <- fun(dat=faux,a=3,s=20,z=0.9,sd_chl_proc=1.0, sd_nh4_proc=1.0, 
-                          sd_chl_obs=1.0, sd_nh4_obs=1.0)
+                          sd_chl_obs=1.0, sd_nh4_obs=1.0, d1=0.00005,d2=0.5)
 
 par(mfrow = c(2, 1)); with(faux_out[[2]], plot(time, nh4)); with(faux_out[[2]], plot(time, log(chl)))
 
 faux_out[c(3,4)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.0, sd_nh4_proc=1.0, 
-                          sd_chl_obs=1.2, sd_nh4_obs=1.0)
+                          sd_chl_obs=1.2, sd_nh4_obs=1.0,d1=0.00005,d2=0.5)
 
 faux_out[c(5,6)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.0, sd_nh4_proc=1.0, 
-                          sd_chl_obs=1.0, sd_nh4_obs=1.2)
+                          sd_chl_obs=1.0, sd_nh4_obs=1.2,d1=0.00005,d2=0.5)
 
 faux_out[c(7,8)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.0, sd_nh4_proc=1.0, 
-                          sd_chl_obs=1.2, sd_nh4_obs=1.2)
+                          sd_chl_obs=1.2, sd_nh4_obs=1.2,d1=0.00005,d2=0.5)
 
 faux_out[c(9,10)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.1, sd_nh4_proc=1.0, 
-                          sd_chl_obs=1.0, sd_nh4_obs=1.0)
+                          sd_chl_obs=1.0, sd_nh4_obs=1.0,d1=0.00005,d2=0.5)
 
 faux_out[c(11,12)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.0, sd_nh4_proc=1.1, 
-                          sd_chl_obs=1.0, sd_nh4_obs=1.0)
+                          sd_chl_obs=1.0, sd_nh4_obs=1.0,d1=0.00005,d2=0.5)
 
 faux_out[c(13,14)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.1, sd_nh4_proc=1.1, 
-                          sd_chl_obs=1.0, sd_nh4_obs=1.0)
+                          sd_chl_obs=1.0, sd_nh4_obs=1.0,d1=0.00005,d2=0.5)
 
 faux_out[c(15,16)] <- fun(dat=faux,a=1,s=20,z=0.9,sd_chl_proc=1.1, sd_nh4_proc=1.1, 
-                        sd_chl_obs=1.2, sd_nh4_obs=1.2)
+                        sd_chl_obs=1.2, sd_nh4_obs=1.2,d1=0.00005,d2=0.5)
 
-save(faux_out,file = "faux_out.Rdata")
+#save(faux_out,file = "faux_out.Rdata")
 
 
 

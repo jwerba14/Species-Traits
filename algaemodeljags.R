@@ -5,13 +5,9 @@ library(arm)        ## for coefplot
 library(lattice)
 library(dotwhisker)
 
-d <- rlnorm(50, meanlog = 2, sdlog = 1)
-x <- c(1:50)
 
 
-y = d
-
-mod <- function() {
+#mod <- function() {
   
   for (i in 1:N) {
   y[i] ~ dlnorm( muOfLogY, 1/sigmaOfLogY^2 ) 
@@ -24,6 +20,7 @@ mod <- function() {
   sigmaOfY <- sqrt(exp(2*muOfLogY+sigmaOfLogY^2)*(exp(sigmaOfLogY^2)-1))
 } 
 
+load("cleandat.R")
 mod2 <- function() {
   
   for (i in 2:N) {
