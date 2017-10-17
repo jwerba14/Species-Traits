@@ -18,11 +18,11 @@ death <- function(a,b,chl){
   a*chl^(1/b)
 }
 
-death2 <- function(a,b, chl){
-  a*chl^b
+death2 <- function(a, chl,int){
+  (a*chl^2)+int
 }
 
-par(mfrow = c(1,1));plot(death2(0.2, 2, seq(40, 200, by = 10))) 
+par(mfrow = c(1,1));plot(death2(0.00005, seq(40, 200, by = 10), 0.5)) 
 par(mfrow = c(1,1));plot(death(0.25, 10, seq(40, 200, by = 10))) 
 par(mfrow = c(1,1)); plot(mikmen(.31, 684, seq(1, 40, by = 1)))
 
@@ -48,9 +48,14 @@ fun <- function (dat,a, s,z, sd_chl_proc, sd_nh4_proc, sd_chl_obs, sd_nh4_obs) {
             # yesterdays chl-
         faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl) - 
         #(D * yesterdays chl)* yesterdays chl so that D is density dependent
-        death2(0.002,2, faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl)*
+        death2(0.000005, faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl)*
   faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j-1], ]$chl
-            
+    
+    if (faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j], ]$chl < 0) {
+      faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j], ]$chl <- 0
+    }
+      
+      
      #process level in chl
       faux[faux$ind==unique(faux$ind)[i] & faux$time==unique(faux$time)[j], ]$chl <-
         rlnorm(1,log(faux[faux$ind == unique(faux$ind)[i] & faux$time == unique(faux$time)[j], ]$chl), 
