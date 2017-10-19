@@ -14,3 +14,6 @@ colnames(nh)<- c("date1","nh4","rep1")
 nh1 <- nh %>% 
   spread(rep1,nh4)
 nh1 <- nh1[,-1]
+
+
+#ggplot(dat[dat$treat==54,], aes(nh4,chl)) +geom_point()+geom_smooth
