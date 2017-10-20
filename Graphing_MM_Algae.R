@@ -156,10 +156,10 @@ ggplot(subset(cdat,chl<=300),
        aes(group=nutr,colour=factor(nutr),fill=factor(nutr)),alpha=0.1)
 
 
-
+str(cdat)
 ggplot(cdat,aes(nh4,chl_percap_change))+
     geom_point(aes(colour=factor(nutr)))+
-    scale_x_log10()
+    scale_x_log10()+facet_wrap(~as.factor(nutr))
 
 
 ggplot(subset(cdat,chl_percap_change>0),
