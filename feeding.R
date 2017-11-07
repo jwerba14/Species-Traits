@@ -7,7 +7,7 @@ dat <- read_excel("Data_sheet_FeedingExpt.xlsx")
 
 dat$diff_chl <- dat$`Chl 1`-dat$`Chl 2`
 dat$diff_nh4 <- dat$`Nh4 2`-dat$`Nh4 1`
-#dat$diff_nh4_ind <- dat$diff_nh4/dat$`# of Daphnia`
+dat$diff_nh4_ind <- dat$diff_nh4/dat$`# of Daphnia`
 dat$control <- rep(c(rep(1,5),rep(2,3)),5)
 for (i in 1:nrow(dat)){
   if (dat[i, ]$control == 1) {
