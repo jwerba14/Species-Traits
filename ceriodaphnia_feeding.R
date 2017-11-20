@@ -1,7 +1,7 @@
 library(readxl)
 library(tidyverse)
 library(ggplot2)
-dat <- read_excel("Ceriodaphnia_Feeding_Nov11_2017.xlsx")
+dat <- read_excel("Ceriodaphnia_Feeding_Nov07_2017.xlsx")
 
 #need to average by # of daphnia and remove controls
 
