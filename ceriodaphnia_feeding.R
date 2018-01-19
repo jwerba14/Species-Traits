@@ -66,12 +66,12 @@ dfnew$pred_upper <- Hollings1(t = dfnew$Chl_Time_Diff, x = dfnew$Chl_1, a = fit$
 dfnew$pred_lower <- Hollings1(t = dfnew$Chl_Time_Diff, x = dfnew$Chl_1, a = fit$coefficients-6.285e-07)
 
 ggplot(newdat, aes(Chl_1, diff_chl_ind)) + 
-  geom_point(lwd = 2.5) +
+  geom_point(lwd = 2.5, aes(color=date, shape=as.factor(Treatment))) +
  geom_line(data=dfnew,aes(Chl_1, pred_vals), lwd = 1) + 
   geom_line(data=dfnew,aes(Chl_1, pred_upper), lwd = 0.5, color="blue",linetype= "dashed") +
   geom_line(data=dfnew,aes(Chl_1, pred_lower), lwd = 0.5, color="blue", linetype= "dashed") +
   #geom_ribbon(data=dfnew,aes(ymin=pred_lower,ymax=pred_upper, x=Chl_1), alpha=0.2)+
-  theme(legend.position = "none")+ 
+  #theme(legend.position = "none")+ 
   xlab("Initial Chlorophyll Conc (ug/L)")+ylab("Individual Uptake of Chlorophyll (mg/L*min)")
 
 #newdat$diff_chl_ind <- as.numeric(newdat$diff_chl_ind)
