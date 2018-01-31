@@ -1,0 +1,72 @@
+---
+title: "Bacterioplankton response to salinity (aka 2015 CSI Dispersal Experiment)"
+author: "Alex Stucy, Jo Werba, Mike McCoy, Ariane Peralta"
+date: "Last updated on `r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+  fig_caption: true
+---
+Project Description: TBD
+
+FIGURES SCRIPT (stat script = Thesis_Chunk_RMD.Rmd)
+
+
+Chunk Description: (I) How does salinity and dispersal influence bacterial diversity?
+-Use full data set (with source tanks)
+-Calculate Shannon's H' (diversity metric)
+-Run stat model diversity~dispersal + salinity + dispersal*salinity
+-GRAPH DIVERSITY (NOTE: which part of Jo's code corresponds to this? I'm trying to follow it but having a hard time)
+-BULLET POINT RESULTS
+```{r (I)}
+knitr::opts_chunk$set(echo = TRUE)
+require("ggplot2")
+require("dotwhisker")
+require("grid")
+require("gridExtra")
+source_rmd <- function(file, local = FALSE, ...){
+  options(knitr.duplicate.label = 'allow')
+
+  tempR <- tempfile(tmpdir = ".", fileext = ".R")
+  on.exit(unlink(tempR))
+  knitr::purl(file, output=tempR, quiet = TRUE)
+
+  envir <- globalenv()
+  source(tempR, local = envir, ...)
+}
+source_rmd("Thesis_Chunk_RMD.Rmd") #this does not run -- the error I receive is "Error in setwd("~/GitHub/CSI_Dispersal/analyses") : cannot change working directory"
+#load("decomposition2.Rdata") this is in Jo's code but not sure what I should have here in place
+
+```
+ Theme set all graphs
+ 
+```{r (I)}
+theme_set(theme_bw()) 
+theme_update(axis.text.x = element_text(size = 12),
+             axis.text.y = element_text(size = 12),
+             axis.title.x = element_text(size = 14),
+             axis.title.y = element_text(size = 14),
+             legend.title = element_text(size = 10),
+             legend.text = element_text(size = 8),
+             legend.spacing = unit(0.25, "cm"),
+             legend.key.width = unit(0.35, "cm"),
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             strip.background = element_blank(),
+             panel.spacing = unit(0, "lines"),
+             #      legend.key.size = unit(.15, "cm"),
+             legend.key = element_rect(fill = "white"),
+             panel.spacing.y = unit(-0.75, "lines"),
+             panel.border = element_rect(colour = "black", 
+                                         fill = NA, size = 1),
+             strip.text.x = element_text(size = 18, colour = "black", 
+                                         face = "bold"))
+
+mycolors<-c("dodgerblue4","darkorange","darkorchid1","red")
+mylines<-c("solid","dashed","dotdash","dotted")
+#next line did not run
+names(mycolors) <- levels(bigdata$Salinity)
+#below ran successfully
+colScale <- scale_colour_manual(name = "Salinity",values = mycolors)
+ColFill<-scale_fill_manual(name = "Salinity",values = mycolors)
+ltype<-scale_linetype_manual(name="Salinity", values=mylines)
+```

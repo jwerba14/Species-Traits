@@ -1,0 +1,17 @@
+
+Call:
+adonis(formula = newCSIdata[, -c(1:15)] ~ Dispersal * Salinity,      data = newCSIdata, permutations = 1000, method = "bray") 
+
+Permutation: free
+Number of permutations: 1000
+
+Terms added sequentially (first to last)
+
+                    Df SumsOfSqs MeanSqs F.Model      R2   Pr(>F)    
+Dispersal            1     2.238 2.23800  5.9601 0.04830 0.000999 ***
+Salinity             1     0.774 0.77428  2.0620 0.01671 0.008991 ** 
+Dispersal:Salinity   1     0.514 0.51394  1.3687 0.01109 0.104895    
+Residuals          114    42.806 0.37549         0.92389             
+Total              117    46.333                 1.00000             
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1

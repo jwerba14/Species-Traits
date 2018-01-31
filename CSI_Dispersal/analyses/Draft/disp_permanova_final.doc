@@ -1,0 +1,15 @@
+
+Call:
+adonis(formula = newCSIdata[, -c(1:15)] ~ Dispersal, data = newCSIdata,      permutations = 1000, method = "bray") 
+
+Permutation: free
+Number of permutations: 1000
+
+Terms added sequentially (first to last)
+
+           Df SumsOfSqs MeanSqs F.Model     R2   Pr(>F)    
+Dispersal   1     2.238 2.23800  5.8875 0.0483 0.000999 ***
+Residuals 116    44.095 0.38013         0.9517             
+Total     117    46.333                 1.0000             
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1

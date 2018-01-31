@@ -1,0 +1,389 @@
+---
+title: "Werba_Zooplankton Figures"
+author: "Jo"
+date: "June 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dotwhisker)
+library(grid)
+library(gridExtra)
+source_rmd <- function(file, local = FALSE, ...){
+  options(knitr.duplicate.label = 'allow')
+
+  tempR <- tempfile(tmpdir = ".", fileext = ".R")
+  on.exit(unlink(tempR))
+  knitr::purl(file, output=tempR, quiet = TRUE)
+
+  envir <- globalenv()
+  source(tempR, local = envir, ...)
+}
+source_rmd("WerbaMasterCleanCode.Rmd")
+load("decomposition2.Rdata")
+```
+
+Here I will provide all the code for the graphs. 
+
+
+Theme set
+all graphs (except decomposition) only show results for the mixed dispersal treatments so that the graphs can be in 2 dimensions. 
+
+```{r}
+theme_set(theme_bw()) 
+theme_update(axis.text.x = element_text(size = 12),
+             axis.text.y = element_text(size = 12),
+             axis.title.x = element_text(size = 14),
+             axis.title.y = element_text(size = 14),
+             legend.title = element_text(size = 10),
+             legend.text = element_text(size = 8),
+             legend.spacing = unit(0.25, "cm"),
+             legend.key.width = unit(0.35, "cm"),
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             strip.background = element_blank(),
+             panel.spacing = unit(0, "lines"),
+             #      legend.key.size = unit(.15, "cm"),
+             legend.key = element_rect(fill = "white"),
+             panel.spacing.y = unit(-0.75, "lines"),
+             panel.border = element_rect(colour = "black", 
+                                         fill = NA, size = 1),
+             strip.text.x = element_text(size = 18, colour = "black", 
+                                         face = "bold"))
+
+mycolors<-c("dodgerblue4","darkorange","darkorchid1","red")
+mylines<-c("solid","dashed","dotdash","dotted")
+names(mycolors) <- levels(bigdata$Salinity)
+colScale <- scale_colour_manual(name = "Salinity",values = mycolors)
+ColFill<-scale_fill_manual(name = "Salinity",values = mycolors)
+ltype<-scale_linetype_manual(name="Salinity", values=mylines)
+```
+
+
+Effective Diversity
+tsummX (where X is the salinity treatment) has the averages and sd of the measured values
+
+tdata2 has the predicted values from the model and the error around the model
+```{r}
+g0<- ggplot(tdata2, aes(Date2,true)) 
+g1<-g0+geom_point(data=tsumm0, aes(y=true,x=Date2),colour="dodgerblue4",size=1.25)+
+  geom_errorbar(data = tsumm0,aes(x=Date2,ymin=true-sd/2,ymax=true+sd/2),colour="dodgerblue4",
+                size=0.5, width=1)+
+  geom_point(data=tsumm5,aes(y=true,x=Date2),colour="darkorange",size=1.25)+
+  geom_errorbar(data = tsumm5,aes(x=Date2,ymin=true-sd/2,ymax=true+sd/2),
+                colour="darkorange",size=0.5,width=1)+
+  geom_point(data=tsumm9,aes(y=true,x=Date2),colour="darkorchid1",size=1.25)+
+  geom_errorbar(data = tsumm9,aes(x=Date2,ymin=true-sd/2,ymax=true+sd/2),colour="darkorchid1",size=0.5, width=1)+
+  geom_point(data=tsumm13, aes(y=true,x=Date2),colour="red",size=1.25)+geom_errorbar(data = tsumm13,aes(x=Date2,ymin=true-sd/2,ymax=true+sd/2),colour="red",size=0.5, width=1)
+
+g2<-g1+ geom_ribbon(data=tdata2,aes(ymin = LL, ymax = UL, fill = Salinity), alpha = .1) +
+  geom_line(data=tdata2,aes(colour = Salinity,linetype=Salinity), size = 2) +
+  labs(x = "Date2", y = "True")+colScale+ColFill+ltype
+
+eff <- g2+ylab("Diversity")+xlab(" ")+
+          theme(legend.position = c(0.75,0.75))+
+    scale_colour_manual(guide= guide_legend(direction = "horizontal", title.position = "top"),
+                          values = mycolors) +
+    scale_linetype_manual(guide= guide_legend(direction = "horizontal"),
+                            values = mylines) +
+    scale_fill_manual(guide= guide_legend(direction = "horizontal"),
+                      values = mycolors)
+```
+Example of how predicted values and error on the model was found for graphing; this code was used throughout
+
+```{r}
+newdat1 <- expand.grid(Dispersal=unique(bigdata$Dispersal),
+                      Salinity=unique(bigdata$Salinity),Date2=unique(bigdata$Date2), sreal= 0, true=0)
+mm = model.matrix(terms(trudiv),newdat1)
+newdat1$true = mm %*% coef(trudiv)
+pvar1 <- diag(mm %*% tcrossprod(vcov(trudiv),mm))
+newdat1 <- data.frame(
+  newdat1
+  , plo = newdat1$true-sqrt(pvar1)
+  , phi = newdat1$true+sqrt(pvar1)
+)
+
+```
+
+
+Richness
+rsummX (where X is the salinity treatment) has the averages and sd of the measured values
+
+rdata2 has the predicted values from the model and the error around the model
+```{r}
+r<- ggplot(rdata2, aes(Date2,rich)) 
+r1<-r+geom_point(data=rsumm0, aes(y=rich,x=Date2),colour="dodgerblue4",size=1.25)+
+  geom_errorbar(data = rsumm0,aes(x=Date2,ymin=rich-SE,ymax=rich+SE),colour="dodgerblue4",
+                size=0.5, width=1)+
+  geom_point(data=rsumm5,aes(y=rich,x=Date2),colour="darkorange",size=1.25)+
+  geom_errorbar(data = rsumm5,aes(x=Date2,ymin=rich-SE,ymax=rich+SE),
+                colour="darkorange",size=0.5,width=1)+
+  geom_point(data=rsumm9,aes(y=rich,x=Date2),colour="darkorchid1",size=1.25)+
+  geom_errorbar(data = rsumm9,aes(x=Date2,ymin=rich-SE,ymax=rich+SE),colour="darkorchid1",size=0.5, width=1)+
+  geom_point(data=rsumm13, aes(y=rich,x=Date2),colour="red",size=1.25)+
+  geom_errorbar(data = rsumm13,aes(x=Date2,ymin=rich-SE,ymax=rich+SE),colour="red",size=0.5, width=1)
+
+
+r2<-r1+ geom_ribbon(data=rdata2,aes(ymin = LL, ymax = UL, fill = Salinity), alpha = .1) +
+  geom_line(data=rdata2,aes(colour = Salinity,linetype=Salinity), size = 0.75) +
+  labs(x = "Date2", y = "rich")+colScale+ColFill+ltype
+
+rg<-r2+ylab("Richness")+xlab("Day")+
+    theme(legend.position = "none")
+    
+
+ 
+grid.arrange(eff,rg, ncol=1)
+```
+
+Abundance
+adata2 is the predicted values and error from the model.
+I include all data points because the error around averages won't be distributed normally.
+
+```{r}
+g0<- ggplot(adata2, aes(Date2,abundance)) +
+  geom_ribbon(aes(ymin = LL, ymax = UL, fill = Salinity), alpha = .25) +
+  geom_line(aes(colour = Salinity,linetype=Salinity), size = 0.75) +
+  labs(x = "Date2", y = "Abundance")+colScale+ColFill+ltype
+g1<-g0+geom_jitter(data=bigdata2, aes(y=abundance, x=Date2, color=Salinity),size=1.25, width=2)
+g1+ylab("Abundance")+xlab("Day")+theme(legend.position = c(0.5,0.8))+
+  scale_colour_manual(guide= guide_legend(direction = "horizontal", title.position = "top"),
+                      values = mycolors) +
+  scale_linetype_manual(guide= guide_legend(direction = "horizontal"), values = mylines) +
+  scale_fill_manual(guide= guide_legend(direction = "horizontal"),
+                    values = mycolors)
+```
+
+
+For the supplement and for interpretation ease I made coef plots for each of the models (effective diversity and richness in one plot)
+
+```{r}
+d <- dwplot(list(trudiv,RichMod1))+
+  relabel_y_axis(c("Dispersal", "Salinity", expression("Salinity"^{2}), 
+                     "Date", expression("Date"^{2}), "Salinity:Date", expression(Salinity^{2}:Date), expression(Salinity:Date^{2}), expression(Salinity^{2}:Date^{2}))) +
+      xlab("Coefficient Estimate") + ylab("") +
+     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+     ggtitle("Effective Diversity and Richness") +
+     theme(plot.title = element_text(face="bold"),
+           legend.justification=c(0.1, 0.9), legend.position=c(0.1, 0.9),
+           legend.background = element_rect(colour="grey80"),
+           legend.title = element_blank()) + scale_colour_discrete(
+                      name = " ",
+                      breaks = c("Model 1", "Model 2"),
+                      labels = c("Effective Diversity", "Richness"))
+
+print(d)
+
+ab <- dwplot(am1)+
+  relabel_y_axis(c("Dispersal", "Salinity", expression("Salinity"^{2}), 
+                     "Date", "Salinity:Date", expression(Salinity^{2}:Date))) +
+      xlab("Coefficient Estimate") + ylab("") +
+     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+     ggtitle("Abundance") +
+     theme(plot.title = element_text(face="bold"))
+
+print(ab)
+
+```
+
+
+initial and final communities all treatments-- no graphs print until the end--
+
+```{r}
+
+limits = aes(ymax = agg$mean_mds2 + agg$sd_mds2, ymin=agg$mean_mds2 - agg$sd_mds2) 
+limitsx = aes(xmax = agg$mean_mds1 + agg$sd_mds1, xmin=agg$mean_mds1 - agg$sd_mds1)
+
+nc <- ggplot(agg, aes(mean_mds1, mean_mds2, label = TRUE)) +
+  geom_point(data = agg, aes(colour = dispersal,pch=salinity), size=5)
+nc <- nc+geom_errorbar(limits, width=0.05, size = 0.25)+xlab(" ") +
+  ylab("Axis 2")
+Initial_comm <- nc+geom_errorbarh(limitsx, height=0.1, size = 0.25) +
+  ggtitle("a. Initial") +
+    scale_shape_manual(values = c(16,17,15,18))+ 
+    theme(legend.justification = c(0.07, 0.9), legend.position = c(0.07,0.9))+
+    theme(legend.key.size = unit(.25, "cm"))+
+    theme(legend.box = "horizontal")+
+    scale_color_discrete(labels=c("Mixed", "Single"))+
+  guides(colour = guide_legend(title = "Dispersal",
+                               override.aes = list(size=3)))+
+  guides(shape = guide_legend(title = "Salinity",
+                              override.aes = list(size=3)))
+
+
+#find limits
+limits1=aes(ymax = agg1$mean_mds2 + agg1$sd_mds2, ymin=agg1$mean_mds2 - agg1$sd_mds2) 
+limitsx1=aes(xmax = agg1$mean_mds1 + agg1$sd_mds1, xmin=agg1$mean_mds1 - agg1$sd_mds1)
+
+
+
+nc1 <- ggplot(agg1, aes(mean_mds1, mean_mds2, label = TRUE)) +
+  geom_point(data = agg1, aes(colour = dispersal,pch=as.factor(salinity), size=5))
+nc2 <- nc1+geom_errorbar(limits1,width=0.05, size = 0.25)+xlab("Axis 1") + ylab("Axis 2")
+Final_comm <- nc2+geom_errorbarh(limitsx1,height=0.1, size= 0.25)+ggtitle("b. Final")+
+    scale_shape_manual(values = c(16,17,15,18)) +  theme(legend.position = "none")
+```
+
+
+By treatment
+```{r}
+# need limits for x,y bars 
+
+frlimx <-with(fresh_3,aes(xmax = mean_axis1 + sd_axis1, xmin=mean_axis1 - sd_axis1))
+frlimy <-with(fresh_3,aes(ymax = mean_axis2 + sd_axis2, ymin=mean_axis2 - sd_axis2))
+
+flimx <-with(five_3,aes(xmax = mean_axis1 + sd_axis1, xmin=mean_axis1 - sd_axis1))
+flimy <-with(five_3,aes(ymax = mean_axis2 + sd_axis2, ymin=mean_axis2 - sd_axis2))
+
+nlimx <-with(nine_3,aes(xmax = mean_axis1 + sd_axis1, xmin=mean_axis1 - sd_axis1))
+nlimy <-with(nine_3,aes(ymax = mean_axis2 + sd_axis2, ymin=mean_axis2 - sd_axis2))
+
+tlimx <-with(teen_3,aes(xmax = mean_axis1 + sd_axis1, xmin=mean_axis1 - sd_axis1))
+tlimy <-with(teen_3,aes(ymax = mean_axis2 + sd_axis2, ymin=mean_axis2 - sd_axis2))
+
+#graphing for reals
+
+fr <- ggplot(fresh_3, aes(mean_axis1,mean_axis2, label=TRUE)) +
+  geom_point(aes(color=Dispersal, pch= as.factor(Date)), size = 5)
+
+fr1 <- fr + geom_errorbar(frlimy, width=0.1, size = 0.25) +
+       geom_errorbarh(frlimx, height=0.1, size = 0.25)
+  
+fresh_graph <- fr1 + ggtitle("a. Freshwater")+xlab(" ") + ylab("Axis 2") +
+    theme(legend.position = "none")
+
+
+
+fg <- ggplot(five_3, aes(mean_axis1,mean_axis2, label=TRUE)) +
+  geom_point(aes(color=Dispersal, pch= as.factor(Date)), size = 5)
+
+fg1 <- fg + geom_errorbar(flimy, width=0.1, size = 0.25) +
+  geom_errorbarh(flimx, height=0.1, size = 0.25)
+
+five_graph <- fg1 + ggtitle("b. Five Salinity")+xlab(" ") + ylab(" ") +
+    theme(legend.position = "none")
+
+ng <- ggplot(nine_3, aes(mean_axis1,mean_axis2, label=TRUE)) +
+  geom_point(aes(color=Dispersal, pch= as.factor(Date)), size = 5)
+
+ng1 <- ng + geom_errorbar(nlimy, width=0.1, size = 0.25) +
+  geom_errorbarh(nlimx, height=0.1, size = 0.25)
+
+nine_graph <- ng1 + ggtitle("c. Nine Salinity")+xlab("Axis 1") + ylab("Axis 2") +
+    theme(legend.position = "none")
+
+tg <- ggplot(teen_3, aes(mean_axis1,mean_axis2, label=TRUE)) +
+  geom_point(aes(color=Dispersal, shape= as.factor(Date)), size = 5)
+
+tg1 <- tg + geom_errorbar(tlimy, width=0.1, size = 0.25) +
+  geom_errorbarh(tlimx, height=0.1, size = 0.25)
+
+teen_graph <- tg1 + ggtitle("d. Thirteen Salinity")+xlab("Axis 1") + ylab(" ") +
+    scale_color_discrete(labels=c("Mixed", "Single")) +
+    scale_shape_discrete(labels=c("Initial", "Final"))+
+    theme(legend.justification = c(0.04, 0.95), legend.position = c(0.04,0.95))+
+    theme(legend.box = "horizontal")+
+    theme(legend.key.size = unit(0.20, "cm")) +
+    guides(colour = guide_legend(override.aes = list(size=3)))+
+    guides(shape = guide_legend(title = "Date",
+                              override.aes = list(size=3)))
+```
+
+
+Make into two grids
+```{r}
+
+grid.arrange(fresh_graph,five_graph, nine_graph, teen_graph, ncol=2)
+
+grid.arrange(Initial_comm, Final_comm, ncol=1)
+```
+
+
+
+Decomposition
+
+
+Graph -- newdat is a dataframe with all the predictions from models. rawdata means has the measured means and standard deviations
+```{r}
+ggplot(newdat, aes(decomp.Salinity, exp(pred))) + geom_line(aes(colour = as.factor(decomp.Dispersal))) + 
+  geom_point(data = rawdatmeans, aes(decomp.Salinity, exp(pred), colour=as.factor(decomp.Dispersal))) + 
+  geom_errorbar(data = rawdatmeans, aes(decomp.Salinity, ymin=exp(pred -stdv), ymax=exp(pred+stdv),
+                                        color=as.factor(decomp.Dispersal)),
+                width=0.1, lwd=1)+
+  facet_grid(Type~.)+
+  theme(panel.margin.x = unit(1.0, "lines"), panel.margin.y = unit(0.15, "lines"),
+        strip.text.y = element_text(size = 14, colour = "black", 
+                                    face = "bold", angle = 270),
+        axis.text.y = element_text(size = 12.5))+
+  ylab("Proportion Remaining")+xlab("Salinity")+
+  guides(color= guide_legend(title = "Dispersal 
+Treatment")) + scale_color_discrete(labels=c("Mixed", "Single"))+
+  theme_bw()
+
+```
+
+
+Here is a coefplot for the decomposition models
+
+```{r}
+dc <- dwplot(list(maple, spartina,phrag))+
+      xlab("Coefficient Estimate") + ylab("") +
+     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+     ggtitle("Decomposition") +
+     theme(plot.title = element_text(face="bold"),
+           legend.justification=c(0.9, 0.9), legend.position=c(0.9, 0.9),
+           legend.background = element_rect(colour="grey80"),
+           legend.title = element_blank()) + scale_colour_discrete(
+                      name = " ",
+                      breaks = c("Model 1", "Model 2", "Model 3"),
+                      labels = c("Maple", "Spartina", "Phragmites"))
+
+```
+
+Nitrogen
+```{r}
+g0<-ggplot(data=true_pred, aes(true,nitr))+geom_point(data=nit_summ,aes(true,nitr,colour=Salinity))+
+  geom_ribbon(aes(ymin = LL, ymax = UL, fill = Salinity), alpha = .25) + 
+  geom_line(aes(colour = Salinity,linetype=Salinity), size = 2)+colScale+ColFill+ltype+facet_wrap(~Date2)
+g0+ylab("Nitrogen")+xlab("Effective Diversity")+
+  theme(legend.position = c(0.83,0.85))+
+  scale_colour_manual(guide= guide_legend(direction = "horizontal", title.position = "top"),
+                      values = mycolors) +
+  scale_linetype_manual(guide= guide_legend(direction = "horizontal"), values = mylines) +
+  scale_fill_manual(guide= guide_legend(direction = "horizontal"),
+                    values = mycolors)
+
+
+```
+
+Nitrogen coef plot
+```{r}
+nit <- dwplot(nitmod1)+
+  relabel_y_axis(c("Dispersal", "Effective Diversity", "Salinity", 
+                     "Date","Salinity:Date")) +
+      xlab("Coefficient Estimate") + ylab("") +
+     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+     ggtitle("Nitrogen") +
+     theme(plot.title = element_text(face="bold"))
+print(nit)
+```
+
+Salinity over time
+```{r}
+s <- ggplot(bigdata,aes(Date2, sreal, color = as.factor(Salinity)))+geom_point()
+
+s1 <- s + xlab("Day")+ ylab("Salinity") + 
+  guides(color= guide_legend(title = "Salinity Treatment", title.position = "top")) +
+    theme(legend.position = c(0.83, 0.87), legend.direction = "horizontal") +ColFill+colScale
+
+print(s1)
+```
+
+
+
+
+
+
+

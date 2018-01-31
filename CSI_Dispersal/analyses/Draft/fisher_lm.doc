@@ -1,0 +1,3 @@
+            numDF denDF  F-value p-value
+(Intercept)     1   113 628.5515  <.0001
+Salinity        1   113   0.2006  0.6551

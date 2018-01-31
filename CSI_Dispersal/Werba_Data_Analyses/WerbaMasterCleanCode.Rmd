@@ -1,0 +1,422 @@
+---
+title: "Werba_ Zooplankton Analyses"
+author: "Jo"
+date: "June 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lme4)
+library(MASS)
+library(vegan)
+library(reshape2)
+library(tidyverse)
+library(ggplot2)
+load("msfinal.Rdata")
+
+```
+
+The first sets of analyses use the dataset "bigdata" found in the .Rdata file. This is all of the raw data for zooplankton, nitrogen, and salinity along with added columns for richness and abundances
+
+Alpha Diversity results:
+Effective diversity was used for estimating alpha community diversity in individual pools. There was no significant effect of salinity, dispersal or date on effective diversity (F = 0.59, df = 5; 180, p = 0.7).  For all treatments effective diversity was highest approximately half way through the experiment. 
+
+For all of the following: Dispersal is a factor in 2 levels, sreal is the actual measured salinity and Date2 is a number starting on day 0 until day 45 when the experiment ended. 
+
+```{r}
+trudiv<-lm(true~Dispersal+poly(sreal,2)*poly(Date2,2),data=bigdata)
+summary(trudiv)
+```
+
+Here I look at richness:
+The interaction between salinity and date provides a significant description of richness (t=2.3, p=0.02). Dispersal, salinity and date alone were not significant. In freshwater treatments richness declined over time while in all other treatments richness increased. 
+
+```{r}
+RichMod1<-glm(rich~Dispersal+poly(sreal,2)*poly(Date2,2),data = bigdata,family =quasipoisson)
+summary(RichMod1)
+```
+
+
+I also tested for differences in the total abundance of zooplankton independent of species and found that while diversity decreased, total abundance of zooplankton increased in all treatments over time. Salinity (z = -5.03, p < 0.01), the quadratic term for salinity (z= 2.98, p=0.002), date (z = 7.44, p < 0.01) and the interaction between date and salinity (z=2.62, p=0.008) were all significant descriptors of abundance. Dispersal treatment was not a significant factor (z= -1.046, p=0.29) Abundance decreased with increases in salinity 
+
+```{r}
+am1<-glm.nb(abundance ~ Dispersal+poly(sreal,2)*Date2, data=bigdata)
+summary(am1)
+```
+
+
+The next set of analyses are looking at beta diversity via NMDS. For all the following analyses the nmds results were pulled out to create data frames for graphining, these dataframes are found in the .Rdata file, for each analysis I will list the corresponding data frame. 
+
+First I look at all the treatments together at the first and last dates. Then I separate out by treatment. I include how I made these matrices since it isn't immediately clear how to get the graphs from the results of the NMDS
+
+```{r,message=FALSE}
+#subset of bigdata for day 1
+da1 <- bigdata[bigdata$Date=="42166",]
+
+#remove everything except community data, salinity, dispersal and treatment
+da2 <- da1[ , c(3,4,5:31,33)]
+
+#remove any rows with all zeros
+da3 <- da2[rowSums(da2[ , -c(1,2,30)]) != 0, ]
+
+#need only community matrix for nmds
+da4 <- da3[,-c(1,2,30)]
+
+first_nmds <- metaMDS(da4, distance="bray",k=9)
+
+# add points to same data frame with all salinity, treatment, dispersal information
+
+po <- cbind(as.data.frame(first_nmds$points), da3$Treatment,da3$Dispersal,da3$Salinity)
+
+# remove all MDS >2
+po1 <- po[ , -c(3:9)]
+
+colnames(po1) <- c("MDS1","MDS2", "Treatment", "Dispersal", "Salinity")
+
+#mean and sd of mds 1 and 2
+mean_mds1 <- aggregate(po1$MDS1, by = list(po1$Treatment), FUN = mean )
+sd_mds1 <- aggregate(po1$MDS1, by = list(po1$Treatment), FUN = sd )[[2]]
+
+
+mean_mds2 <- aggregate(po1$MDS2, by = list(po1$Treatment), FUN = mean )[[2]]
+sd_mds2 <- aggregate(po1$MDS2, by = list(po1$Treatment), FUN = sd )[[2]]
+
+agg <- cbind(mean_mds1,sd_mds1,mean_mds2,sd_mds2)
+colnames(agg) <- c("Treatment","mean_mds1","sd_mds1","mean_mds2", "sd_mds2")
+
+#add salinity and dispersal
+agg$salinity <- c("0","5","5","9","9","13","13","0")
+agg$dispersal <- rep(c("3","2"),4)  
+
+
+###now wash and repeat for final day
+
+d1<-bigdata[bigdata$Date=="42211",]
+
+#remove everything except community data, salinity, dispersal and treatment
+d2 <- d1[ , c(3,4,5:31,33)]
+
+#remove any rows with all zeros
+d3 <- d2[rowSums(d2[ , -c(1,2,30)]) != 0, ]
+
+#need only community matrix for nmds
+d4 <- d3[,-c(1,2,30)]
+
+last_nmds<-metaMDS(d4, distance="bray",k=9)
+
+# add points to same data frame with all salinity, treatment, dispersal information
+
+p <- cbind(as.data.frame(last_nmds$points), d3$Treatment,d3$Dispersal,d3$Salinity)
+
+# remove all MDS >2
+p1 <- p[ , -c(3:9)]
+
+colnames(p1)<- c("MDS1","MDS2", "Treatment", "Dispersal", "Salinity")
+
+#mean and sd of mds 1 and 2
+mean_mds11 <- aggregate(p1$MDS1, by = list(p1$Treatment), FUN = mean )
+sd_mds11 <- aggregate(p1$MDS1, by = list(p1$Treatment), FUN = sd )[[2]]
+
+
+mean_mds22 <- aggregate(p1$MDS2, by = list(p1$Treatment), FUN = mean )[[2]]
+sd_mds22 <- aggregate(p1$MDS2, by = list(p1$Treatment), FUN = sd )[[2]]
+
+agg1 <- cbind(mean_mds11,sd_mds11,mean_mds22,sd_mds22)
+colnames(agg1)<- c("Treatment","mean_mds1","sd_mds1","mean_mds2", "sd_mds2")
+
+#add salinity and dispersal
+agg1$salinity <- c("0","5","5","9","9","13","13","0")
+agg1$dispersal <- rep(c("3","2"),4) 
+
+
+
+### Now for first and last by salinity
+
+fl <- bigdata[bigdata$Date=="42166"| bigdata$Date == "42211",]
+
+#remove everything except community data, salinity, dispersal and date
+fl1 <- fl[ , c(1,4,5:31,33)]
+
+#each salinity gets its own data frame
+fresh <- fl1[fl1$Salinity == 0, ]
+five <- fl1[fl1$Salinity == 5, ]
+nine <- fl1[fl1$Salinity == 9, ]
+teen <- fl1[fl1$Salinity == 13, ]
+
+#need to remove all rows with zeros
+fresh_1 <- fresh[rowSums(fresh[, -c(1,2,30)]) != 0, ]
+five_1 <- five[rowSums(five[, -c(1,2,30)]) != 0, ]
+nine_1 <- nine[rowSums(nine[, -c(1,2,30)]) != 0, ]
+teen_1 <- teen[rowSums(teen[, -c(1,2,30)]) != 0, ]
+
+#run nmds for each salinity
+fresh_nmds <- metaMDS(fresh_1[ ,-c(1,2,30)], distance="bray",k=3)
+five_nmds <- metaMDS(five_1[ ,-c(1,2,30)], distance="bray",k=2)
+nine_nmds <- metaMDS(nine_1[ ,-c(1,2,30)], distance="bray",k=2)
+teen_nmds <- metaMDS(teen_1[ ,-c(1,2,30)], distance="bray",k=2)
+
+
+# combine the mds into a dataframe with dispersal
+fresh_2 <- cbind (as.data.frame(fresh_nmds$points)[,1:2], 
+                  fresh_1$Dispersal,fresh_1$Date)
+five_2 <- cbind (as.data.frame(five_nmds$points)[,1:2], 
+                five_1$Dispersal, five_1$Date)
+nine_2 <- cbind (as.data.frame(nine_nmds$points)[,1:2], 
+                 nine_1$Dispersal,nine_1$Date)
+teen_2 <- cbind (as.data.frame(teen_nmds$points)[,1:2], 
+                 teen_1$Dispersal, teen_1$Date)
+names <- c("Axis_1", "Axis_2", "Dispersal", "Date")
+colnames(fresh_2) <- names
+colnames(five_2) <- names
+colnames(nine_2) <- names
+colnames(teen_2) <- names
+
+## now need averages and standard deviation for each axis by dispersal
+
+
+fresh_3 <- fresh_2 %>%
+  group_by(Dispersal, Date) %>%
+  summarise (mean_axis1=mean(Axis_1),
+            sd_axis1=sd(Axis_1),
+            mean_axis2=mean(Axis_2),
+            sd_axis2=sd(Axis_2))
+five_3 <- five_2 %>%
+  group_by(Dispersal, Date) %>%
+  summarise (mean_axis1=mean(Axis_1),
+             sd_axis1=sd(Axis_1),
+             mean_axis2=mean(Axis_2),
+             sd_axis2=sd(Axis_2))
+
+nine_3 <- nine_2 %>%
+  group_by(Dispersal, Date) %>%
+  summarise (mean_axis1=mean(Axis_1),
+             sd_axis1=sd(Axis_1),
+             mean_axis2=mean(Axis_2),
+             sd_axis2=sd(Axis_2))
+
+teen_3 <- teen_2 %>%
+  group_by(Dispersal, Date) %>%
+  summarise (mean_axis1=mean(Axis_1),
+             sd_axis1=sd(Axis_1),
+             mean_axis2=mean(Axis_2),
+             sd_axis2=sd(Axis_2))
+
+```
+
+
+
+The next results are about the decomposition data. All this data is found in the dataframe decomp, also in the .Rdata file.
+
+I found a significant inverse relationship between salinity and the amount of decomposition for three leaf types; Acer rubrum leaves (F=6.7, df=2,28, p=0.004) (figure 14), Spartina sp (F=34.47, df=1,32, p<0.01) (figure 15), and Phragmites australis (F=7.04, df=1,32, p<0.01). I failed to find a significant effect of dispersal type on decomposition rate for any of the leaf types (Acer rubrum t=0.548,p=0.548; Spartina sp t=1.056,p=0.3), however decomposition of Phragmites australis was ~13% greater in the communities saltwater dispersal (t=1.82,p=0.07).
+
+```{r}
+maple<-lm(log(Maple/DryWt_Maple)~Salinity+Dispersal,data = decomp)
+spartina<-lm(log(Spartina/DryWt_Spartina)~Salinity+Dispersal,data=decomp)
+phrag<-lm(log(Phragmites/DryWt_Phragmites)~Salinity+Dispersal,data=decomp)
+```
+
+
+Ammonium increased with both salinity (t=20.255,p<0.001) and effective diversity (t=3.09,p=0.02). Neither dispersal treatment nor time had a significant affect on ammonium levels.
+```{r}
+nitmod1<-lm(log(nitr)~Dispersal+true+sreal*Date2,data = bigdata)
+```
+
+
+Change from NMDS to PCoA to match microbial data and add middle date
+
+```{r}
+# just dates 1, 18, 45
+library(vegan)
+library(tidyverse)
+
+data_3dates <- bigdata %>%
+  subset(Date2 == 0 | Date2 == 18 | Date2 == 45)
+#need to remove rows with all zeros because they are meaningless when using bray
+
+data_3dates1 <- data_3dates[rowSums(data_3dates[,-c(1:4,32:39)]) !=0,]
+
+
+#only community data
+
+comm <- data_3dates1[,c(5:31)]
+
+#distance matrix
+
+comm_dist <- vegdist(comm,method = "bray")
+
+#run PCoA
+zoo_pcoa <- cmdscale(comm_dist,k=3,eig = TRUE, add = FALSE)
+
+##how much variation is explained
+var1 <- round(zoo_pcoa$eig[1] / sum(zoo_pcoa$eig), 3) * 100  #27.2
+var2 <- round(zoo_pcoa$eig[2] / sum(zoo_pcoa$eig), 3) * 100  #16.5
+sum.eig <- sum(var1, var2)
+
+```
+
+Now I need to graph the PCoA for non-source tanks
+
+
+```{r}
+#need date, salinity, treatment and PCoA points in one dataframe
+graph_dat <- data.frame (cbind(data_3dates1$Date2, as.character(data_3dates1$Dispersal),
+                               data_3dates1$Salinity))
+names(graph_dat) <- c("Date", "Dispersal","Salinity")
+
+graph_dat$Point1 <- zoo_pcoa$points[,1]
+graph_dat$Point2 <- zoo_pcoa$points[,2]
+
+#need centroids and sd by group 
+cent1 <- graph_dat %>%
+  group_by(Date, Dispersal, Salinity) %>%
+  summarize(Axis1= mean(Point1), sd1 = sd(Point1), 
+            Axis2 = mean(Point2), sd2 =sd(Point2))
+
+
+#now to graph
+g1 <- ggplot(data= cent1, aes(Axis1, Axis2)) +geom_point(aes(color=as.factor(Salinity), shape = as.factor(Dispersal)), size = 5)
+
+g2 <- g1 + geom_errorbar(aes(ymax= Axis2+sd2, ymin= Axis2-sd2)) + 
+  geom_errorbarh(aes(xmax=Axis1+sd1, xmin=Axis1-sd1))
+
+```
+
+Now I need a PCoA that is just source tanks and control for the three days
+full_data.csv includes all the tanks including source tanks
+```{r}
+full_data <-read.csv("full_data.csv")
+#only source tanks
+source_only <- full_data[full_data$Treatment < 4,]
+#only 3 dates
+source_only_3dates <- source_only [source_only$Date==42166 | source_only$Date==42184 |source_only$Date==42211, ]
+#just community data 
+source_comm <- source_only_3dates[,-c(1:5)]
+#distance matrix
+source_dist <- vegdist(source_comm, method = "bray")
+source_pcoa <- cmdscale(source_dist, k=3,eig = TRUE, add = FALSE)
+
+#how much variation is explained
+var1s <- round(source_pcoa$eig[1] / sum(source_pcoa$eig), 3) * 100  #36.3
+var2s <- round(source_pcoa$eig[2] / sum(source_pcoa$eig), 3) * 100  #20.5
+sum.eigs <- sum(var1s, var2s)
+
+```
+
+I think actually I should have done all of it together and then separate out when graphing
+
+```{r}
+full_data <-read.csv("full_data.csv")
+#only 3 dates
+all_3dates <- full_data [full_data$Date==42166 | full_data$Date==42184 |full_data$Date==42211, ]
+#remove all rows that sums = zero
+all_3dates1 <- all_3dates[rowSums(all_3dates[,-c(1:5)]) != 0,]
+# just community data
+comm_3dates <- all_3dates1[,-c(1:5)]
+#distance matrix
+all_dist <- vegdist(comm_3dates, method = "bray")
+#pcoa
+all_pcoa <- cmdscale(all_dist, k=3, eig = TRUE, add = FALSE)
+#how much variation is explained
+var1a <- round(all_pcoa$eig[1] / sum(all_pcoa$eig), 3) * 100  #31.6
+var2a <- round(all_pcoa$eig[2] / sum(all_pcoa$eig), 3) * 100  #14.1
+sum.eiga <- sum(var1a, var2a)
+
+```
+
+Now to graph
+```{r}
+theme_set(theme_bw()) 
+theme_update(axis.text.x = element_text(size = 12),
+             axis.text.y = element_text(size = 12),
+             axis.title.x = element_text(size = 14),
+             axis.title.y = element_text(size = 14),
+             legend.title = element_text(size = 10),
+             legend.text = element_text(size = 8),
+             legend.spacing = unit(0.25, "cm"),
+             legend.key.width = unit(0.35, "cm"),
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             strip.background = element_blank(),
+             panel.spacing = unit(0, "lines"),
+             #      legend.key.size = unit(.15, "cm"),
+             legend.key = element_rect(fill = "white"),
+             panel.spacing.y = unit(-0.25, "lines"),
+             panel.border = element_rect(colour = "black", 
+                                         fill = NA, size = 1),
+             strip.text.x = element_text(size = 18, colour = "black", 
+                                         face = "bold"))
+
+```
+
+```{r}
+#need date, salinity, treatment and PCoA points in one dataframe
+graph_dat <- data.frame (cbind(all_3dates1$Date, as.character(all_3dates1$Dispersal),
+                               all_3dates1$Salinty))
+names(graph_dat) <- c("Date", "Dispersal","Salinity")
+
+graph_dat$Point1 <- all_pcoa$points[,1]
+graph_dat$Point2 <- all_pcoa$points[,2]
+
+#need centroids and sd by group 
+cent1 <- graph_dat %>%
+  group_by(Date, Dispersal, Salinity) %>%
+  summarize(Axis1= mean(Point1), sd1 = sd(Point1), 
+            Axis2 = mean(Point2), sd2 =sd(Point2))
+cent1 <- data.frame(cent1)
+cent1$Salinity <- factor(as.character(cent1$Salinity),levels= c("0","5","9","13"))
+cent1$date2 <- rep(c(0,18,45), each =11 )
+
+#now to graph
+
+g1 <- ggplot(data= cent1, aes(Axis1, Axis2)) +
+  geom_point(aes(color=Salinity,
+                 shape = as.factor(Dispersal)), size = 5)
+
+g2 <- g1 + geom_errorbar(aes(ymax= Axis2+sd2, ymin= Axis2-sd2)) + 
+  geom_errorbarh(aes(xmax=Axis1+sd1, xmin=Axis1-sd1))
+
+g3 <- g2 + facet_wrap(~date2, ncol = 1) 
+
+g4 <- g3 +  scale_shape_manual(name = "Dispersal", 
+                               values = c(15,16,17,18),
+                                       breaks = c(0,1,2,3),
+                                       labels = c("Source","Control Fresh","Mixed Salt and   Fresh","Salt Only"))
+
+  
+  
+  #alternate
+
+Dispersal1 <- rep(c(rep("Source",2),"Control Fresh", rep("Mixed Salt and Fresh", 4),
+                     rep("Salt Only",4)),3)
+  
+cent1$Dispersal1 <- Dispersal1
+
+g1 <- ggplot(data= cent1, aes(Axis1, Axis2)) +geom_point(aes(color=as.factor(Salinity), shape = as.factor(date2)), size = 5)
+
+g2 <- g1 + geom_errorbar(aes(ymax= Axis2+sd2, ymin= Axis2-sd2)) + 
+  geom_errorbarh(aes(xmax=Axis1+sd1, xmin=Axis1-sd1))
+
+g3 <- g2 + facet_wrap(~Dispersal1, ncol = 2)
+
+g4 <- g3 + labs(color = "Salinity")+ labs(shape = "Date")
+
+```
+
+Mantel tests comparing zooplankton relative abundance and decomposition
+```{r}
+
+# from full data only want community data and remove any rows with all zeros
+
+full_data_alt <- full_data[rowSums(full_data[,-c(1:5)]) != 0,]
+comm_dat <- full_data_alt[,-c(1:5)]
+
+#remove rows with all zeros
+
+dist.zoop <- vegdist(comm_dat, method = "bray")
+dist.bact <- vegdist(csi_relabun.ns, method = "bray")
+
+require(ade4)
+mantel.rtest(dist.zoop, dist.bact, nrepet = 999)
+
+```
