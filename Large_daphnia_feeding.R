@@ -1,6 +1,7 @@
 library(readxl)
 library(tidyverse)
 library(ggplot2)
+library(nlmrt)
 dat2 <- read_excel("Daphnia_large_Feeding_Nov11.xlsx")
 theme_set(theme_bw())
 theme_update(axis.text.x = element_text(size = 16),
@@ -49,8 +50,8 @@ fit2 <- nlxb(formula = diff_chl_ind ~ a * Chl_Time_Diff * chl1,
              start = c(a = 1), data = data.frame(newdat2))
 
 newdat2$pred_vals <- Hollings1(t = newdat2$Chl_Time_Diff, x = newdat2$chl1, a = fit2$coefficients)
-newdat2$pred_upper <- Hollings1(t = newdat2$Chl_Time_Diff, x = newdat2$chl1, a = fit2$coefficients+7.497e-06 )
-newdat2$pred_lower <- Hollings1(t = newdat2$Chl_Time_Diff, x = newdat2$chl1, a = fit2$coefficients-7.497e-06 )
+newdat2$pred_upper <- Hollings1(t = newdat2$Chl_Time_Diff, x = newdat2$chl1, a = fit2$coefficients+5.439e-06 )
+newdat2$pred_lower <- Hollings1(t = newdat2$Chl_Time_Diff, x = newdat2$chl1, a = fit2$coefficients-5.439e-06 )
 
 
 dfnew <- data.frame(
@@ -112,3 +113,8 @@ ggplot(b, aes(chl1, diff_chl_ind)) + geom_point(lwd = 4, aes(colour = as.factor(
   geom_point(aes(chl1, pred_vals), lwd = 2) + geom_errorbar(aes(ymin=pred_lower,ymax=pred_upper, x=chl1))+
   theme_classic()+ theme(legend.position = "none")+
   xlab("Initial Chlorophyll Conc (mg/L)")+ylab("Individual Uptake of Chlorophyll (mg/L*unit time)")
+
+
+
+ggplot(dat2, aes(chl1,diff_chl_ind))+geom_point(aes(color=as.factor(Treatment)))+
+  scale_y_continuous(limits = c(-0.5,2))
