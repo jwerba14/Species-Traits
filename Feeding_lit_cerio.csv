@@ -1,0 +1,11 @@
+Author,Year,Genus,Species,food type,log(concentration_algae(ug/ml)),log(ml/animal/hr_filtered),linear_scale_mean_algae,linear_scale_mean_filtering
+Obrien_DeNoyelles,1974,Ceriodaphnia,reticulata,mixed,78548,0.665,,
+,,,,,78548,0.73,,
+,,,,,209330,0.5259,,
+,,,,,209330,0.614,,
+,,,,,546110,0.3413,,
+,,,,,546110,0.3766,,
+,,,,,573940,0.3202,,
+,,,,,573940,0.3449,,
+,,,,,878430,0.07,,
+,,,,,878430,0.139,,
