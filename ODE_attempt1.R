@@ -1,5 +1,5 @@
 # attempt to write system of differential equations
-
+source("transfer_functions.r")
 library(deSolve)
 # state variables given completely arbitary values but wanted to get names on them
 
@@ -13,7 +13,25 @@ state <- c(ammonium = 5,
 )
 
 #parameters- will need parameters for each function
-parameters <- c(x,x,x)
+parameters <- c(
+  a = 0.1,b = 0.1,  # daphnia adult release Nh4
+  c= 0.01, d = 0.01, # daphnia juv release Nh4
+  e = 0.001, f =0.001, #cerio release Nh4
+  dj =0.000001 , drj = 0.000001, # daphnia juv death
+  dm = 0.00001, drm = 0.00001, # daphnia adult death
+  dc = 0.00001, drc = 0.0001, # cerio death
+  da = 0.001, dra = 0.001, # algae death
+  t = 0.01, h = 0.01, # mich men uptake nh4
+  cammonium = .000001, # ammonium lost to env
+  n = .0001, # nitrification constant
+  p= .001, q = .001, # mich men uptake nitrate
+  cnitrate = .000001, # nitrate lost to env
+  z =0.001, w = 0.0001, # birth of juvenile daphnia
+  l =0.0006, m= -400,  # uptake of algae by juvenile hollings type II
+  g = 0.0001, i= 0.001, # birth of cerio
+  j = .00001, k= 137, # uptake of algae by adult daphnia hollings type II
+  y= .0000001, r = -500 # uptake of algae by cerio hollings type II (prob need to change to linear)
+  ) 
 
 
 
@@ -60,4 +78,8 @@ parameters <- c(x,x,x)
         # return the rate of change
          list(c(dammonium, dnitrate, ddaph_j,ddaph_a,dcerio,dalgae))
        }) # end with(as.list ...
-   }
+ }
+ 
+ 
+ out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters)
+ plot(out)
