@@ -1,3 +1,4 @@
+source("transfer_functions.R")
 dat = read.csv("Feeding_lit_extraction.csv")
 
 
@@ -19,9 +20,10 @@ rdat$rate_chl_ind <- rdat$rate_chl/rdat$Num_Daphnia
 rdat1 <- rdat %>%
   filter(control == 1)
 
-m1 <- nls(rate_chl_ind~(chl1*h)/(1+chl1*h*r), start = list(h=0.2,r=0.5), data = rdat1 )
+m1 <- nls(rate_chl_ind~(chl1*h)/(1+chl1*h*r), start = list(h=0.002,r=130), data = rdat1 )
 
-newpred <- hollings2(a= seq(0.1,24,0.1), h = 0.000122, r = 137.7)
+newpred <- hollings2(a= seq(0.1,24,0.1), h = 0.0000939, r = 78.05) 
+#std error h = .0000131 p <<<<0.0001, std error r = 10.7 p= 0.000279
 plot(seq(0.1,24,0.1), newpred)
 points(rdat1$chl1,rdat1$rate_chl_ind)
 

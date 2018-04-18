@@ -27,9 +27,9 @@ parameters <- c(
   p= .001, q = .001, # mich men uptake nitrate
   cnitrate = .000001, # nitrate lost to env
   z =0.001, w = 0.0001, # birth of juvenile daphnia
-  l =0.0006, m= -400,  # uptake of algae by juvenile hollings type II
+  l =.000026, m= -448,  # uptake of algae by juvenile hollings type II
   g = 0.0001, i= 0.001, # birth of cerio
-  j = .00001, k= 137, # uptake of algae by adult daphnia hollings type II
+  j = 0.0000939, k= 10.7, # uptake of algae by adult daphnia hollings type II
   y= .0000001, r = -500 # uptake of algae by cerio hollings type II (prob need to change to linear)
   ) 
 
