@@ -67,7 +67,7 @@ parameters <- c(
         #ceriodaphnia are added by birth and are lost from death
       dcerio <- sat_fun(g,i,algae)*cerio - cerio*death(dc, cerio)
      
-        # algae is added from growth based on uptake of ammonium and nitrate
+        # algae is added from growth based on uptake of ammonium and nitrate #need to add contanst to mm
        dalgae <- algae*mich_men(t,h,ammonium) + algae*mich_men(p,q, nitrate) -
         # algae is lost from being eaten by each of the 3 zooplankon
          -daph_a*hollings2(j,k,algae) + daph_j*hollings2(l,m,algae)+cerio*hollings2(y,r,algae) -
