@@ -22,10 +22,10 @@ parameters <- c(
   dc = 0.00001, drc = 0.0001, # cerio death
   da = 0.001, dra = 0.001, # algae death
   t = 0.01, h = 0.01, # mich men uptake nh4
-  cammonium = .000001, # ammonium lost to env
-  n = .0001, # nitrification constant
+  cammonium = .000001, # ammonium lost to env-- calc in nutrient_air.R
+  n = .0001, # nitrification constant  -- calc in nutrient_air.R
   p= .001, q = .001, # mich men uptake nitrate
-  cnitrate = .000001, # nitrate lost to env
+  cnitrate = .000001, # nitrate lost to env-- calc in nutrient_air.R
   z =0.001, w = 0.0001, # birth of juvenile daphnia
   l =.000026, m= -448,  # uptake of algae by juvenile hollings type II
   g = 0.0001, i= 0.001, # birth of cerio
