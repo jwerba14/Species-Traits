@@ -16,9 +16,11 @@ dat1 <- dat %>%
 dat2 <- dat %>%
   filter(control == 2)
 
+with(dat, plot(rate_chl1_ind, rate_nh4_ind))
 
 df <- data.frame(hollings2(a= dat$chl1, h = 0.0000939, r = 78.05))
 df<- df %>% drop_na()
+
 
 # need to incorporate algae uptake for this to make sense
 (b <- nls(rate_nh4_ind ~ 

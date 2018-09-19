@@ -1,7 +1,16 @@
 # read in
 dat <- read.csv("cerio_pop.csv")
+library(minpack.lm)
+trial <- nlsLM(Population ~ Population * r*(1-1/(K*Population/Avg_Chl)), start = list(r=.1, K= 75), 
+             data = dat)
+
+newpred <- predict()
+
+                                    
+#this works even though it makes no sense Population ~ Population * (r - r/K * (Population/Avg_Chl)) *Population
 
 
+m <- nls(feeding.rate.mean~(Chl_conc*h)/(1+Chl_conc*h*r), start = list(h=1,r=1), data = dat )
 library(tidyverse)
 library(ggplot2)
 library(lme4)

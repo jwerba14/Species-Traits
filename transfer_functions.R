@@ -28,3 +28,10 @@ sat_fun <- function(a,b,k) {
   a * b / (k + b)
   
 }
+
+
+#logistic function for ODE
+logist <- function(r,P,K) {
+  (r*P)*(1-(P/K))
+}
+}
