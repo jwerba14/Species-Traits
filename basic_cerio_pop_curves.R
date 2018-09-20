@@ -1,7 +1,7 @@
 # read in
 dat <- read.csv("cerio_pop.csv")
-library(minpack.lm)
-trial <- nlsLM(Population ~ Population * r*(1-1/(K*Population/Avg_Chl)), start = list(r=.1, K= 75), 
+
+trial <- nls(Population ~ Population * r*(1-1/(K*Population/Avg_Chl)), start = list(r=.1, K= 75), 
              data = dat)
 
 newpred <- predict()
