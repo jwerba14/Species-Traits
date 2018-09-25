@@ -3,13 +3,19 @@ str(dat)
 with(dat,plot(date1,nh4))
 with(dat,plot(chl,nh4))
 library(ggplot2)
+library(tidyverse)
 
-#mod <- nls(chl~chl*(r-r/k*(nh4+no3)*chl), data = dat, start = list(r=1,k=150),control = nls.control(maxiter = 1000))
+dat1 <- dat %>% filter(rep==3,treat==9)
+mod <- nls(chl~logist(r=r,k=k,t=date1,n=44),data = dat1,start = list(r=.1,k=150))
+
+plot(predict(mod))
+with(dat1, plot(date1,chl))
 
 ggplot(aes(nh4+no3,chl),data = dat)+geom_point(aes(color=as.factor(treat)))
 
 ggplot(aes(chl, nh4+no3),data = dat)+geom_point(aes(color=as.factor(treat)))
-ggplot(aes(date1, chl),data = dat)+geom_point(aes(color=as.factor(treat)))
+ggplot(aes(date1, chl),data = dat)+geom_point(aes(color=as.factor(treat))) +
+ facet_wrap(~as.factor(rep))
 
 ggplot(aes(date1,nh4+no3),data = dat)+geom_point(aes(color=as.factor(treat)))
 

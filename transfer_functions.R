@@ -31,7 +31,7 @@ sat_fun <- function(a,b,k) {
 
 
 #logistic function for ODE
-logist <- function(r,P,K) {
-  (r*P)*(1-(P/K))
+logist <- function(r,k,t,n) {
+  k/ (1+((k/n)-1)*exp(r*t))
 }
-}
+
