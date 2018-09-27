@@ -1,3 +1,4 @@
+source("transfer_functions.R")
 dat <- read.csv("Algae_Nutrient.csv")
 str(dat)
 with(dat,plot(date1,nh4))
@@ -16,12 +17,78 @@ newdat <- data.frame (
 
 g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newdat, aes(color="red"))
 with(dat1, plot(date1,chl))
-mod2 <- nls(chl~log_alt(r=r,x=x,t=date1,n=44,n0=5.5),data = dat1,start = list(r=-0.5,x=40)) 
+
+log_alt(phi=1,x=200,t=dat1$date1,a0=44,n0=5.5)
+## try log_alt at slightly different values
+log_alt(phi=1.01,x=200,t=dat1$date1,a0=44,n0=5.5)
+log_alt(phi=1,x=200.1,t=dat1$date1,a0=44,n0=5.5)
+mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
+            start = list(phi=1,x=1/200))
+mod2
+predict(mod2) ## seems OK ...
 
 ## try to do all reps at once
 exdat <- dat %>%
   group_by(urep) %>%
   mutate(start_chl = chl[1])
+
+res <- exdat %>% do(fit_nls(.))
+
+## bad ones?
+bad_u <- res %>% filter(is.na(k_est)) %>% pull(urep)
+
+ggplot(filter(exdat,urep %in% bad_u),
+       aes(date1,chl))+geom_point()+geom_smooth()+
+    facet_wrap(~urep)+
+    scale_y_log10()
+
+res2 <- (res
+    %>% filter(k_est-2*k_se>0) 
+    %>% gather(var,val,-urep)
+    %>% separate(var,into=c("param","element"))
+    %>% spread(element,val)
+)
+
+ggplot(res2,aes(urep,est,ymin=est-2*se,ymax=est+2*se))+
+    geom_pointrange()+facet_wrap(~param,scale="free")+
+    geom_smooth(method="gam",
+                ## ,formula=y~s(x,k=6)
+                )
+
+library(mgcv)
+kpars <- filter(res2, param=="k")
+gam(est~s(urep),weights=1/se^2,data=kpars)
+## or whatever kind of model you want to fit: linear, quadratic, or ...
+summary(lm(est~urep+I(urep^2),weights=1/se^2,data=kpars))
+
+dd0 <- filter(exdat,urep==1.5)
+plot(chl~date1,data=dd0)
+lines(dd0$date1,ode_pred(r=0.1,k=150,t=dd0$date1,a0=dd0$chl[1]))
+
+
+nlsfit0 <- nls(chl~logist(r=r,k=k,t=date1,a0=chl[1], debug=TRUE),
+    data=dd0,
+    start = list(r=.1,k=150))
+
+## to get this working:
+##  (1) pick 'better starting values' (not a general solution)
+nls(chl~ode_pred(r=r,k=k,t=date1,a0=chl[1]),
+    data=dd0,
+    start = as.list(coef(nlsfit0))) ## (r=.1,k=150))
+
+## (2) bound the parameters (hmm ...)
+nls(chl~ode_pred(r=r,k=k,t=date1,a0=chl[1]),
+    data=dd0,
+    start = list(r=.1,k=150),
+    lower=c(0.01,1),
+    algorithm="port")
+
+## (3) fit r, k on the log scale
+## (make the parameters log_r, log_k, exponentiate them
+##  inside the odepred function)
+
+## (4) try fitode function, which might have built-in link
+## functions for parameters
 
 full_mod <- nls(chl~logist(r=r,k=k,t=date1,n=start_chl),data = exdat,start = list(r=.1,k=150))
 
@@ -37,7 +104,7 @@ g2 <- ggplot(aes(date1,chl), data = exdat) + geom_point() + geom_line(data = pre
 
 
 ## make a function to fit the logist-- if a rep won't fit just gives NA
-fit_nls <- function(subdat) {
+fit_nls <- function(subdat, par_names=c("r","k")) {
   
  nls_fit <- try(
     nls(chl~logist(r=r,k=k,t=date1,n=start_chl),data=subdat,start = list(r=.1,k=150)),
@@ -59,15 +126,24 @@ fit_nls <- function(subdat) {
  if (p > 100) { break }
  
  }
- 
- if(class(nls_fit) == "try-error") {
-   return(c(NA, NA))
- } else {
-   return(coef(nls_fit)[c(1, 2)])
- }
-  
+
+    col_names <- c(outer(par_names,c("est","se"),paste,sep="_"))
+    if(class(nls_fit) == "try-error") {
+        pp <- rep(NA,4) ## FIXME: get the right number of NAs programmatically
+        ## FIXME: will fail if first group is bad
+    } else {
+        coef_tab <- coef(summary(nls_fit))
+        pp <- c(coef_tab[,c("Estimate","Std. Error")])
+    }
+    ## collapse results to a one-row matrix
+    dd <- data.frame(matrix(pp,nrow=1))
+    names(dd) <- col_names
+    return(dd)
 }
 
+fit_nls2 <- function(subdat) {
+    data.frame(matrix(fit_nls(subdat),nrow=1))
+}
 #make loop to fit for each rep individually to get a dataframe with all r and k estimates
 chl <- exdat %>%
   group_by(urep) %>%

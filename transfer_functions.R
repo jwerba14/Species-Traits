@@ -31,13 +31,40 @@ sat_fun <- function(a,b,k) {
 
 
 #logistic function for ODE
-logist <- function(r,k,t,n) {
-  k/ (1+((k/n)-1)*exp(-r*t))
+logist <- function(r,k,t,a0, debug=FALSE) {
+    if (debug) cat("r,k:",r,k,"\n")
+    k/ (1+((k/a0)-1)*exp(-r*t))
 }
 
 #alt parameterization logistic
 
-log_alt <- function(r,n,n0, x,t) {
-  (n/x)/(1+(((n0/x)/n)-1)*exp(-r*t))
+#' @param r growth rate
+#' @param a0 initial algal density
+#' @param n0 initial (= total) nitrogen
+#' @param x nitrogen use efficiency
+#' @param phi nitrogen uptake rate
+#' @param t time
+log_alt <- function(phi,x,a0,n0,t) {
+    r <- n0*phi
+    K <- n0/x
+    K/(1+((K/a0)-1)*exp(-r*t))
 }
+
+log_grad <- function(time, state, params) {
+    grad <- with(as.list(c(state,params)), ## magic for param/state names
+                 c(chl=r*chl*(1-chl/k)))
+    return(list(grad))
+}
+
+ode_pred <- function(r,k,t,a0) {
+    ode_res <- ode(y=c(chl=a0), ## starting state value, named
+                   times=t,
+                   func=log_grad,
+                   parms=c(r=r,k=k))
+    chl_res <- ode_res[,"chl"]
+    cat("r,k:",r,k,"\n")
+    lines(t,chl_res)
+    return(chl_res)
+}
+    
 
