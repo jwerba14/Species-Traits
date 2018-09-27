@@ -32,6 +32,12 @@ sat_fun <- function(a,b,k) {
 
 #logistic function for ODE
 logist <- function(r,k,t,n) {
-  k/ (1+((k/n)-1)*exp(r*t))
+  k/ (1+((k/n)-1)*exp(-r*t))
+}
+
+#alt parameterization logistic
+
+log_alt <- function(r,n,n0, x,t) {
+  (n/x)/(1+(((n0/x)/n)-1)*exp(-r*t))
 }
 
