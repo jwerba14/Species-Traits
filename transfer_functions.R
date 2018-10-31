@@ -50,6 +50,7 @@ log_alt <- function(phi,x,a0,n0,t) {
     K/(1+((K/a0)-1)*exp(-r*t))
 }
 
+library(deSolve)
 log_grad <- function(time, state, params) {
     grad <- with(as.list(c(state,params)), ## magic for param/state names
                  c(chl=r*chl*(1-chl/k)))
@@ -63,7 +64,8 @@ ode_pred <- function(r,k,t,a0) {
                    parms=c(r=r,k=k))
     chl_res <- ode_res[,"chl"]
     cat("r,k:",r,k,"\n")
-    lines(t,chl_res)
+    plot.new()
+    plot(t,chl_res)
     return(chl_res)
 }
     

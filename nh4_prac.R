@@ -6,26 +6,103 @@ with(dat,plot(chl,nh4))
 library(ggplot2)
 library(tidyverse)
 
+## make a function to fit the logist-- if a rep won't fit just gives NA
+fit_nls <- function(subdat, par_names=c("r","k")) {
+  
+  nls_fit <- try(
+    nls(chl~logist(r=r,k=k,t=date1,a0=start_chl),data=subdat,start = list(r=.1,k=150)),
+    silent = TRUE
+  )
+  
+  p = 1
+  while (class(nls_fit) == "try-error") {
+    start_r <- rlnorm(1, -2, 1)
+    start_k <- rlnorm(1, log(250), 3)
+    
+    nls_fit <- try(
+      nls(chl~logist(r=r,k=k,t=date1,a0=start_chl),data=subdat,start = list(r=start_r,k=start_k)),
+      silent = TRUE
+    )
+    
+    p = p + 1
+    
+    if (p > 100) { break }
+    
+  }
+  
+  col_names <- c(outer(par_names,c("est","se"),paste,sep="_"))
+  if(class(nls_fit) == "try-error") {
+    pp <- rep(NA,4) ## FIXME: get the right number of NAs programmatically
+    ## FIXME: will fail if first group is bad
+  } else {
+    coef_tab <- coef(summary(nls_fit))
+    pp <- c(coef_tab[,c("Estimate","Std. Error")])
+  }
+  ## collapse results to a one-row matrix
+  dd <- data.frame(matrix(pp,nrow=1))
+  names(dd) <- col_names
+  return(dd)
+}
+
+fit_nls2 <- function(subdat) {
+  data.frame(matrix(fit_nls(subdat),nrow=1))
+}
+
 dat$urep <- dat$rep + dat$treat
-dat1 <- dat %>% filter(rep==3,treat==9)
-mod <- nls(chl~logist(r=r,k=k,t=date1,n=44),data = dat1,start = list(r=.1,k=150))
+dat1 <- dat %>% filter(rep==1,treat==0.5)
+mod <- nls(chl~logist(r=r,k=k,t=date1,a0=44),data = dat1,start = list(r=.1,k=150))
 plot(predict(mod),dat1$chl)
 newdat <- data.frame (
   date1 = dat1$date1,
   chl = predict(mod)
 )
 
+
+fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
+  
+  nls_fit <- try(
+    nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),data=subdat,start = list(phi=1,x=1/200)),
+    silent = TRUE
+  )
+  
+  p = 1
+  while (class(nls_fit) == "try-error") {
+    start_phi <- rlnorm(1, -2, 1)
+    start_x <- 1/rlnorm(1, log(250), 3)
+    
+    nls_fit <- try(
+      nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),data=subdat,start = list(phi=start_phi,x=start_x)),
+      silent = TRUE
+    )
+    
+    p = p + 1
+    
+    if (p > 100) { break }
+    
+  }
+  
+  col_names <- c(outer(par_names,c("est","se"),paste,sep="_"))
+  if(class(nls_fit) == "try-error") {
+    pp <- rep(NA,4) ## FIXME: get the right number of NAs programmatically
+    ## FIXME: will fail if first group is bad
+  } else {
+    coef_tab <- coef(summary(nls_fit))
+    pp <- c(coef_tab[,c("Estimate","Std. Error")])
+  }
+  ## collapse results to a one-row matrix
+  dd <- data.frame(matrix(pp,nrow=1))
+  names(dd) <- col_names
+  return(dd)
+}
+
 g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newdat, aes(color="red"))
 with(dat1, plot(date1,chl))
 
-log_alt(phi=1,x=200,t=dat1$date1,a0=44,n0=5.5)
-## try log_alt at slightly different values
-log_alt(phi=1.01,x=200,t=dat1$date1,a0=44,n0=5.5)
-log_alt(phi=1,x=200.1,t=dat1$date1,a0=44,n0=5.5)
+
 mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
             start = list(phi=1,x=1/200))
 mod2
-predict(mod2) ## seems OK ...
+predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
 
 ## try to do all reps at once
 exdat <- dat %>%
@@ -33,6 +110,34 @@ exdat <- dat %>%
   mutate(start_chl = chl[1])
 
 res <- exdat %>% do(fit_nls(.))
+
+
+## fit reps with alternate parameters
+mdat <- exdat %>%
+  group_by(urep)%>%
+  mutate(start_nh4 = nh4[1])
+
+newfit <- mdat %>% do(fit_nls_alt(.))
+
+
+
+### fit as ODE 
+## need derivative of logist with
+
+dat2 <- exdat %>% filter(urep == 1.5)
+ode_pred( r=0.278, k=125,t=dat2$date1,a0=dat2$start_chl[1])
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## bad ones?
 bad_u <- res %>% filter(is.na(k_est)) %>% pull(urep)
@@ -51,7 +156,7 @@ res2 <- (res
 
 ggplot(res2,aes(urep,est,ymin=est-2*se,ymax=est+2*se))+
     geom_pointrange()+facet_wrap(~param,scale="free")+
-    geom_smooth(method="gam",
+    geom_smooth(method="gam"
                 ## ,formula=y~s(x,k=6)
                 )
 
@@ -103,47 +208,21 @@ g2 <- ggplot(aes(date1,chl), data = exdat) + geom_point() + geom_line(data = pre
 ## ok that was fun but what I actually want is a table of r-- that will then be a function of nutrients
 
 
-## make a function to fit the logist-- if a rep won't fit just gives NA
-fit_nls <- function(subdat, par_names=c("r","k")) {
-  
- nls_fit <- try(
-    nls(chl~logist(r=r,k=k,t=date1,n=start_chl),data=subdat,start = list(r=.1,k=150)),
-    silent = TRUE
-    )
- 
- p = 1
- while (class(nls_fit) == "try-error") {
- start_r <- rlnorm(1, -2, 1)
- start_k <- rlnorm(1, log(250), 3)
- 
- nls_fit <- try(
-   nls(chl~logist(r=r,k=k,t=date1,n=start_chl),data=subdat,start = list(r=start_r,k=start_k)),
-   silent = TRUE
- )
- 
- p = p + 1
- 
- if (p > 100) { break }
- 
- }
 
-    col_names <- c(outer(par_names,c("est","se"),paste,sep="_"))
-    if(class(nls_fit) == "try-error") {
-        pp <- rep(NA,4) ## FIXME: get the right number of NAs programmatically
-        ## FIXME: will fail if first group is bad
-    } else {
-        coef_tab <- coef(summary(nls_fit))
-        pp <- c(coef_tab[,c("Estimate","Std. Error")])
-    }
-    ## collapse results to a one-row matrix
-    dd <- data.frame(matrix(pp,nrow=1))
-    names(dd) <- col_names
-    return(dd)
+
+newdat <- exdat %>%
+  select(c(urep,start_chl,chl,nh4,date1))
+
+newdat$r <- 0
+newdat$k <- 0
+newdat$r_se <- 0
+newdat$k_se <- 0
+
+for (i in 1:length(unique(newdat$urep))) {
+  temp_dat <- newdat[newdat$urep == unique(newdat$urep)[i],]
+  newdat[i,c(6,7,8,9)] <- fit_nls(temp_dat)
 }
 
-fit_nls2 <- function(subdat) {
-    data.frame(matrix(fit_nls(subdat),nrow=1))
-}
 #make loop to fit for each rep individually to get a dataframe with all r and k estimates
 chl <- exdat %>%
   group_by(urep) %>%
@@ -158,12 +237,14 @@ fits_df <- data.frame(
   chl = chl[2],
   nh4 =nh4[2],
   r = 0,
-  k = 0
+  k = 0,
+  r_se = 0,
+  k_se =0
 )
 
 for (i in 1:length(unique(exdat$urep))) {
   temp_dat <- exdat[exdat$urep == unique(exdat$urep)[i],]
-  fits_df[i,c(4,5)] <- fit_nls(temp_dat)
+  fits_df[i,c(4,5,6,7)] <- fit_nls(temp_dat)
 }
 
 
@@ -183,11 +264,23 @@ for (i in 1:length(unique(exdat$treat))) {
 
 fit_nls(subdat = exdat)
 
-#try to do it in tidy but failed...
-rdf <- exdat %>% 
-  group_by(rep, treatment) %>%
-  summarize(fit_nls(subdat = .))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###### random other stuff
+#try to do it in tidy but failed...
 
 ggplot(aes(nh4+no3,chl),data = dat)+geom_point(aes(color=as.factor(treat)))
 
