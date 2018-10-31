@@ -122,15 +122,42 @@ newfit <- mdat %>% do(fit_nls_alt(.))
 
 
 ### fit as ODE 
-## need derivative of logist with
+
 
 dat2 <- exdat %>% filter(urep == 1.5)
 ode_pred( r=0.278, k=125,t=dat2$date1,a0=dat2$start_chl[1])
 
+## try to get ode predictions for all reps
+
+df <- left_join(res,exdat)
+
+ode_fit_df <- df %>%
+  group_by(urep)%>%
+  do(ode_pred(r=r_est[1], k=k_est[1], t=date1,a0=start_chl[1]))  ## this doesn't work cant find r-est etc
 
 
 
+df1 <- df %>% filter (!is.na(r_est))
 
+
+temp <- data.frame(
+  urep = (df1$urep),
+  date1 = df1$date1,
+  chl_est = 0
+  
+)
+
+for (i in 1:length(unique(df1$urep))) {
+  ss <- df1 %>% filter(urep == unique(df1$urep)[i])
+  
+  sto <-  ode_pred (
+   r=ss$r_est[1],
+   k=ss$k_est[1],
+   t=ss$date1,
+   a0 = ss$start_chl[1])
+  
+  temp[temp$urep==unique(temp$urep)[i], ]$chl_est <- sto   
+}
 
 
 
