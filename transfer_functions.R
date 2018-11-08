@@ -46,8 +46,8 @@ logist <- function(r,k,t,a0, debug=FALSE) {
 #' @param t time
 log_alt <- function(phi,x,a0,n0,t) {
     r <- n0*phi
-    K <- n0/x
-    K/(1+((K/a0)-1)*exp(-r*t))
+    k <- n0/x
+    k/(1+((k/a0)-1)*exp(-r*t))
 }
 
 library(deSolve)
@@ -57,11 +57,24 @@ log_grad <- function(time, state, params) {
     return(list(grad))
 }
 
-ode_pred <- function(r,k,t,a0) {
+##' @param a0 starting vector (algal concentration)
+##' @param t time vector
+##' @param params parameter vector: may contain *either* (r,k)
+##' *or* (phi,x,n0)
+ode_pred <- function(params,t,a0) {
+    alt_params <- all(c("phi","x","n0") %in% names(params))
+    if (!alt_params && !all(c("r","k") %in% names(params))) {
+        stop("params should have *either* phi, x, n0 *or* r, k")
+    }
+    if (alt_params) {
+        ## translate params
+        params <- with(as.list(params),
+                       c(r=n0*phi, k=n0/x))
+    }
     ode_res <- ode(y=c(chl=a0), ## starting state value, named
                    times=t,
                    func=log_grad,
-                   parms=c(r=r,k=k))
+                   parms=params)
     chl_res <- ode_res[,"chl"]
     cat("r,k:",r,k,"\n")
     plot.new()

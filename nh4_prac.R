@@ -61,7 +61,8 @@ newdat <- data.frame (
 fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   
   nls_fit <- try(
-    nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),data=subdat,start = list(phi=1,x=1/200)),
+      nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),
+          data=subdat,start = list(phi=1,x=1/200)),
     silent = TRUE
   )
   
@@ -100,8 +101,21 @@ g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newd
 with(dat1, plot(date1,chl))
 
 
+## BMB messed things up
+## note: try nls2 and/or minpack.lm
 mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
-            start = list(phi=1,x=1/200))
+            start = list(phi=1,x=1/200),
+            lower=1e-4,
+            algorithm="port")
+
+mod2L <- nls(chl~log_alt(phi=exp(logphi),
+                         x=exp(logx),
+                         t=date1,a0=44,n0=5.5),data = dat1,
+            start = list(logphi=log(1),logx=log(1/200)))
+
+## pp <- profile(mod2L)
+## confint(mod2L)
+
 mod2
 predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
 
@@ -120,15 +134,26 @@ mdat <- exdat %>%
 
 newfit <- mdat %>% do(fit_nls_alt(.))
 
+## BMB
+newfit_tidy <- (newfit
+    %>% na.omit()
+    %>% gather(param,value, -urep)
+    ## split names of parameter and estimate/se
+    %>% separate(param, c("param","w"))
+    %>% spread(w,value)
+)
+ggplot(newfit_tidy,aes(urep,est,ymin=est-2*se,ymax=est+2*se))+
+    geom_pointrange() + facet_wrap(~param)
 
-
-
-
-
+library(ggstance) ## for linerangeh
+ggplot(na.omit(newfit), aes(phi_est,x_est,colour=urep)) + geom_point()+
+    geom_linerange(aes(ymin=x_est-2*x_se,ymax=x_est+2*x_se))+
+    geom_linerangeh(aes(xmin=phi_est-2*phi_se,xmax=phi_est+2*phi_se))+
+    geom_path(colour="red")+
+    geom_label(aes(label=urep))
 
 
 ### predict ODE 
-
 
 dat2 <- exdat %>% filter(urep == 1.5)
 ode_pred( r=0.278, k=125,t=dat2$date1,a0=dat2$start_chl[1])
