@@ -70,8 +70,9 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
     start_phi <- rlnorm(1, -2, 1)
     start_x <- 1/rlnorm(1, log(250), 3)
     
-    nls_fit <- try(
-      nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),data=subdat,start = list(phi=start_phi,x=start_x)),
+    nls_fit_alt <- try(
+      nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),
+          data=subdat,start = list(phi=start_phi,x=start_x)),
       silent = TRUE
     )
     
@@ -121,7 +122,12 @@ newfit <- mdat %>% do(fit_nls_alt(.))
 
 
 
-### fit as ODE 
+
+
+
+
+
+### predict ODE 
 
 
 dat2 <- exdat %>% filter(urep == 1.5)
@@ -158,6 +164,17 @@ for (i in 1:length(unique(df1$urep))) {
   
   temp[temp$urep==unique(temp$urep)[i], ]$chl_est <- sto   
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
