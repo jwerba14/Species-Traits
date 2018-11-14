@@ -76,7 +76,7 @@ ode_pred <- function(params,t,a0) {
                    func=log_grad,
                    parms=params)
     chl_res <- ode_res[,"chl"]
-    cat("r,k:",r,k,"\n")
+    cat("r,k:",params[1],params[2],"\n")
     plot.new()
     plot(t,chl_res)
     return(chl_res)

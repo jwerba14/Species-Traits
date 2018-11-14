@@ -5,6 +5,7 @@ with(dat,plot(date1,nh4))
 with(dat,plot(chl,nh4))
 library(ggplot2)
 library(tidyverse)
+library(MASS)
 
 ## make a function to fit the logist-- if a rep won't fit just gives NA
 fit_nls <- function(subdat, par_names=c("r","k")) {
@@ -49,14 +50,14 @@ fit_nls2 <- function(subdat) {
 }
 
 dat$urep <- dat$rep + dat$treat
+
 dat1 <- dat %>% filter(rep==1,treat==0.5)
 mod <- nls(chl~logist(r=r,k=k,t=date1,a0=44),data = dat1,start = list(r=.1,k=150))
 plot(predict(mod),dat1$chl)
+
 newdat <- data.frame (
   date1 = dat1$date1,
-  chl = predict(mod)
-)
-
+  chl = predict(mod))
 
 fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   
@@ -68,10 +69,17 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   
   p = 1
   while (class(nls_fit) == "try-error") {
-    start_phi <- rlnorm(1, -2, 1)
-    start_x <- 1/rlnorm(1, log(250), 3)
+    if (!is.na(subdat$r_est[1])){
     
-    nls_fit_alt <- try(
+   
+      start_phi <- rlnorm(1,log(subdat$r_est[1]/subdat$start_nh4[1]),1)
+ 
+    start_x <- rlnorm(1, log(subdat$start_nh4[1]/subdat$k_est[1]), 1)
+    } else {
+      start_phi <- rlnorm(1, -2, 1)
+      start_x <- 1/rlnorm(1, log(250), 1)
+    }
+    nls_fit <- try(
       nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),
           data=subdat,start = list(phi=start_phi,x=start_x)),
       silent = TRUE
@@ -83,16 +91,22 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
     
   }
   
-  col_names <- c(outer(par_names,c("est","se"),paste,sep="_"))
+  col_names <- c(outer(par_names,c("est","se"),paste,sep="_"), 
+                 outer(par_names,c("conf_2.5","conf_97.5"),paste,sep="_"))
   if(class(nls_fit) == "try-error") {
     pp <- rep(NA,4) ## FIXME: get the right number of NAs programmatically
     ## FIXME: will fail if first group is bad
+    con <- rep(NA, 4)
   } else {
     coef_tab <- coef(summary(nls_fit))
     pp <- c(coef_tab[,c("Estimate","Std. Error")])
+    con <- nlstools::confint2(nls_fit)
   }
+  
   ## collapse results to a one-row matrix
-  dd <- data.frame(matrix(pp,nrow=1))
+  dd <- data.frame(matrix(
+    data = c(pp,con[1],con[2],con[3],con[4]),
+    nrow=1))
   names(dd) <- col_names
   return(dd)
 }
@@ -116,6 +130,8 @@ mod2L <- nls(chl~log_alt(phi=exp(logphi),
 ## pp <- profile(mod2L)
 ## confint(mod2L)
 
+nlstools::confint2(mod)
+
 mod2
 predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
 
@@ -126,31 +142,60 @@ exdat <- dat %>%
 
 res <- exdat %>% do(fit_nls(.))
 
-
 ## fit reps with alternate parameters
 mdat <- exdat %>%
   group_by(urep)%>%
   mutate(start_nh4 = nh4[1])
 
+mdat <- left_join(mdat,res)
+
+
 newfit <- mdat %>% do(fit_nls_alt(.))
 
-## BMB
+## BMB  ## JW I DID SOMETHING WEIRD AND MESSED THIS UP
 newfit_tidy <- (newfit
     %>% na.omit()
     %>% gather(param,value, -urep)
+    
     ## split names of parameter and estimate/se
-    %>% separate(param, c("param","w"))
-    %>% spread(w,value)
+    %>% separate(param, c("param","w","x","y"))
+    %>% spread(w,x,y,value)
 )
+
+
 ggplot(newfit_tidy,aes(urep,est,ymin=est-2*se,ymax=est+2*se))+
     geom_pointrange() + facet_wrap(~param)
 
 library(ggstance) ## for linerangeh
-ggplot(na.omit(newfit), aes(phi_est,x_est,colour=urep)) + geom_point()+
+ggplot(na.omit(newfit), aes(phi_est,x_est,colour=as.factor(urep))) + geom_point()+
     geom_linerange(aes(ymin=x_est-2*x_se,ymax=x_est+2*x_se))+
     geom_linerangeh(aes(xmin=phi_est-2*phi_se,xmax=phi_est+2*phi_se))+
     geom_path(colour="red")+
     geom_label(aes(label=urep))
+
+
+
+
+
+full <- left_join(newfit_tidy,mdat)
+ggplot(full[full$param=="phi",], aes(start_nh4,est,color=as.factor(treat)))+ geom_point()
+ggplot(full[full$param=="x",], aes(start_nh4,est,color=as.factor(treat)))+ geom_point()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### predict ODE 
