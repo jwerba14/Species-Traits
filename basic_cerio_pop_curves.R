@@ -1,22 +1,24 @@
 # read in
 dat <- read.csv("cerio_pop.csv")
 
-trial <- nls(Population ~ Population * r*(1-1/(K*Population/Avg_Chl)), start = list(r=.1, K= 75), 
+if (FALSE) {
+    trial <- nls(Population ~ Population * r*(1-1/(K*Population/Avg_Chl)), start = list(r=.1, K= 75), 
              data = dat)
 
-newpred <- predict()
+    newpred <- predict()
+}
 
                                     
 #this works even though it makes no sense Population ~ Population * (r - r/K * (Population/Avg_Chl)) *Population
 
 
-m <- nls(feeding.rate.mean~(Chl_conc*h)/(1+Chl_conc*h*r), start = list(h=1,r=1), data = dat )
+if (FALSE) {
+    m <- nls(feeding.rate.mean~(Chl_conc*h)/(1+Chl_conc*h*r), start = list(h=1,r=1), data = dat )
+}
+
 library(tidyverse)
 library(ggplot2)
 library(lme4)
-
-mod <- lm(log(pop) ~ week*as.factor(treat), data= week_chl[week_chl$pop!=0,])
-mod <- lm((pop) ~ week*as.factor(treat), data= week_chl)
 
 #average chlor by week
 # create week column
@@ -48,6 +50,10 @@ week_chl2 <- week_chl2 %>%
 (newplot<- ggplot(aes(per_capita,delta_pop),data = week_chl2) + 
   geom_point(aes(color=as.factor(treat))) + facet_wrap(~as.factor(treat)) )
 
+mod <- lm(log(pop) ~ week*as.factor(treat), data= week_chl[week_chl$pop!=0,])
+mod <- lm((pop) ~ week*as.factor(treat), data= week_chl)
+
+
 (pl10 <- ggplot(aes(log(per_capita),delta_pop), 
                data = week_chl2[week_chl2$treat==10,]) +
   geom_point(aes(color=as.factor(week))))
@@ -60,6 +66,19 @@ week_chl2 <- week_chl2 %>%
 (gg2 <- ggplot(aes(Day, log(Population)), data = dat) +
   geom_point(aes(color= as.factor(Treatment))) + facet_wrap(~Rep))
 
+(gg2 <- ggplot(aes(Day, Population), data = dat)
+    + scale_y_continuous(trans="log1p")
+    + geom_point(aes(color= as.factor(Treatment)))
+    + facet_wrap(~Rep)
+    + theme_bw())
+
+curve(plogis(0.1+2*x-0.5*x^2),from=,to=10)
+## a + b*x + c*x^2
+## regular logistic: 1/(1+exp(-(a+b*x)))
+## ## b <-> r
+## weird logistic: 1/(1+exp(-(a+b*x+c*x^2)))
+##                 1/(1+exp(-(a+(b+c*x)*x))
+## ## b <->r(0)
 
 (gg2 <- ggplot(aes(Day, (Population)), data = dat) +
     geom_point(aes(color= as.factor(Treatment))) + facet_wrap(~Rep))

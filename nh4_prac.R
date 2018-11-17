@@ -7,16 +7,28 @@ library(ggplot2)
 library(tidyverse)
 library(MASS)
 
+
 ## make a function to fit the logist-- if a rep won't fit just gives NA
-fit_nls <- function(subdat, par_names=c("r","k")) {
-  
+fit_nls <- function(subdat, par_names=NULL, logscale=FALSE) {
+
+    if (!logscale) {
+        par_names <- c("r","k")
+        form <- chl~logist(r=r,k=k,t=date1,a0=start_chl)
+        startvals <- list(r=.1,k=150)
+    } else {
+        par_names <- c("logr","logk")
+        form <- chl~logist(r=exp(logr),k=exp(logk),t=date1,a0=start_chl)
+        ## FIXME:: DRY
+        startvals <- list(logr=log(.1),logk=log(150))
+    }
   nls_fit <- try(
-    nls(chl~logist(r=r,k=k,t=date1,a0=start_chl),data=subdat,start = list(r=.1,k=150)),
-    silent = TRUE
-  )
+    nls(form,data=subdat,start = startvals),
+        silent = TRUE
+     )
   
   p = 1
   while (class(nls_fit) == "try-error") {
+    if (logscale) stop("we haven't fixed this part of the code yet")
     start_r <- rlnorm(1, -2, 1)
     start_k <- rlnorm(1, log(250), 3)
     
@@ -92,7 +104,7 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   }
   
   col_names <- c(outer(par_names,c("est","se"),paste,sep="_"), 
-                 outer(par_names,c("conf_2.5","conf_97.5"),paste,sep="_"))
+                 outer(par_names,c("conf.2.5","conf.97.5"),paste,sep="_"))
   if(class(nls_fit) == "try-error") {
     pp <- rep(NA,4) ## FIXME: get the right number of NAs programmatically
     ## FIXME: will fail if first group is bad
@@ -114,7 +126,6 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
 g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newdat, aes(color="red"))
 with(dat1, plot(date1,chl))
 
-
 ## BMB messed things up
 ## note: try nls2 and/or minpack.lm
 mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
@@ -130,7 +141,8 @@ mod2L <- nls(chl~log_alt(phi=exp(logphi),
 ## pp <- profile(mod2L)
 ## confint(mod2L)
 
-nlstools::confint2(mod)
+
+## nlstools::confint2(mod)
 
 mod2
 predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
@@ -152,19 +164,32 @@ mdat <- left_join(mdat,res)
 
 newfit <- mdat %>% do(fit_nls_alt(.))
 
-## BMB  ## JW I DID SOMETHING WEIRD AND MESSED THIS UP
+## for debugging purposes
+debug(fit_nls_alt)
+d1 <- filter(mdat,urep==1.5)
+n1 <- nls(chl~logist(r=r,k=k,t=date1,a0=start_chl),
+          data=d1,start = list(r=.1,k=150))
+stats:::confint.default(n1)  ## Wald intervals  (Gaussian)
+nlstools::confint2(n1)       ## Wald intervals  (t statistic)
+## these break when we try to do the profile
+## nlstools::confint2(n1,method="profile")
+## MASS:::confint.nls(n1)
+
+
+
+## BMB
 newfit_tidy <- (newfit
     %>% na.omit()
     %>% gather(param,value, -urep)
-    
     ## split names of parameter and estimate/se
-    %>% separate(param, c("param","w","x","y"))
-    %>% spread(w,x,y,value)
+    %>% separate(param, c("param","w"), sep="_")
+    %>% spread(w,value)
 )
 
-
-ggplot(newfit_tidy,aes(urep,est,ymin=est-2*se,ymax=est+2*se))+
-    geom_pointrange() + facet_wrap(~param)
+ggplot(newfit_tidy,aes(urep,est,
+                       ymin=conf.2.5,
+                       ymax=conf.97.5)) +
+    geom_pointrange() + facet_wrap(~param,scale="free")
 
 library(ggstance) ## for linerangeh
 ggplot(na.omit(newfit), aes(phi_est,x_est,colour=as.factor(urep))) + geom_point()+
@@ -173,29 +198,25 @@ ggplot(na.omit(newfit), aes(phi_est,x_est,colour=as.factor(urep))) + geom_point(
     geom_path(colour="red")+
     geom_label(aes(label=urep))
 
-
-
-
-
 full <- left_join(newfit_tidy,mdat)
-ggplot(full[full$param=="phi",], aes(start_nh4,est,color=as.factor(treat)))+ geom_point()
-ggplot(full[full$param=="x",], aes(start_nh4,est,color=as.factor(treat)))+ geom_point()
+(ggplot(full[full$param=="phi",], aes(start_nh4,est,color=as.factor(treat)))
+    + geom_point()
+    + labs(y=expression(phi))
+    + geom_smooth(aes(group=1))
+    ## + scale_y_sqrt()
+)
 
+(full
+    %>% filter(param=="x", start_nh4<40)
+    %>% ggplot(aes(start_nh4,est,color=as.factor(treat)))
+    + geom_point()
+    +labs(y="x")
+)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(ggplot(full, aes(start_nh4,est,color=as.factor(treat)))
+    + geom_point()
+    + facet_wrap(~param,scale="free")
+)
 
 
 ### predict ODE 
