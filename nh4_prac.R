@@ -111,29 +111,32 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   return(dd)
 }
 
-g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newdat, aes(color="red"))
-with(dat1, plot(date1,chl))
+#g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newdat, aes(color="red"))
+#with(dat1, plot(date1,chl))
 
 
+
+
+################################################
 ## BMB messed things up
 ## note: try nls2 and/or minpack.lm
-mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
-            start = list(phi=1,x=1/200),
-            lower=1e-4,
-            algorithm="port")
+#mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
+            #start = list(phi=1,x=1/200),
+            #lower=1e-4,
+            #algorithm="port")
 
-mod2L <- nls(chl~log_alt(phi=exp(logphi),
-                         x=exp(logx),
-                         t=date1,a0=44,n0=5.5),data = dat1,
-            start = list(logphi=log(1),logx=log(1/200)))
+#mod2L <- nls(chl~log_alt(phi=exp(logphi),
+                        # x=exp(logx),
+                        #t=date1,a0=44,n0=5.5),data = dat1,
+                          # start = list(logphi=log(1),logx=log(1/200)))
 
 ## pp <- profile(mod2L)
 ## confint(mod2L)
 
-nlstools::confint2(mod)
+#nlstools::confint2(mod)
 
-mod2
-predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
+#mod2
+#predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
 
 ## try to do all reps at once
 exdat <- dat %>%
@@ -151,6 +154,18 @@ mdat <- left_join(mdat,res)
 
 
 newfit <- mdat %>% do(fit_nls_alt(.))
+
+
+### function of x and phi vs nh4 #####
+## need to add in nh4 start to newfit
+
+newfit2 <- left_join(newfit,mdat)
+
+ggplot(newfit2, aes(log(start_nh4),phi_est)) + geom_point()
+
+ggplot(newfit2, aes(start_nh4,x_est)) + geom_point()
+
+phi_mod <- l
 
 ## BMB  ## JW I DID SOMETHING WEIRD AND MESSED THIS UP
 newfit_tidy <- (newfit
