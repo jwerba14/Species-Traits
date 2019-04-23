@@ -13,8 +13,6 @@ nh4_excretion.R - trying to get parameters for NH4 but doesn't complete it and d
 
 daphnia_life_params.R - summarized fecundity, growth and death of daphnia magna, simple first look at data, runs, not described in script
 
-daphnia_lifetie1.R - prettier graphs than daphnia_life_params.R but nothing new, not needed, runs, not described in script
-
 basic_cerio_pop_curves.R - lots of plots of ceriodaphnia growth curves, some attempts with writing equations for growth curves but not complete, runs, not described in script
 
 nh4_prac.R - gets parameter for chlorophyll uptake, needs to be gone through, runs, not described in script
