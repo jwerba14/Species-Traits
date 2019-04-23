@@ -16,7 +16,7 @@ dat1 <- dat %>%
 dat2 <- dat %>%
   filter(control == 2)
 
-with(dat, plot(rate_chl1_ind, rate_nh4_ind))
+with(dat, plot(rate_chl_ind, rate_nh4_ind))
 
 df <- data.frame(hollings2(a= dat$chl1, h = 0.0000939, r = 78.05))
 df<- df %>% drop_na()
@@ -29,6 +29,8 @@ df<- df %>% drop_na()
 
 m1 <- nls(rate_nh4_ind~(chl1*h)/(1+chl1*h*r), start = list(h=0.002,r=130), data = dat1 )
 
+
+##where ar these numbers coming from????
 newpred <- sat_fun(a= seq(0.1,24,0.1), h = 0.0000939, r = 78.05) 
 
 newpred <- hollings2(a= seq(0.1,24,0.1), h = -8.228e-06, r = -4.871e+03) 

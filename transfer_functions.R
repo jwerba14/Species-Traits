@@ -1,14 +1,18 @@
 #possible transfer functions
 
-# all feeding on algae by zooplankton is saturating- hollings type II (could be linear...)
+# all feeding on algae by zooplankton is saturating- 
+#hollings type II (could be linear...)
+# a is attack rate, h is handling time
 hollings2 <- function (a,h,r) {
   (a*h)/(1+a*h*r)
 }
 
-#Holling's type 1 is  linear with respect to prey density (a) so just multiply by constant
+#Holling's type 1 is  linear with respect to prey density (a) 
+#so just multiply by constant
 
 # algae uptake of nutrients is saturating- michaelis menten
-#where S is concentration of nutrient
+#where S is concentration of nutrient, vmax is the maximum rate possible, 
+#k is half of vmax
 mich_men <- function(vmax, s, k) {
   
   vmax * s / (k + s)
@@ -17,7 +21,8 @@ mich_men <- function(vmax, s, k) {
 
 # death functions- going to assume non-linear density dependent
 
-# where g is the state variable- then this is multiplied by the state variable e*g*g
+# where g is the state variable- 
+#then this is multiplied by the state variable e*g*g
 death <- function (e,g) {
   e*g 
 }
@@ -56,6 +61,8 @@ log_grad <- function(time, state, params) {
                  c(chl=r*chl*(1-chl/k)))
     return(list(grad))
 }
+
+## function to get fit for either parameterization
 
 ##' @param a0 starting vector (algal concentration)
 ##' @param t time vector

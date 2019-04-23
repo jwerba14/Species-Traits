@@ -115,7 +115,7 @@ dat_rep13 <- data.frame(dat_rep13)
 
 (gg <- ggplot(aes(Day,mean_pop), data = dat_rep13) +geom_point())
 
-##
+x##
 dat_rep17 <- dat %>%
   filter(Rep == 17) %>%
   group_by(Day)%>%

@@ -1,18 +1,18 @@
-Author,Chl_conc,feeding rate mean,fr_se,unit,N,food_type
-Kersting_1976,0.59,0.19,0.05,microgram(cubed)*10^6,,chlorella
-Kersting_1976,1.47,0.41,0.04,microgram(cubed)*10^6,,chlorella
-Kersting_1976,2.45,0.5,0.082,microgram(cubed)*10^6,,chlorella
-Kersting_1976,3.11,0.65,0.19,microgram(cubed)*10^6,,chlorella
-Kersting_1976,4.22,0.76,0.11,microgram(cubed)*10^6,,chlorella
-Kersting_1976,5.52,0.75,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,6.62,0.73,0.11,microgram(cubed)*10^6,,chlorella
-Kersting_1976,7.74,0.87,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,8.46,1.24,0.16,microgram(cubed)*10^6,,chlorella
-Kersting_1976,9.46,1.13,0.27,microgram(cubed)*10^6,,chlorella
-Kersting_1976,10.5,0.87,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,11.5,1.13,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,18.66,1.84,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,19.22,2.08,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,20.83,0.92,,microgram(cubed)*10^6,,chlorella
-Kersting_1976,21.6,1.04,0.06,microgram(cubed)*10^6,,chlorella
-Ryther via Rigler_1961,,,,food cells x 10^5/ml,,chlorella_vulgaris
+Author,Chl_conc,feeding rate mean,fr_se,unit,N,food_type,species,citation
+Kersting_1976,0.59,0.19,0.05,microgram(cubed)*10^6,,chlorella,Daphnia magna,"Kersting, K. & van der Leeuw, W. Hydrobiologia (1976) 49: 233. https://doi.org/10.1007/BF00014516"
+Kersting_1976,1.47,0.41,0.04,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,2.45,0.5,0.082,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,3.11,0.65,0.19,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,4.22,0.76,0.11,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,5.52,0.75,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,6.62,0.73,0.11,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,7.74,0.87,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,8.46,1.24,0.16,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,9.46,1.13,0.27,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,10.5,0.87,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,11.5,1.13,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,18.66,1.84,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,19.22,2.08,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,20.83,0.92,,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Kersting_1976,21.6,1.04,0.06,microgram(cubed)*10^6,,chlorella,Daphnia magna,
+Ryther via Rigler_1961,,,,food cells x 10^5/ml,,chlorella_vulgaris,,

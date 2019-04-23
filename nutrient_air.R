@@ -28,12 +28,14 @@ ammonium <- ammonium %>% drop_na()
 ammonium <- ammonium %>%
   filter(Rep != 1 & Rep != 15)
 
-(g2 <- ggplot(ammonium2, aes(Day,NH4)) + geom_point(aes(color=as.factor(Treat))))
+
 
 m <- with(ammonium, lm(NH4 ~ Day*(Treat)))
 
 ammonium2 <- ammonium %>%
   filter(!(Treat==4 & Day==4 & Rep==52))
+
+(g2 <- ggplot(ammonium2, aes(Day,NH4)) + geom_point(aes(color=as.factor(Treat))))
 
 inidf <- ammonium2 %>%
   filter(Day==1) %>%

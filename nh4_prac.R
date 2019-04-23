@@ -178,7 +178,7 @@ ggplot(newfit2, aes(log(start_nh4),phi_est)) + geom_point()
 
 ggplot(newfit2, aes(start_nh4,x_est)) + geom_point()
 
-phi_mod <- l
+#phi_mod <- l
 
 ## BMB  ## JW I DID SOMETHING WEIRD AND MESSED THIS UP
 
