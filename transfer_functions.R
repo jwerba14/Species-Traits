@@ -30,11 +30,11 @@ death <- function (e,g) {
 # saturating function for nutrient release where K is independent state variable
 sat_fun <- function(a,b,k) {
   
-  a * b / (k + b)
+  a * k / (k + b)
   
 }
 
-
+ 
 #logistic function for ODE
 logist <- function(r,k,t,a0, debug=FALSE) {
     if (debug) cat("r,k:",r,k,"\n")

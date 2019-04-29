@@ -1,11 +1,14 @@
+## parameters for algal growth at different NH4 over time
+## still not fitting high nh4 in either parameterization and in alt param only fits half
+## goal is to get range of phi and x for each treatment and then fit those by treatment for final param?
 source("transfer_functions.R")
 dat <- read.csv("Algae_Nutrient.csv")
 str(dat)
 with(dat,plot(date1,nh4))
 with(dat,plot(chl,nh4))
-library(ggplot2)
 library(tidyverse)
 library(MASS)
+library(nlstools)
 
 
 ## make a function to fit the logist-- if a rep won't fit just gives NA
@@ -61,20 +64,16 @@ fit_nls2 <- function(subdat) {
   data.frame(matrix(fit_nls(subdat),nrow=1))
 }
 
+# add a unique name for each individual box
 dat$urep <- dat$rep + dat$treat
 
-dat1 <- dat %>% filter(rep==1,treat==0.5)
-mod <- nls(chl~logist(r=r,k=k,t=date1,a0=44),data = dat1,start = list(r=.1,k=150))
-plot(predict(mod),dat1$chl)
 
-newdat <- data.frame (
-  date1 = dat1$date1,
-  chl = predict(mod))
+
 
 fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   
   nls_fit <- try(
-      nls(chl~log_alt(phi=phi,x=x,t=dat1$date1,a0=start_chl,n0=start_nh4),
+      nls(chl~log_alt(phi=phi,x=x,t=date1,a0=start_chl,n0=start_nh4),
           data=subdat,start = list(phi=1,x=1/200)),
     silent = TRUE
   )
@@ -123,50 +122,26 @@ fit_nls_alt <- function(subdat, par_names=c("phi","x")) {
   return(dd)
 }
 
-#g1 <- ggplot(aes(date1, chl), data = dat1) + geom_point()+geom_point(data = newdat, aes(color="red"))
-#with(dat1, plot(date1,chl))
-
-
-## BMB messed things up
-## note: try nls2 and/or minpack.lm
-#mod2 <- nls(chl~log_alt(phi=phi,x=x,t=date1,a0=44,n0=5.5),data = dat1,
-            #start = list(phi=1,x=1/200),
-            #lower=1e-4,
-            #algorithm="port")
-
-#mod2L <- nls(chl~log_alt(phi=exp(logphi),
-                        # x=exp(logx),
-                        #t=date1,a0=44,n0=5.5),data = dat1,
-                          # start = list(logphi=log(1),logx=log(1/200)))
-
-## pp <- profile(mod2L)
-## confint(mod2L)
 
 
 
-## nlstools::confint2(mod)
 
 
-#mod2
-#predict(mod2) ## gets same answer as mod (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi
-
-## try to do all reps at once
+##  fit r and k for all reps at once
 exdat <- dat %>%
   group_by(urep) %>%
   mutate(start_chl = chl[1])
 
 res <- exdat %>% do(fit_nls(.))
 
-## fit reps with alternate parameters
+## fit reps with alternate parameters (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi)
 mdat <- exdat %>%
   group_by(urep)%>%
   mutate(start_nh4 = nh4[1])
 
 mdat <- left_join(mdat,res)
 
-
 newfit <- mdat %>% do(fit_nls_alt(.))
-
 
 
 ### function of x and phi vs nh4
@@ -178,7 +153,7 @@ ggplot(newfit2, aes(log(start_nh4),phi_est)) + geom_point()
 
 ggplot(newfit2, aes(start_nh4,x_est)) + geom_point()
 
-#phi_mod <- l
+
 
 ## BMB  ## JW I DID SOMETHING WEIRD AND MESSED THIS UP
 
@@ -241,7 +216,7 @@ full <- left_join(newfit_tidy,mdat)
 ### predict ODE 
 
 dat2 <- exdat %>% filter(urep == 1.5)
-ode_pred( r=0.278, k=125,t=dat2$date1,a0=dat2$start_chl[1])
+ode_pred(r=0.278, k=125,t=dat2$date1,a0=dat2$start_chl[1])
 
 ## try to get ode predictions for all reps
 
