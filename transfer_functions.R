@@ -34,6 +34,38 @@ sat_fun <- function(a,b,k) {
   
 }
 
+sat_fun_inv <- function(a,b,k) {
+  
+   (k + b) / (a * k)
+  
+}
+
+
+# exp dist fun
+exp_dist_fun <- function(a,k) {
+  a * exp(-a*k)
+}
+
+
+# power law 
+pow_law <- function(a,b,k) {
+  a*k^(1/b)
+}
+
+# sigmoidal
+sig_fun <- function(a,b,c,k) {
+  (a * k ^ b) / (c + k ^ b)
+}
+
+#lognormal
+lognor <- function(a,b,c){
+  e^-((log(c)^2)/(2*a^2))/(c*a*sqrt(2*pi))
+}
+
+
+
+
+
  
 #logistic function for ODE
 logist <- function(r,k,t,a0, debug=FALSE) {
