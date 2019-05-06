@@ -97,40 +97,43 @@ ggplot(data = daph_adult_death, aes(chl, 1/days_adult)) + geom_point()+
 
 ggplot(data = daph_adult_death, aes(chl, days_adult))+ geom_point(aes(color = as.factor(treatment))) 
 
-daph_death_sum <- daph_death %>%
-  group_by(treatment) %>%
-  summarise(time_to_death_avg = mean(n), time_to_death_sd = sd(n))
 
-
-ggplot(data = daph_death_sum, aes(treatment,time_to_death_avg))+ geom_point()+ 
-  geom_errorbar(aes(ymin = time_to_death_avg-time_to_death_sd,
-                    ymax = time_to_death_avg+time_to_death_sd))
 
 
 
 ## filter for J that die as J
-daph %>% group_by(rep,treatment) %>% filter(sum(size_class == "A") == 0)
+juv_death <- daph %>% group_by(rep,treatment) %>% filter(sum(size_class == "A") == 0)
 # check
 daph %>% filter(rep == "49D", treatment == 3)
 
-## count time in J
-## summmarize(days_juv = n())
+
+##hmm looks like i only had 3 not make it to adult... so thats a problem
+juv_death <- juv_death %>% 
+  group_by(rep,treatment) %>%
+  summarise(days_to_death = n(), chl = mean(chl_avg), chl_sd = sd(chl_avg))
+
 
 ###growth to adult
 daph_growth <- daph %>%
   group_by(rep,treatment) %>%
-  count(size_class)
+  filter(sum(size_class == "A") != 0)
 
 daph_growth_j <- daph_growth %>%
-  filter(size_class=="J")
+  filter(size_class=="J") %>%
+  group_by(treatment, rep) %>%
+  summarize(days_to_adult = n(), chl = mean(chl_avg), chl_sd = sd(chl_avg) )
 
+## looks pretty constant
+ggplot(data = daph_growth_j, aes(chl, days_to_adult))+ geom_point(aes(color= as.factor(treatment)))
 
+##but needs to go through origin -because at 0 chl will not grow
+grow <- nls(days_to_adult ~ sat_fun(a=a,b=b, k= chl), start= list(a=1, b=1), data = daph_growth_j)
 
-daph_growth_sum <- daph_growth_j %>%
-  group_by(treatment) %>%
-  summarise(growth_avg = mean(n), growth_sd = sd(n))
+newdat <- data.frame(
+  chl = seq(0, max(daph_growth_j$chl), length = 200),
+  days_to_adult = predict(grow, newdata = data.frame(chl = seq(0, max(daph_fec$chl), length = 200)))
+)
 
-ggplot(data = daph_growth_sum, aes(treatment,growth_avg))+ geom_point()+ 
-  geom_errorbar(aes(ymin = growth_avg-growth_sd,
-                    ymax = growth_avg+growth_sd))
+ggplot(data = daph_growth_j, aes(chl, 1/days_to_adult)) + geom_point(aes(color = as.factor(treatment)))+
+  geom_line(data = newdat, aes(chl, 1/days_to_adult)) 
 
