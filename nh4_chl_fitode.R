@@ -16,7 +16,7 @@ ff1 <- fitode(
   exp_model,
   data=data,
   start=c(m=0.4, A0=4500, sd.nitrogen=100), ## naming has to be consistent with parameter names
-  tcol="day"
+  tcol="day")
   
 
   
