@@ -3,7 +3,7 @@
 ## fit daphnia time to adult size to food
 
 library(tidyverse)
-
+source("transfer_functions.R")
 
 daph <- read.csv("daphnia_lifetime.csv")
 # filter out individuals that were NOT born in the conditions (original daphnia)
@@ -23,6 +23,9 @@ daph_fec <- daph %>% group_by(rep, treatment) %>%
 
 ## should i remove individuals that died in 1-2 days of being an adult since that will pull fec down 
 ## and it will be captured in death term
+## BMB: probably; if you don't want to model this explicitly (by incorporating
+##  some extra early vulnerability or whatever ... keeping it simple, maybe
+##  coming back eventually and testing sensitivity to these assumptions/decisions)
 
 fec_param <- nls(daily_fec ~ sat_fun(z,w,chl), data = daph_fec[daph_fec$daily_fec > 0.1,],
                  start = list(z=1,w=1))
@@ -63,27 +66,58 @@ daph_fec_sum <- daph_fec %>%
 #########
 
 ##time until death
-daph_adult_death <- daph %>%
-  filter(size_class == "A")%>%
-  group_by(rep,treatment) %>%
-  summarize(days_adult = n(),
+dA <-  daph %>%
+    filter(size_class == "A")
+
+daph_adult_death <-  dA %>%
+    group_by(rep,treatment) %>%
+    summarize(days_adult = n(),
             chl = mean(chl_avg),
             chl_sd_rep = sd(chl_avg)) 
 
+## quick and dirty survival curve
+ggplot(daph_adult_death, aes(days_adult, colour=factor(treatment)))+
+    stat_ecdf()+coord_flip()
+
+survcurve <- function(x) {
+    x <- c(0,sort(x))
+    tibble(day=x,frac_surv=seq(1,0,length.out=length(x)))
+}
+
+daph_surv_curves <- daph_adult_death %>%
+    group_by(treatment) %>%
+    do(survcurve(.$days_adult))
+
+
+ggplot(daph_surv_curves,
+       aes(day,frac_surv,colour=factor(treatment)))+
+    geom_step()+
+    stat_function(fun=function(x) exp(-x/20), lwd=2)
+    
+## could make a data frame with predicted survival by day, given
+## an exponential decay starting from 1.0 with the estimated rate
+## per treatment
+    
+## suggestion: continue to treat these as exponential, maybe come
+## back latter and fit a Weibull curve ... 
+
+## tidyverse:  count(), tally()
 
 adult_death <- nls(days_adult ~ sat_fun(a,b,k=chl), data = daph_adult_death[daph_adult_death$days_adult > 1, ],
                    start = list(a=0.1,b=0.1))
 
 
-#
+       
+np <- 1001
 newdat <- data.frame(
 #  chl = daph_adult_death[daph_adult_death$days_adult > 1, ]$chl,
-  chl = seq(0, max(daph_fec$chl), length = 200),
-  days_adult = predict(adult_death, newdata = data.frame(chl = seq(0, max(daph_fec$chl), length = 200)))
+  chl = seq(0, max(daph_fec$chl), length = np),
+  days_adult = predict(adult_death, newdata = data.frame(chl = seq(0, max(daph_fec$chl), length = np)))
 )
 
 ggplot(data = daph_adult_death, aes(chl, 1/days_adult)) + geom_point()+
-  geom_line(data = newdat, aes(chl, 1/days_adult))  
+    geom_line(data = newdat, aes(chl, 1/days_adult)) +
+    scale_x_log10()
 # need to plot 1/days_adult because that is rate 
    #and can see asymptote quicly at 0 chl as expected
 
@@ -97,6 +131,7 @@ ggplot(data = daph_adult_death, aes(chl, 1/days_adult)) + geom_point()+
 
 ggplot(data = daph_adult_death, aes(chl, days_adult))+ geom_point(aes(color = as.factor(treatment))) 
 
+## BMB: need to get external information on starvation.
 
 
 
