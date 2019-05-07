@@ -1,47 +1,53 @@
-exp_model <- new("model.ode",
-                 name="exponential",
-                 model=list(
-                   A ~ - m * A
-                 ),
-                 observation=list(
-                   nitrogen ~ dnorm(mean=A, sd=sd.nitrogen)
-                 ),
-                 initial=list(
-                   A ~ A0
-                 ),
-                 par=c("m", "A0", "sd.nitrogen")
-)
+library(fitode)
 
-ff1 <- fitode(
-  exp_model,
-  data=data,
-  start=c(m=0.4, A0=4500, sd.nitrogen=100), ## naming has to be consistent with parameter names
-  tcol="day")
+
+## exp_model <- new("model.ode",
+##                  name="exponential",
+##                  model=list(
+##                    A ~ - m * A
+##                  ),
+##                  observation=list(
+##                    nitrogen ~ dnorm(mean=A, sd=sd.nitrogen)
+##                  ),
+##                  initial=list(
+##                    A ~ A0
+##                  ),
+##                  par=c("m", "A0", "sd.nitrogen")
+## )
+
+## ff1 <- fitode(
+##   exp_model,
+##   data=data,
+##   start=c(m=0.4, A0=4500, sd.nitrogen=100), ## naming has to be consistent with parameter names
+##   tcol="day")
   
 
-  
-dat <- read.csv("Algae_Nutrient.csv")    
-  
+dat <- read.csv("Algae_Nutrient.csv")  
+
+nh4loss1 <- 0.0001 # 1e-4  ## (to air)
+nh4loss2 <- 0.000001 ## 1e-6 ## (to nitrate)
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",
                    model = list(
-                     pred_nh4 ~ chl*((v*nh4)/(nh4+s))-.0001-000001,
+                       pred_nh4 ~ pred_chl*((v*pred_nh4)/(pred_nh4+s))-nh4loss1 -nh4loss2,
                      
-                     # chl is gained through uptake of nh4 and lost through density dependent death
-                     # death is not directly measured
-                     pred_chl ~ chl*((j*nh4)/(nh4+h))-chl*death
+                       ## chl is gained through uptake of nh4 and lost through density dependent death
+                       ## death is not directly measured
+                       pred_chl ~ pred_chl*((j*pred_nh4)/(pred_nh4+h))-pred_chl*death
                      
                    ),
+                   ## consider using bbmle::dnorm_n ?
                    observation = list(
                      nh4 ~ dnorm(mean = pred_nh4, sd=sd1),
                      chl ~ dnorm(mean = pred_chl, sd=sd2)
                      
                    ),
                    initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
-                   par=c("v","s","j","h","pred_nh40","pred_chl0", "sd1","sd2")
+                   par=c("v","s","j","h","pred_nh40","pred_chl0", "sd1","sd2", "death")
                    )
 
 
+options(error=recover)  ## stop/browse when error occurs
 chl_fit <- fitode(
   chl_nh4_mod,
   data = dat,
@@ -49,9 +55,12 @@ chl_fit <- fitode(
           s = .01,
           j = 10,
           h = 10,
-          pred_nh40 = 3 ,
+          pred_nh40 = 20 ,
           pred_chl0 = 15, 
-          sd1 = 100 ,
-          sd2 = 100 ),
-  tcol = "date1"
+          sd1 = 0.1 ,
+          sd2 = 0.1,
+          death=0.1),
+  tcol = "date1",
+  method="Nelder-Mead"
 )
+plot(chl_fit)
