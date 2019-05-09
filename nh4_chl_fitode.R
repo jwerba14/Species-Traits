@@ -1,5 +1,5 @@
 library(fitode)
-
+source("transfer_functions.R")
 
 ## exp_model <- new("model.ode",
 ##                  name="exponential",
@@ -23,13 +23,27 @@ library(fitode)
   
 
 dat <- read.csv("Algae_Nutrient.csv")  
+## look at a single treatment for Nh4 ## patterns are more obvious when just looking at single treatment 
+##but doesn't seem to help with fit
 
-nh4loss1 <- 0.0001 # 1e-4  ## (to air)
-nh4loss2 <- 0.000001 ## 1e-6 ## (to nitrate)
+dat_nit_1 <- dat %>%
+  filter(treat == 27)
+
+### correct Nh4 for pH based on communication with YSI
+
+# first need temp in kelvin
+tempK <- dat$temp + 273.15 
+nh3 <- dat$nh4 * (10^(dat$ph-((2726.3/tempK)+0.0963)))
+
+cnitrate = .000001 # nitrate lost to env-- calc in nutrient_air.R
+cammonium = .0001 # ammonium lost to env-- calc in nutrient_air.R
+
+
+
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",
                    model = list(
-                       pred_nh4 ~ pred_chl*((v*pred_nh4)/(pred_nh4+s))-nh4loss1 -nh4loss2,
+                       pred_nh4 ~ pred_chl*((v*pred_nh4)/(pred_nh4+s))-cnitrate -cammonium,
                      
                        ## chl is gained through uptake of nh4 and lost through density dependent death
                        ## death is not directly measured
@@ -50,17 +64,17 @@ chl_nh4_mod <- new("model.ode",
 options(error=recover)  ## stop/browse when error occurs
 chl_fit <- fitode(
   chl_nh4_mod,
-  data = dat,
+  data = dat_nit_1,
   start=c(v = 0.01, 
-          s = .01,
-          j = 10,
-          h = 10,
+          s = 100,
+          j = .2,
+          h = 250,
           pred_nh40 = 20 ,
           pred_chl0 = 15, 
           sd1 = 0.1 ,
           sd2 = 0.1,
-          death=0.1),
-  tcol = "date1",
-  method="Nelder-Mead"
+          death=0.01),
+  tcol = "date1" #,
+  #method="Nelder-Mead"
 )
 plot(chl_fit)
