@@ -26,8 +26,24 @@ dat <- read.csv("Algae_Nutrient.csv")
 ## look at a single treatment for Nh4 ## patterns are more obvious when just looking at single treatment 
 ##but doesn't seem to help with fit
 
-dat_nit_1 <- dat %>%
+dat_nit_27 <- dat %>%
   filter(treat == 27)
+
+dat_nit_9 <- dat %>%
+  filter(treat == 9)
+
+dat_nit_3 <- dat %>%
+  filter(treat == 3)
+
+dat_nit_108 <- dat %>%
+  filter(treat == 108)
+
+dat_nit_54 <- dat %>%
+  filter(treat == 54)
+
+dat_nit_0.5 <- dat %>%
+  filter(treat == 0.5)
+
 
 ### correct Nh4 for pH based on communication with YSI
 
@@ -43,7 +59,7 @@ cammonium = .0001 # ammonium lost to env-- calc in nutrient_air.R
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",
                    model = list(
-                       pred_nh4 ~ pred_chl*((v*pred_nh4)/(pred_nh4+s))-cnitrate -cammonium,
+                       pred_nh4 ~ -pred_chl*((v*pred_nh4)/(pred_nh4+s))-cnitrate -cammonium,
                      
                        ## chl is gained through uptake of nh4 and lost through density dependent death
                        ## death is not directly measured
@@ -62,19 +78,78 @@ chl_nh4_mod <- new("model.ode",
 
 
 options(error=recover)  ## stop/browse when error occurs
-chl_fit <- fitode(
+chl_fit_27 <- fitode(
   chl_nh4_mod,
-  data = dat_nit_1,
-  start=c(v = 0.01, 
-          s = 100,
-          j = .2,
+  data = dat_nit_27,
+  start=c(v = .1, 
+          s = 10,
+          j = .28,
           h = 250,
-          pred_nh40 = 20 ,
+          pred_nh40 = 15 ,
           pred_chl0 = 15, 
           sd1 = 0.1 ,
           sd2 = 0.1,
-          death=0.01),
+          death=0.1),
   tcol = "date1" #,
   #method="Nelder-Mead"
 )
-plot(chl_fit)
+plot(chl_fit_27)
+
+
+
+## close but not great
+chl_fit_9 <- fitode(
+  chl_nh4_mod,
+  data = dat_nit_9,
+  start=c(v = 1, 
+          s = 4.5,
+          j = .1,
+          h = 100,
+          pred_nh40 = 6 ,
+          pred_chl0 = 15, 
+          sd1 = 0.1 ,
+          sd2 = 0.1,
+          death=0.1),
+  tcol = "date1" #,
+  #method="Nelder-Mead"
+)
+plot(chl_fit_9)
+
+
+##not terrible
+chl_fit_3 <- fitode(
+  chl_nh4_mod,
+  data = dat_nit_3,
+  start=c(v = 1, 
+          s = 10,
+          j = .1,
+          h = 100,
+          pred_nh40 = 3 ,
+          pred_chl0 = 15, 
+          sd1 = 0.1 ,
+          sd2 = 0.1,
+          death=0.1),
+  tcol = "date1" #,
+  #method="Nelder-Mead"
+)
+plot(chl_fit_3)
+
+
+chl_fit_54 <- fitode(
+  chl_nh4_mod,
+  data = dat_nit_54,
+  start=c(v = .1, 
+          s = 5,
+          j = .28,
+          h = 125,
+          pred_nh40 = 25 ,
+          pred_chl0 = 15, 
+          sd1 = 0.1 ,
+          sd2 = 0.1,
+          death=0.1),
+  tcol = "date1" #,
+  #method="Nelder-Mead"
+)
+plot(chl_fit_54)
+
+

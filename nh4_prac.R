@@ -133,6 +133,18 @@ exdat <- dat %>%
   mutate(start_chl = chl[1])
 
 res <- exdat %>% do(fit_nls(.))
+##graphing
+prac <- expand.grid( 
+  startchl = seq(0,200),
+  r = 0.278,
+  k =  125,
+  chl = 0,
+  date1 = seq(1:10)
+)
+
+prac$chl = sat_fun(a= prac$r, b= prac$k, prac$startchl)
+
+ggplot(dat[dat$urep==1.5, ], aes(date1,chl)) + geom_point() 
 
 ## fit reps with alternate parameters (phi * n0 = r and phi/x = K), phi = r/no, x=k/phi)
 mdat <- exdat %>%
