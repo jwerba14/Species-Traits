@@ -1,28 +1,8 @@
+library(tidyverse)
 library(fitode)
 source("transfer_functions.R")
+dat <- read.csv("Algae_Nutrient.csv") 
 
-## exp_model <- new("model.ode",
-##                  name="exponential",
-##                  model=list(
-##                    A ~ - m * A
-##                  ),
-##                  observation=list(
-##                    nitrogen ~ dnorm(mean=A, sd=sd.nitrogen)
-##                  ),
-##                  initial=list(
-##                    A ~ A0
-##                  ),
-##                  par=c("m", "A0", "sd.nitrogen")
-## )
-
-## ff1 <- fitode(
-##   exp_model,
-##   data=data,
-##   start=c(m=0.4, A0=4500, sd.nitrogen=100), ## naming has to be consistent with parameter names
-##   tcol="day")
-  
-
-dat <- read.csv("Algae_Nutrient.csv")  
 ## look at a single treatment for Nh4 ## patterns are more obvious when just looking at single treatment 
 ##but doesn't seem to help with fit
 
@@ -80,7 +60,7 @@ chl_nh4_mod <- new("model.ode",
 options(error=recover)  ## stop/browse when error occurs
 chl_fit_27 <- fitode(
   chl_nh4_mod,
-  data = dat_nit_27,
+  data = dat_nit_27, 
   start=c(v = .1, 
           s = 10,
           j = .28,
@@ -116,7 +96,7 @@ chl_fit_9 <- fitode(
 plot(chl_fit_9)
 
 
-##not terrible
+##not bad
 chl_fit_3 <- fitode(
   chl_nh4_mod,
   data = dat_nit_3,
@@ -134,14 +114,14 @@ chl_fit_3 <- fitode(
 )
 plot(chl_fit_3)
 
-
+## looks good
 chl_fit_54 <- fitode(
   chl_nh4_mod,
   data = dat_nit_54,
-  start=c(v = .1, 
-          s = 5,
-          j = .28,
-          h = 125,
+  start=c(v = 8, 
+          s = .5,
+          j = .8,
+          h = 150,
           pred_nh40 = 25 ,
           pred_chl0 = 15, 
           sd1 = 0.1 ,
@@ -153,3 +133,41 @@ chl_fit_54 <- fitode(
 plot(chl_fit_54)
 
 
+
+chl_fit_108 <- fitode(
+  chl_nh4_mod,
+  data = dat_nit_108,
+  start=c(v = 8, 
+          s = .5,
+          j = .8,
+          h = 150,
+          pred_nh40 = 25 ,
+          pred_chl0 = 15, 
+          sd1 = 0.1 ,
+          sd2 = 0.1,
+          death=0.1),
+  tcol = "date1" #,
+  #method="Nelder-Mead"
+)
+plot(chl_fit_108)
+## what does warning mean:In .local(object, ...) :
+#### At least one entries in diag(vcov) is negative. Confidence interval will be accurate.
+
+
+##
+chl_fit_0.5 <- fitode(
+  chl_nh4_mod,
+  data = dat_nit_0.5,
+  start=c(v = 1, 
+          s = 1,
+          j = .25,
+          h = 200,
+          pred_nh40 = 3 ,
+          pred_chl0 = 15, 
+          sd1 = 0.1 ,
+          sd2 = 0.1,
+          death=0.1),
+  tcol = "date1" #,
+  #method="Nelder-Mead"
+)
+plot(chl_fit_0.5)
