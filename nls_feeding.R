@@ -1,6 +1,6 @@
 source("transfer_functions.R")
 dat = read.csv("Feeding_lit_extraction.csv")
-
+library(tidyverse)
 
 
 m <- nls(feeding.rate.mean~(Chl_conc*h)/(1+Chl_conc*h*r), start = list(h=1,r=1), data = dat )
@@ -9,8 +9,8 @@ newpred <- hollings2(a= seq(0.1,24,0.1), h = 0.264, r = 0.5218)
 plot(seq(0.1,24,0.1), newpred)
 points(dat$Chl_conc,dat$feeding.rate.mean)
 
-library(tidyverse)
-#currently doesn't account for controls and doesn't have high conc feeding 
+
+#currently doesn't account for controls 
 
 rdat <- read.csv("Daphnia_large_Feeding_Nov11.csv")
 
@@ -46,7 +46,7 @@ rdatj <- read.csv("Small_Daph_Feeding.csv")
 rdatj1 <- rdatj %>%
   filter(Control.Y.N == "N", date == "10_4_2017"| date == "1_8_2017" | date == "2_12_2018")
 rdatj1$rate_chl <- with(rdatj1, (Chl.1-Chl.2)/Chl_Time_Diff)
-rdatj1$rate_chl_ind <- with(rdatj1, rate_chl/X..of.Daphnia)
+rdatj1$rate_chl_ind <- with(rdatj1, rate_chl/Num_Daphnia)
 
 m3 <- nls(rate_chl_ind~(Chl.1*h)/(1+Chl.1*h*r), start = list(h=0.0001,r=130), data = rdatj1 )
 # h= .000026 p= 0.02 std er .000014; r = -448 se = 798 p = .57
