@@ -43,7 +43,7 @@ chl_nh4_mod <- new("model.ode",
                      
                        ## chl is gained through uptake of nh4 and lost through density dependent death
                        ## death is not directly measured-- for evidence of dd death see nls feeding
-                       pred_chl ~ pred_chl*((j*pred_nh4)/(pred_nh4+h))-pred_chl*death*d1
+                       pred_chl ~ pred_chl*((j*pred_nh4)/(pred_nh4+h))-pred_chl*((death*pred_chl)/(d1+pred_chl))
                      
                    ),
                    ## consider using bbmle::dnorm_n ?
@@ -57,19 +57,19 @@ chl_nh4_mod <- new("model.ode",
                    )
 
 
-options(error=recover)  ## stop/browse when error occurs
+ options(error=recover)  ## stop/browse when error occurs
 chl_fit_27_dd <- fitode(
   chl_nh4_mod,
   data = dat_nit_27, 
-  start=c(v = 45, 
-          s = 3500,
-          j = 150,
-          h = 5000,
+  start=c(v = 10, 
+          s = .1,
+          j = .1,
+          h = 100,
           pred_nh40 = 15 ,
           pred_chl0 = 15, 
-          sd1 = 3 ,
-          sd2 = 3,
-          death=0.00001,
+          sd1 = 1 ,
+          sd2 = 1,
+          death=0.01,
           d1=1),
   tcol = "date1" #,
   #method="Nelder-Mead"
