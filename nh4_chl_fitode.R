@@ -39,11 +39,11 @@ cammonium = .0001 # ammonium lost to env-- calc in nutrient_air.R
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",
                    model = list(
-                       pred_nh4 ~ -pred_chl*((v*pred_nh4)/(pred_nh4+s))-cnitrate -cammonium,
+                       pred_nh4 ~ -pred_chl*((v)/(pred_nh4+s))-cnitrate -cammonium,
                      
                        ## chl is gained through uptake of nh4 and lost through density dependent death
                        ## death is not directly measured-- for evidence of dd death see nls feeding
-                       pred_chl ~ pred_chl*((j*pred_nh4)/(pred_nh4+h))-pred_chl*((death*pred_chl)/(d1+pred_chl))
+                       pred_chl ~ pred_chl*((v)/(pred_nh4+s))*g-pred_chl*((death*pred_chl)/(d1+pred_chl))
                      
                    ),
                    ## consider using bbmle::dnorm_n ?
@@ -53,7 +53,7 @@ chl_nh4_mod <- new("model.ode",
                      
                    ),
                    initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
-                   par=c("v","s","j","h","pred_nh40","pred_chl0", "sd1","sd2", "death","d1")
+                   par=c("v","s","g","pred_nh40","pred_chl0", "sd1","sd2", "death","d1")
                    )
 
 
@@ -61,20 +61,19 @@ chl_nh4_mod <- new("model.ode",
 chl_fit_27_dd <- fitode(
   chl_nh4_mod,
   data = dat_nit_27, 
-  start=c(v = 10, 
-          s = .1,
-          j = .1,
-          h = 100,
+  start=c(v = 5, 
+          s = 1000,
+          g=10,
           pred_nh40 = 15 ,
           pred_chl0 = 15, 
-          sd1 = 1 ,
+          sd1 = 1,
           sd2 = 1,
           death=0.01,
-          d1=1),
+          d1=100),
   tcol = "date1" #,
   #method="Nelder-Mead"
 )
-plot(chl_fit_27_dd)
+plot(chl_fit_27_dd)  ## I think to change the shape of the nh4 curve it needs its own parameters like before
 
 
 
