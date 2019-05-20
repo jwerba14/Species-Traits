@@ -96,7 +96,7 @@ start2 <- coef(chl_fit_27_dd)
 start2[["pred_nh40"]] <- 6
 start2[["pred_chl0"]] <- 50
 
-## close but not great
+## 
 chl_fit_9_dd <- fitode(
 	chl_nh4_mod,
 	data = dat_nit_9,
@@ -142,9 +142,23 @@ plot(chl_fit_54, level=0.95)
 coef(chl_fit_27_dd)
 coef(chl_fit_54)
 
-start5 <- coef(chl_fit_54)
-start5[["pred_nh40"]] <- 60
-start5[["pred_chl0"]] <- 40
+#start5 <- coef(chl_fit_54)
+start5 <- c(
+  alpha = .5,
+  beta = 4.8,
+  K = 15,
+  d = 0.016,
+  gamma = 2,
+  sd1 = 3,
+  sd2 = 3,
+  pred_nh40 = 60,
+  pred_chl0 = 40,
+  pred_chl_d = 1000000
+)
+#start5[["pred_nh40"]] <- 60
+#start5[["pred_chl0"]] <- 40
+
+
 
 chl_fit_108 <- fitode(
 	chl_nh4_mod,
@@ -186,13 +200,38 @@ all_param <- data.frame(
 	uppcon =  c(treat0.5$X97.5..,treat3$X97.5..,treat9$X97.5..,treat27$X97.5..,treat54$X97.5..,treat108$X97.5..)
 	
 )
+all_param$model <- factor(all_param$model, levels = c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"))
 
 filter_param <- all_param %>%
-	filter(!(parameter %in% c("pred_nh40", "pred_chl0", "sd1", "sd2"))) %>%
-	filter(model != "chl_fit_108")
+	filter(!(parameter %in% c("pred_nh40", "pred_chl0", "sd1", "sd2"))) 
 
 ggplot(filter_param, aes(model,estimate)) +
 	geom_point() + 
-	# geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
+	geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
 	scale_y_log10() +
 	facet_wrap(~parameter, scale="free_y")
+
+
+param_avg <- all_param %>% group_by(parameter) %>% summarise(med = median(estimate), avg = mean(estimate))
+
+start <- c(alpha = 0.091, 
+           beta = 12.0,
+           d = 9.50  ,
+           gamma = 12.6,
+           K = 0.0272,
+           pred_chl_d = 47.5,
+           pred_chl0 = 2.33,
+           pred_nh40 = 1.09,
+           sd1 = 42.3,
+           sd2 = 1369843)
+
+#start <- coef(chl_fit_108)
+ss <- ode.solve(chl_nh4_mod, 1:11, start,
+                solver.opts=list(method="rk4", hini=0.1))
+
+plot(dat$date1, dat$nh4, ylim=c(0, 100))
+lines(ss@solution$pred_nh4)
+
+plot(dat$date1, dat$chl, ylim=c(0, 600))
+lines(ss@solution$pred_chl)
+
