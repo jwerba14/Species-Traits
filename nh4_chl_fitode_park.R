@@ -52,14 +52,14 @@ chl_nh4_mod <- new("model.ode",
 ## maybe figure out initial values
 start <- c(alpha = 0.08, 
 		beta = 15,
-		gamma=0.02,
 		K=10,
 		d=1/7,
-		pred_chl_d=400,
 		pred_nh40 = 15 ,
 		pred_chl0 = 40, 
+		gamma=0.02,
 		sd1 = 10,
-		sd2 = 100)
+		sd2 = 100,
+		pred_chl_d=400)
 
 ss <- ode.solve(chl_nh4_mod, 1:11, start,
 				solver.opts=list(method="rk4", hini=0.1))
@@ -164,24 +164,25 @@ chl_fit_108 <- fitode(
 	chl_nh4_mod,
 	data = dat_nit_108,
 	start=start5,
-	tcol = "date1" #,
+	tcol = "date1" )#,
 	#method="Nelder-Mead"
-)
-plot(chl_fit_108)
 
-start6 <- coef(chl_fit_54)
+plot(chl_fit_108,level = 0.95)
+
+start6 <- coef(chl_fit_9_dd)
 start6[["pred_nh40"]] <- 2.5
 start6[["pred_chl0"]] <- 40
 
-##
+#### this isn't great-- will also fit with 54 starting starting values but that has worse fit 
+## remove all data points whose nh4 >4 bc I think those were first of day measurements and YSI doesn't work-- need TO CHECK!!!
 chl_fit_0.5 <- fitode(
 	chl_nh4_mod,
-	data = dat_nit_0.5,
+	data = dat_nit_0.5[dat_nit_0.5$nh4 < 4, ],
 	start=start6,
 	tcol = "date1" #,
 	#method="Nelder-Mead"
 )
-plot(chl_fit_0.5)
+plot(chl_fit_0.5, level = 0.95)
 
 ## make a dataframe of all parameters
 
@@ -193,7 +194,7 @@ treat54 <- data.frame(confint(chl_fit_54))
 treat108 <- data.frame(confint(chl_fit_108))
 
 all_param <- data.frame(
-	model =  rep(c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"), each=length(start)),
+	model =  rep(c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"), each=10),
 	parameter = rep(names(start), 6),
 	estimate = c(treat0.5$estimate,treat3$estimate,treat9$estimate,treat27$estimate,treat54$estimate,treat108$estimate),
 	lowcon = c(treat0.5$X2.5..,treat3$X2.5..,treat9$X2.5..,treat27$X2.5..,treat54$X2.5..,treat108$X2.5..),
@@ -207,16 +208,38 @@ filter_param <- all_param %>%
 
 ggplot(filter_param, aes(model,estimate)) +
 	geom_point() + 
-	geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
-	scale_y_log10() +
+	#geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
+	#scale_y_log10() +
 	facet_wrap(~parameter, scale="free_y")
+
+par_high <- filter_param %>% filter(model != "chl_fit_0.5")
+ggplot(par_high, aes(model,estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
+  scale_y_log10() +
+  facet_wrap(~parameter, scale="free_y")
+
+
+
+## remove really high estimates
+par2 <- filter_param %>% filter(estimate < 1000)
+
+ggplot(par2, aes(model,estimate)) +
+  geom_point() + 
+  #geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
+  #scale_y_log10() +
+  facet_wrap(~parameter, scale="free_y")
+
+
 
 
 param_avg <- all_param %>% group_by(parameter) %>% summarise(med = median(estimate), avg = mean(estimate))
 
-start <- c(alpha = 0.091, 
+
+## this next part doesn't work at all... well it runs 
+start_new <- c(alpha = 0.091, 
            beta = 12.0,
-           d = 9.50  ,
+           d = 9.5  ,
            gamma = 12.6,
            K = 0.0272,
            pred_chl_d = 47.5,
@@ -226,12 +249,35 @@ start <- c(alpha = 0.091,
            sd2 = 1369843)
 
 #start <- coef(chl_fit_108)
-ss <- ode.solve(chl_nh4_mod, 1:11, start,
+ss <- ode.solve(chl_nh4_mod, 1:11, start_new,
                 solver.opts=list(method="rk4", hini=0.1))
 
-plot(dat$date1, dat$nh4, ylim=c(0, 100))
+plot(dat_nit_27$date1, dat_nit_27$nh4, ylim=c(0, 30))
 lines(ss@solution$pred_nh4)
 
+## extremely bad at fitting chl....
 plot(dat$date1, dat$chl, ylim=c(0, 600))
 lines(ss@solution$pred_chl)
 
+## what if try to fit all at once
+
+start_new <- c(alpha = 0.091, 
+               beta = 12.0,
+               d = 9.50  ,
+               gamma = 12.6,
+               K = 0.0272,
+               pred_chl_d = 47.5,
+               pred_chl0 = 2.33,
+               pred_nh40 = 1.09,
+               sd1 = 100,
+               sd2 = 100)
+
+
+all_mod_fit <- fitode(
+  chl_nh4_mod,
+  data = dat,
+  start=start_new,
+  tcol = "date1" #,
+  #method="Nelder-Mead"
+)
+plot(all_mod_fit, level = 0.95)
