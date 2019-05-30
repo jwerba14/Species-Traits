@@ -35,6 +35,16 @@ m <- with(ammonium, lm(NH4 ~ Day*(Treat)))
 ammonium2 <- ammonium %>%
   filter(!(Treat==4 & Day==4 & Rep==52))
 
+ammonium3 <- ammonium2 %>%
+  group_by(Treat,Day) %>%
+  filter(Day == 1) %>%
+  summarize(start_nh4 = mean(NH4))
+
+ammonium4 <- left_join(ammonium2,ammonium3,by = "Treat")
+
+### fit on log scale because need proportional change for diff eq. 
+m2 <- with(ammonium4, lm(log(NH4) ~ Day.x+as.factor(Treat)))
+
 (g2 <- ggplot(ammonium2, aes(Day,NH4)) + geom_point(aes(color=as.factor(Treat))))
 
 inidf <- ammonium2 %>%
@@ -63,7 +73,7 @@ simdf <- lapply(fits$m, function(m){
   bind_rows(.id="Treat")
 
 g2 +
-  geom_line(data=simdf, aes(col=Treat))
+  geom_line(data=simdf, aes(col=Treat)) + scale_y_log10()
 
 lapply(fits$m, function(m){
   data.frame(
@@ -72,6 +82,8 @@ lapply(fits$m, function(m){
 }) %>%
   bind_rows(.id="Treat") %>%
   filter(Treat != 4) %>%
-  summarize(m=mean(m))
+  summarize(m=mean(m)) 
 
+## slope as a function of starting nh4
 
+slope <- 

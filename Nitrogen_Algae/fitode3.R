@@ -26,29 +26,21 @@ dat_nit_54 <- dat %>%
 dat_nit_0.5 <- dat %>%
   filter(treat == 0.5)
 
-
-### correct Nh4 for pH based on communication with YSI
-
-# first need temp in kelvin
-tempK <- dat$temp + 273.15 
-nh3 <- dat$nh4 * (10^(dat$ph-((2726.3/tempK)+0.0963)))
-
-cnitrate = .000001 # nitrate lost to env-- calc in nutrient_air.R
-cammonium = .0001 # ammonium lost to env-- calc in nutrient_air.R
+cammonium = 0.04085 # proportional ammonium lost to env-- calc in nutrient_air.R
 
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",
                    model = list(
-                     pred_nh4 ~ -pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) + gamma *(death1*pred_chl + death2*(pred_chl^2))- cnitrate-cammonium ,
+                     pred_nh4 ~ -pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) + gamma *(death1*pred_chl + death2*(pred_chl^2))-cammonium*pred_nh4 ,
                      pred_chl ~ beta * pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) - death1*pred_chl - death2*(pred_chl^2)
                    ),
                    ## consider using bbmle::dnorm_n ?
                    observation = list(
-                     nh4 ~ dnorm(mean = pred_nh4, sd=sd1),
-                     chl ~ dnorm(mean = pred_chl, sd=sd2)
+                     nh4 ~ dnorm2(mean = pred_nh4),
+                     chl ~ dnorm2(mean = pred_chl)
                    ),
                    initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
-                   par=c("alpha", "beta", "omega", "death1","death2", "pred_nh40", "pred_chl0", "gamma", "sd1", "sd2")
+                   par=c("alpha", "beta", "omega", "death1","death2", "pred_nh40", "pred_chl0", "gamma")
 )
 
 ## maybe figure out initial values
@@ -59,9 +51,8 @@ start <- c(alpha = 0.03,
            death2=0.001,
            pred_nh40 = 15 ,
            pred_chl0 = 40, 
-           gamma=0.01,
-           sd1 = 10,
-           sd2 = 100)
+           gamma=0.01
+           )
 
 ss <- ode.solve(chl_nh4_mod, 1:11, start,
                 solver.opts=list(method="rk4", hini=0.1))
@@ -72,10 +63,26 @@ lines(ss@solution$pred_nh4)
 plot(dat_nit_27$date1, dat_nit_27$chl)
 lines(ss@solution$pred_chl)
 
-sum(dnorm(dat_nit_27$nh4, ss@solution$pred_nh4[match(dat_nit_27$date1, 1:11)], start[["sd1"]], log=TRUE)) +
-  sum(dnorm(dat_nit_27$chl, ss@solution$pred_chl[match(dat_nit_27$date1, 1:11)], start[["sd2"]], log=TRUE))
 
-# options(error=recover)  ## stop/browse when error occurs
+
+## fit with a bunch of starting parameter values
+## but this is way too many but does encompass whole range
+start_dat <- expand.grid(
+  alpha =  seq(1e^-5,1, 3e^-5),
+  beta = seq(1,300000,500),
+  omega = seq(0.001, 700, .1),
+  death1 = seq(0,0.3,0.01),
+  death2 = seq(0,0.002,0.0001),
+  pred_nh40 = 13,
+  pred_chl0 = 43,
+  gamma = seq(0, 1.5, 0.0008),
+  sd1 =  seq(0,8,0.5) ,    
+  sd2 =  seq(20,80,5) 
+)
+
+
+
+
 chl_fit_27_dd <- fitode(
   chl_nh4_mod,
   data = dat_nit_27, 
@@ -86,6 +93,9 @@ chl_fit_27_dd <- fitode(
 
 plot(chl_fit_27_dd, level=0.95)
 coef(chl_fit_27_dd)
+
+v = vcov(chl_fit_27_dd)
+corrplot(cov2cor(v))
 
 ## alpha - NH4 consumption per algae per time: 0.05
 ## beta - algae per NH4: 13
@@ -103,7 +113,8 @@ chl_fit_9_dd <- fitode(
   chl_nh4_mod,
   data = dat_nit_9,
   start=start2,
-  tcol = "date1" #,
+  tcol = "date1",
+  solver.opts=list(method="rk4", hini=0.1)
   #method="Nelder-Mead"
 )
 plot(chl_fit_9_dd, level=0.95)
@@ -143,7 +154,8 @@ chl_fit_3_dd <- fitode(
   chl_nh4_mod,
   data = dat_nit_3,
   start=start3,
-  tcol = "date1" #,
+  tcol = "date1",
+  solver.opts=list(method="rk4", hini=0.1)
   #method="Nelder-Mead"
 )
 plot(chl_fit_3_dd, level=0.95)
@@ -159,7 +171,8 @@ chl_fit_54 <- fitode(
   chl_nh4_mod,
   data = dat_nit_54,
   start=start4,
-  tcol = "date1" #,
+  tcol = "date1" ,
+  solver.opts=list(method="rk4", hini=0.1)
   #method="Nelder-Mead"
 )
 plot(chl_fit_54, level=0.95)
@@ -167,17 +180,18 @@ plot(chl_fit_54, level=0.95)
 coef(chl_fit_27_dd)
 coef(chl_fit_54)
 
-start5 <- coef(chl_fit_27_dd)
+start5 <- coef(chl_fit_54)
 start5[["pred_nh40"]] <- 40
 start5[["pred_chl0"]] <- 40
 
-
+## warning messages...
 
 chl_fit_108 <- fitode(
   chl_nh4_mod,
   data = dat_nit_108,
   start=start5,
-  tcol = "date1" )#,
+  tcol = "date1",
+  solver.opts=list(method="rk4", hini=0.1))
 #method="Nelder-Mead"
 
 plot(chl_fit_108,level = 0.95)
@@ -191,8 +205,9 @@ chl_fit_0.5 <- fitode(
   chl_nh4_mod,
   data = dat_nit_0.5,
   start=start6,
-  tcol = "date1" #,
-  #method="Nelder-Mead"
+  tcol = "date1",
+  solver.opts=list(method="rk4", hini=0.1)
+  
 )
 plot(chl_fit_0.5, level = 0.95)
 
@@ -202,8 +217,8 @@ chl_fit_0.5a <- fitode(
   chl_nh4_mod,
   data = dat_nit_0.5[dat_nit_0.5$nh4 < 4,],
   start=start6,
-  tcol = "date1" #,
-  #method="Nelder-Mead"
+  tcol = "date1" ,
+  solver.opts=list(method="rk4", hini=0.1)
 )
 
 plot(chl_fit_0.5a, level = 0.95)
@@ -218,7 +233,7 @@ treat54 <- data.frame(confint(chl_fit_54))
 treat108 <- data.frame(confint(chl_fit_108))
 
 all_param <- data.frame(
-  model =  rep(c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"), each=10),
+  model =  rep(c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"), each=8),
   parameter = rep(names(start),6),
   estimate = c(treat0.5$estimate,treat3$estimate,treat9$estimate,treat27$estimate,treat54$estimate,treat108$estimate),
   lowcon = c(treat0.5$X2.5..,treat3$X2.5..,treat9$X2.5..,treat27$X2.5..,treat54$X2.5..,treat108$X2.5..),
@@ -236,7 +251,7 @@ ggplot(filter_param, aes(model,estimate)) +
   #scale_y_log10() +
   facet_wrap(~parameter, scale="free_y")
 
-par_high <- filter_param %>% filter( model != "chl_fit_3")
+par_high <- filter_param %>% filter( model != "chl_fit_0.5")
 ggplot(par_high, aes(model,estimate)) +
   geom_point() + 
   #geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
@@ -260,48 +275,33 @@ ggplot(par2, aes(model,estimate)) +
 param_avg <- all_param %>% group_by(parameter) %>% summarise(med = median(estimate), avg = mean(estimate))
 
 
-## this next part doesn't work at all... well it runs 
-start_new <- c(alpha = 0.091, 
-               beta = 12.0,
-               d = 9.5  ,
-               gamma = 12.6,
-               K = 0.0272,
-               pred_chl_d = 47.5,
-               pred_chl0 = 2.33,
-               pred_nh40 = 1.09,
-               sd1 = 42.3,
-               sd2 = 1369843)
-
+##### 
+start_new <- param_avg %>% select(parameter,med)
+newstart <- setNames(start_new$med, as.character(start_new$parameter))
 #start <- coef(chl_fit_108)
-ss <- ode.solve(chl_nh4_mod, 1:11, start_new,
+ss <- ode.solve(chl_nh4_mod, 1:11, newstart,
                 solver.opts=list(method="rk4", hini=0.1))
 
 plot(dat_nit_27$date1, dat_nit_27$nh4, ylim=c(0, 30))
 lines(ss@solution$pred_nh4)
 
-## extremely bad at fitting chl....
 plot(dat$date1, dat$chl, ylim=c(0, 600))
 lines(ss@solution$pred_chl)
+plot(dat$date1, dat$nh4, ylim=c(0, 100))
+lines(ss@solution$pred_nh4)
+
+
+
 
 ## what if try to fit all at once
-
-start_new <- c(alpha = 0.091, 
-               beta = 12.0,
-               d = 9.50  ,
-               gamma = 12.6,
-               K = 0.0272,
-               pred_chl_d = 47.5,
-               pred_chl0 = 2.33,
-               pred_nh40 = 1.09,
-               sd1 = 100,
-               sd2 = 100)
-
+##probbly not a good move
 
 all_mod_fit <- fitode(
   chl_nh4_mod,
   data = dat,
-  start=start_new,
-  tcol = "date1" #,
+  start=newstart,
+  tcol = "date1",
+  solver.opts=list(method="rk4", hini=0.1)
   #method="Nelder-Mead"
 )
 plot(all_mod_fit, level = 0.95)

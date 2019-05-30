@@ -1,4 +1,4 @@
-R scripts (as April 23, 2019):
+R scripts (as May 30, 2019):
 ODE_attempt1.R - has full ODE including no3 and ceriodaphnia, runs, described in script
 
 transfer_functions.R - transfer functions including hollings II, michaelis-menten, logistic growth, runs, described in script
@@ -22,6 +22,12 @@ cerio_param_fit.R - based on nh4_prac.R, doesn't finish but reasonable start, ru
 nh4_param_predictions.R - set up for sum of squares of predicted vs actual, doesn't run, not described in script
 
 ode_pred_algae.R - graphs predicted chlorophyll vs actual chlorophyll for single rep, runs, described in script
+
+ODE_simple.R - simplified ODE, no ceriodaphnia, runs, but needs equations to be written with new parameterization
+
+fitode3.R - first pass of fitting Nh4-chl data with ode, runs, described in script
+
+latinhypercube_att1- creates a latin hypercube for starting values for fitode, runs, described in script
 
 Data files
 Feeding_lit_extraction.csv - data from Kersting and Van der Leeuw Hydrobiologia Vol 49, 1976
