@@ -2,7 +2,7 @@
 
 library(tidyverse)
 library(fitode)
-source("transfer_functions.R")
+source("../transfer_functions.R")
 dat <- read.csv("Algae_Nutrient.csv") 
 
 ## look at a single treatment for Nh4 ## patterns are more obvious when just looking at single treatment 
@@ -67,18 +67,18 @@ lines(ss@solution$pred_chl)
 
 ## fit with a bunch of starting parameter values
 ## but this is way too many but does encompass whole range
-start_dat <- expand.grid(
-  alpha =  seq(1e^-5,1, 3e^-5),
-  beta = seq(1,300000,500),
-  omega = seq(0.001, 700, .1),
-  death1 = seq(0,0.3,0.01),
-  death2 = seq(0,0.002,0.0001),
-  pred_nh40 = 13,
-  pred_chl0 = 43,
-  gamma = seq(0, 1.5, 0.0008),
-  sd1 =  seq(0,8,0.5) ,    
-  sd2 =  seq(20,80,5) 
-)
+#start_dat <- expand.grid(
+  #alpha =  seq(1e^-5,1, 3e^-5),
+  #beta = seq(1,300000,500),
+  #omega = seq(0.001, 700, .1),
+  #death1 = seq(0,0.3,0.01),
+  #death2 = seq(0,0.002,0.0001),
+  #pred_nh40 = 13,
+  #pred_chl0 = 43,
+  #gamma = seq(0, 1.5, 0.0008),
+  #sd1 =  seq(0,8,0.5) ,    
+  #sd2 =  seq(20,80,5) 
+#)
 
 
 
