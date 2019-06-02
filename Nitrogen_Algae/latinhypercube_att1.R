@@ -34,7 +34,7 @@ temp <- data.frame (
 ## create hypercube with smaller range +/- 10% of fitted values to see if I still get so few fits
 
 set.seed(100)
-hc <- improvedLHS(200, 10)
+hc <- improvedLHS(300, 10)
 hc <- data.frame(hc)
 
 
@@ -49,6 +49,16 @@ hc[,7] <- 43
 hc[,8]<- 0.08 + 0.11*hc[,8]
 
  
+hc[,1] <- 0.004+0.008*hc[,1]
+hc[,2] <- 12 +  20*hc[,2]
+hc[,3] <- 8 + 20*hc[,3]
+hc[,4] <- 0.001 + 0.009*hc[,4]
+hc[,5] <- 0.0001 + 0.001*hc[,5]
+hc[,6] <- 13
+hc[,7] <- 43
+hc[,8]<- 0.05 + 0.4*hc[,8]
+
+
 names(hc) <- c("alpha","beta","omega","death1","death2","pred_nh40","pred_chl0","gamma")
 
 for(i in 1:nrow(hc)) {
@@ -80,7 +90,18 @@ for(i in 1:nrow(hc)) {
 
 n27 <- temp %>% filter(alpha != "NA")
 
-n9 <- temp %>% filter(alpha != "NA")
-n9 %>% filter(loglik == max(loglik))
+ngraph <- n27 %>% 
+  gather(-loglik, key = "parameter", value = "value") %>%
+  filter(parameter != "ttime") %>%
+  filter(loglik > -500 )
 
+
+ggplot(ngraph, aes(loglik,value)) + geom_point(aes(color= loglik)) + facet_wrap(~parameter, scales = "free_y") +scale_y_log10()
+
+n9 <- read.csv("chl_9_30per.csv")
+nngraph <- n9 %>% 
+  gather(-loglik, key = "parameter", value = "value") %>%
+  filter(parameter != "ttime" & parameter != "X") %>%
+  filter(loglik > -500 )
+ggplot(nngraph, aes(loglik,value)) + geom_point(aes(color= loglik)) + facet_wrap(~parameter, scales = "free_y") +scale_y_log10()
 

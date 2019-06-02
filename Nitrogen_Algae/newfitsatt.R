@@ -32,8 +32,8 @@ cammonium = 0.04085 # proportional ammonium lost to env-- calc in nutrient_air.R
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",
                    model = list(
-                     pred_nh4 ~ -pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) + gamma *(death1*pred_chl + death2*(pred_chl^2))-cammonium*pred_nh4 ,
-                     pred_chl ~ beta * pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) - death1*pred_chl - death2*(pred_chl^2)
+                     pred_nh4 ~ -pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) + gamma *(death2*(pred_chl^2))-cammonium*pred_nh4 ,
+                     pred_chl ~ beta * pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) - death2*(pred_chl^2)
                    ),
                    ## consider using bbmle::dnorm_n ?
                    observation = list(
@@ -41,19 +41,19 @@ chl_nh4_mod <- new("model.ode",
                      chl ~ dnorm2(mean = pred_chl)
                    ),
                    initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
-                   par=c("alpha", "beta", "omega", "death1","death2", "pred_nh40", "pred_chl0", "gamma")
+                   par=c("alpha", "beta", "omega", "death2", "pred_nh40", "pred_chl0", "gamma")
 )
 
 ## maybe figure out initial values
 start <- c(alpha = 0.03, 
            beta = 15,
            omega=2.3,
-           death1=0.006,
+           #death1=0,
            death2=0.001,
            pred_nh40 = 15 ,
            pred_chl0 = 40, 
            gamma=0.01
-           )
+)
 
 ss <- ode.solve(chl_nh4_mod, 1:11, start,
                 solver.opts=list(method="rk4", hini=0.1))
@@ -69,19 +69,27 @@ lines(ss@solution$pred_chl)
 ## fit with a bunch of starting parameter values
 ## but this is way too many but does encompass whole range
 #start_dat <- expand.grid(
-  #alpha =  seq(1e^-5,1, 3e^-5),
-  #beta = seq(1,300000,500),
-  #omega = seq(0.001, 700, .1),
-  #death1 = seq(0,0.3,0.01),
-  #death2 = seq(0,0.002,0.0001),
-  #pred_nh40 = 13,
-  #pred_chl0 = 43,
-  #gamma = seq(0, 1.5, 0.0008),
-  #sd1 =  seq(0,8,0.5) ,    
-  #sd2 =  seq(20,80,5) 
+#alpha =  seq(1e^-5,1, 3e^-5),
+#beta = seq(1,300000,500),
+#omega = seq(0.001, 700, .1),
+#death1 = seq(0,0.3,0.01),
+#death2 = seq(0,0.002,0.0001),
+#pred_nh40 = 13,
+#pred_chl0 = 43,
+#gamma = seq(0, 1.5, 0.0008),
+#sd1 =  seq(0,8,0.5) ,    
+#sd2 =  seq(20,80,5) 
 #)
 
-
+start <- c(alpha = 0.03, 
+           beta = 15,
+           omega=2.3,
+           #death1=0,
+           death2=0.0005,
+           pred_nh40 = 15 ,
+           pred_chl0 = 40, 
+           gamma=0.03
+)
 
 
 chl_fit_27_dd <- fitode(
@@ -100,7 +108,7 @@ library("psych")
 v = vcov(chl_fit_27_dd)
 cc1 = (cov2cor(v))
 cc2 = cor.smooth(cc1)
-
+corrplot(cc1)
 
 ## alpha - NH4 consumption per algae per time: 0.05
 ## beta - algae per NH4: 13
@@ -112,6 +120,7 @@ cc2 = cor.smooth(cc1)
 start2 <- coef(chl_fit_27_dd)
 start2[["pred_nh40"]] <- 6
 start2[["pred_chl0"]] <- 50
+
 
 ## 
 chl_fit_9_dd <- fitode(
@@ -127,7 +136,7 @@ plot(chl_fit_9_dd, level=0.95)
 coef(chl_fit_27_dd)
 coef(chl_fit_9_dd)
 
-v= vcov(chl_fit_9_dd,"fitted")
+v= vcov(chl_fit_9_dd) #,"fitted")
 cm = cov2cor(v)
 cm1 = cor.smooth(cm)
 corrplot(cm1)
@@ -140,7 +149,7 @@ corrplot(cm1)
 start3 <- c(alpha = 0.003, 
             beta = 15,
             omega=400,
-            death1=0.001,
+            #death1=0.001,
             death2=0.00003,
             pred_nh40 = 3.5 ,
             pred_chl0 = 40, 
@@ -168,6 +177,8 @@ chl_fit_3_dd <- fitode(
   #method="Nelder-Mead"
 )
 plot(chl_fit_3_dd, level=0.95)
+v3 <- vcov(chl_fit_3_dd)
+c3 <- cov2cor(v3)
 
 coef(chl_fit_9_dd)
 coef(chl_fit_3_dd)
@@ -189,6 +200,10 @@ chl_fit_54 <- fitode(
 )
 plot(chl_fit_54, level=0.95)
 
+v54 = vcov(chl_fit_54)
+cc54 = cov2cor(v54) ###hmmmm
+
+
 coef(chl_fit_27_dd)
 coef(chl_fit_54)
 
@@ -197,6 +212,15 @@ start5[["pred_nh40"]] <- 40
 start5[["pred_chl0"]] <- 40
 
 ## warning messages...
+
+start5 <- c(alpha = .0001,
+            beta = 8,
+            omega = 40,
+            death2 = .0000005,
+            pred_nh40 = 45,
+            pred_chl0 = 40,
+            gamma = 27)
+
 
 chl_fit_108 <- fitode(
   chl_nh4_mod,
@@ -245,7 +269,7 @@ treat54 <- data.frame(confint(chl_fit_54))
 treat108 <- data.frame(confint(chl_fit_108))
 
 all_param <- data.frame(
-  model =  rep(c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"), each=8),
+  model =  rep(c("chl_fit_0.5", "chl_fit_3","chl_fit_9","chl_fit_27","chl_fit_54","chl_fit_108"), each=7),
   parameter = rep(names(start),6),
   estimate = c(treat0.5$estimate,treat3$estimate,treat9$estimate,treat27$estimate,treat54$estimate,treat108$estimate),
   lowcon = c(treat0.5$X2.5..,treat3$X2.5..,treat9$X2.5..,treat27$X2.5..,treat54$X2.5..,treat108$X2.5..),
@@ -277,8 +301,8 @@ par2 <- filter_param %>% filter(estimate < 1000)
 
 ggplot(par2, aes(model,estimate)) +
   geom_point() + 
-  #geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
-  #scale_y_log10() +
+  geom_errorbar(aes(model, ymin=lowcon, ymax=uppcon)) +
+  scale_y_log10() +
   facet_wrap(~parameter, scale="free_y")
 
 
