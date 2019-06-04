@@ -59,7 +59,21 @@ hc[,7] <- 43
 hc[,8]<- 0.05 + 0.4*hc[,8]
 
 
+##9 at 30%
+hc[,1] <- 0.002+0.006*hc[,1]
+hc[,2] <- 24 +  45*hc[,2]
+hc[,3] <- 25 + 48*hc[,3]
+hc[,4] <- 0.008 + 0.02*hc[,4]
+hc[,5] <- 0.0005 + 0.001*hc[,5]
+hc[,6] <- 5
+hc[,7] <- 33
+hc[,8]<- 0.02 + 0.06*hc[,8]
+
+
 names(hc) <- c("alpha","beta","omega","death1","death2","pred_nh40","pred_chl0","gamma")
+
+
+cv <- vector(length= 300, mode = "list")
 
 for(i in 1:nrow(hc)) {
   newstart <- with(hc[i,], 
@@ -79,9 +93,11 @@ for(i in 1:nrow(hc)) {
                        solver.opts = list(method="rk4", hini=0.1))),silent = TRUE)
   if (class(tempm) == "try-error") {
     temp[i,] <- "NA"
+    cv[[i]] <- "NA"
   } else {
     temp[i,1:8] <- coef(tempm)
     temp$loglik[i] <- logLik(tempm)
+    cv[[i]] <- vcov(tempm)
     
   }})
   temp$ttime[i] <- x[[3]]

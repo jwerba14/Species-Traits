@@ -1,28 +1,13 @@
 library("lhs")
 library("fitode")
 
-chl_nh4_mod <- new("model.ode",
-                   name = "algal_nit",
-                   model = list(
-                     pred_nh4 ~ -pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) + gamma *(death2*(pred_chl^2))-cammonium*pred_nh4 ,
-                     pred_chl ~ beta * pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) - death2*(pred_chl^2)
-                   ),
-                   ## consider using bbmle::dnorm_n ?
-                   observation = list(
-                     nh4 ~ dnorm2(mean = pred_nh4),
-                     chl ~ dnorm2(mean = pred_chl)
-                   ),
-                   initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
-                   par=c("alpha", "beta", "omega", "death2", "pred_nh40", "pred_chl0", "gamma")
-)
-
-
 
 
 temp <- data.frame (
   alpha =  0,
   beta = 0,
   omega = 0,
+  death1 = 0,
   death2 = 0,
   pred_nh40 = 13,
   pred_chl0 = 43,
@@ -37,7 +22,7 @@ temp <- data.frame (
 
 
 set.seed(100)
-hc <- improvedLHS(300, 7)
+hc <- improvedLHS(300, 8)
 hc <- data.frame(hc)
 
 
@@ -51,17 +36,18 @@ hc[,6] <- 13
 hc[,7] <- 43
 hc[,8]<- 0.08 + 0.11*hc[,8]
 
-
+## 27 at 30%
 hc[,1] <- 0.004+0.008*hc[,1]
-hc[,2] <- 12 +  20*hc[,2]
-hc[,3] <- 8 + 20*hc[,3]
-hc[,4] <- 0.001 + 0.009*hc[,4]
-hc[,5] <- 13
-hc[,6] <- 43
-hc[,7] <- 0.03 + 0.06*hc[,7]
+hc[,2] <- 12 +  21.2*hc[,2]
+hc[,3] <- 9 + 18.5*hc[,3]
+hc[,4] <- 0.002 + 0.004*hc[,4]
+hc[,5] <- 0.0004 + 0.0009*hc[,4]
+hc[,6] <- 13
+hc[,7] <- 40
+hc[,8] <- 0.06 + 0.15*hc[,8]
 
 
-## chl 9
+## nh4 9 
 hc[,1] <- 0.002577731+0.004787215*hc[,1]
 hc[,2] <- 24 +  45*hc[,2]
 hc[,3] <- 147 + 273*hc[,3]
@@ -71,8 +57,31 @@ hc[,6] <- 43
 hc[,7] <- 0.05 + 0.4*hc[,7]
 
 
+## nh4 9 after
+hc[,1] <- 0.0025+0.005*hc[,1]
+hc[,2] <- 24 +  45*hc[,2]
+hc[,3] <- 1252 + 2326*hc[,3]
+hc[,4] <- 0.0005 + 0.001*hc[,4]
+hc[,5] <- 6
+hc[,6] <- 34
+hc[,7] <- 0.03 + 0.06*hc[,7]
+
+
+## nh4 3 at 30%
+hc[,1] <- 0.002+0.006*hc[,1]
+hc[,2] <- 24 +  45*hc[,2]
+hc[,3] <- 25+ 48*hc[,3]
+hc[,4] <- 0.008 + 0.02*hc[,4]
+hc[,5] <- 0.0005 + 0.0012*hc[,4]
+hc[,6] <- 5
+hc[,7] <- 33
+hc[,8] <- 0.02 + 0.06*hc[,8]
+
+
+
+
 cv <- vector(length= 300, mode = "list")
-names(hc) <- c("alpha","beta","omega","death2","pred_nh40","pred_chl0","gamma")
+names(hc) <- c("alpha","beta","omega","death1","death2","pred_nh40","pred_chl0","gamma")
 
 for(i in 1:nrow(hc)) {
   newstart <- with(hc[i,], 
@@ -80,6 +89,7 @@ for(i in 1:nrow(hc)) {
                      alpha =  alpha,
                      beta = beta,
                      omega = omega,
+                     death1=death1,
                      death2 = death2,
                      pred_nh40 = pred_nh40,
                      pred_chl0 = pred_chl0,
@@ -87,14 +97,14 @@ for(i in 1:nrow(hc)) {
                      
                    ))
   x <- system.time({
-    tempm <- try((fitode(chl_nh4_mod, data= dat_nit_9, start = newstart, tcol = "date1", 
+    tempm <- try((fitode(chl_nh4_mod, data= dat_nit_27, start = newstart, tcol = "date1", 
                          solver.opts = list(method="rk4", hini=0.1))),silent = TRUE)
     if (class(tempm) == "try-error") {
       temp[i,] <- "NA"
       cv[[i]] <- "NA"
       
     } else {
-      temp[i,1:7] <- coef(tempm)
+      temp[i,1:8] <- coef(tempm)
       temp$loglik[i] <- logLik(tempm)
       cv[[i]] <- vcov(tempm)
     }})
