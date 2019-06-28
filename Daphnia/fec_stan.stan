@@ -29,7 +29,7 @@ generated quantities{  // not a necessity but is giving predictions and error --
   for(i in 1:4){
     // Posterior parameter distribution of the mean
   //  Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
-    Y_mean[i] = alpha * treat_chl[i] / (treat_chl[i] + beta);
+    Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
     // Posterior predictive distribution random number generator from normal
     Y_pred[i] = normal_rng(Y_mean[i], sigma);   
 }
