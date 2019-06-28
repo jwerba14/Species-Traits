@@ -36,15 +36,15 @@ with(chl9n, plot(loglik))
 nrow(chl9n %>% filter(corrgood == 1))
 
 nrow(chl9_all %>% filter(corrgood == 1))
-chl <- chl9_all %>% filter(loglik != "NA") %>% filter(loglik > -432)
-chl1 <- chl %>% filter(corrgood == 1)
-chl2 <- chl %>% gather(key = "parameter", value = "value", -c(ttime,loglik,corrgood,X))
+chl9 <- chl9_all %>% filter(loglik != "NA") %>% filter(loglik > -432)
+chl1 <- chl9 %>% filter(corrgood == 1)
+chl9a <- chl9 %>% gather(key = "parameter", value = "value", -c(ttime,loglik,corrgood,X))
 ggplot(chl2, aes(loglik, value)) + geom_point(aes(color= as.factor(corrgood))) + 
   facet_wrap(~parameter, scale = "free")
-ggplot(chl, aes(alpha, beta)) + geom_point(aes(color = as.factor(corrgood)))
-ggplot(chl, aes(alpha, omega)) + geom_point(aes(color = as.factor(corrgood)))
-ggplot(chl, aes(alpha, death2)) + geom_point(aes(color = as.factor(corrgood)))
-ggplot(chl, aes(alpha, death1)) + geom_point(aes(color = as.factor(corrgood)))
+ggplot(chl9, aes(alpha, beta)) + geom_point(aes(color = as.factor(corrgood)))
+ggplot(chl9, aes(alpha, omega)) + geom_point(aes(color = as.factor(corrgood)))
+ggplot(chl9, aes(alpha, death2)) + geom_point(aes(color = as.factor(corrgood)))
+ggplot(chl9, aes(alpha, death1)) + geom_point(aes(color = as.factor(corrgood)))
 ggplot(chl, aes(alpha, gamma)) + geom_point(aes(color = as.factor(corrgood)))
 
 
@@ -66,7 +66,7 @@ ggplot(chl, aes(death1, gamma)) + geom_point(aes(color = as.factor(corrgood)))
 ## ones with best fit and correlations that make sense (chl1- seem to all cluster at values)
 ## take median parameters to plot and see...
 
-med_param_9 <- chl1 %>% 
+med_param_9 <- chl9 %>% 
   gather(key = "parameter", value = "value", -c(ttime,loglik,corrgood,X)) %>%
   select (-c(ttime,loglik,corrgood,X))  %>%
   group_by(parameter) %>%
@@ -74,7 +74,7 @@ med_param_9 <- chl1 %>%
 
 
 newstart <- setNames(med_param_9$parmmed, as.character(med_param_9$parameter))
-newstart[[8]] <- 8
+newstart[[8]] <- 6
 newstart[[7]] <- 40
 
 
@@ -115,7 +115,8 @@ lines(ss@solution$pred_chl)
 chl27_all$corrgood <- 0
 
 for (i in 1:length(vcv27)) {
-  if (vcv27[[i]] != "NA" & !is.na(vcv27[[i]][1])) {
+  #if (vcv27[[i]] != "NA" & !is.na(vcv27[[i]][1])) {
+  if (vcv27[[i]] != "NA" & sum(is.na(vcv27[[i]])) == 0) {
     vcv27[[i]] <- cov2cor(vcv27[[i]]) 
     t <- length(which(vcv27[[i]] >1 ))
     v <- length(which(vcv27[[i]] < -1))
@@ -161,19 +162,15 @@ ggplot(chl, aes(death2, gamma)) + geom_point(aes(color = as.factor(corrgood)))
 ggplot(chl, aes(death1, gamma)) + geom_point(aes(color = as.factor(corrgood)))
 
 
-## ones with best fit and correlations that make sense (chl1- seem to all cluster at values)
-## take median parameters to plot and see...
-
-med_param_9 <- chl1 %>% 
+med_param_27 <- chl1 %>% 
   gather(key = "parameter", value = "value", -c(ttime,loglik,corrgood,X)) %>%
   select (-c(ttime,loglik,corrgood,X))  %>%
   group_by(parameter) %>%
   summarize(parmmed = median(value))
 
 
-newstart <- setNames(med_param_9$parmmed, as.character(med_param_9$parameter))
-newstart[[8]] <- 8
-newstart[[7]] <- 40
+newstart <- setNames(med_param_27$parmmed, as.character(med_param_27$parameter))
+
 
 
 cammonium = 0.04085 # proportional ammonium lost to env-- calc in nutrient_air.R
@@ -201,10 +198,10 @@ chl_nh4_mod <- new("model.ode",
 ss <- ode.solve(chl_nh4_mod, 1:11, newstart,
                 solver.opts=list(method="rk4", hini=0.1))
 
-plot(dat_nit_9$date1, dat_nit_9$nh4, ylim=c(0, 30))
+plot(dat_nit_27$date1, dat_nit_27$nh4, ylim=c(0, 30))
 lines(ss@solution$pred_nh4)
 
-plot(dat_nit_9$date1, dat_nit_9$chl)
+plot(dat_nit_27$date1, dat_nit_27$chl)
 lines(ss@solution$pred_chl)
 
 

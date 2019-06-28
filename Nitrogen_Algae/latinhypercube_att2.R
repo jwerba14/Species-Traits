@@ -78,6 +78,16 @@ hc[,7] <- 33
 hc[,8] <- 0.02 + 0.06*hc[,8]
 
 
+##nh4 54 at 30%
+hc[,1] <-  0.003+0.0062*hc[,1]
+hc[,2] <- 4 +  8.5*hc[,2]
+hc[,3] <- 13+ 25*hc[,3]
+hc[,4] <- 0.004 + 0.009*hc[,4]
+hc[,5] <- 1.482797e-08 + 2.753765e-08*hc[,4]
+hc[,6] <- 25
+hc[,7] <- 35
+hc[,8] <- 2 + 5*hc[,8]
+
 
 
 cv <- vector(length= 300, mode = "list")
@@ -116,7 +126,7 @@ for(i in 1:nrow(hc)) {
 
 
 
-n27 <- temp %>% filter(alpha != "NA")
+ n27 <- temp %>% filter(alpha != "NA")
 
 ngraph <- n27 %>% 
   gather(-loglik, key = "parameter", value = "value") %>%
