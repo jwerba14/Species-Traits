@@ -64,7 +64,7 @@ parameters <- c(
         #daphnia adults are added from growth by juveniles and are lost from death
       ddaph_a <- sat_fun(l,m,algae)*daph_j- daph_a*death(dm,daph_a)
         
-        #ceriodaphnia are added by birth and are lost from death
+        #ceriodaphnia are added by birth and are lost from death b-d = r, r(chl)
       dcerio <- sat_fun(g,i,algae)*cerio - cerio*death(dc, cerio)
      
         # algae is added from growth based on uptake of ammonium and nitrate #need to add contanst to mm

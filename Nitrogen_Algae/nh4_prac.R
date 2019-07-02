@@ -1,7 +1,7 @@
 ## parameters for algal growth at different NH4 over time
 ## still not fitting high nh4 in either parameterization and in alt param only fits half
 ## goal is to get range of phi and x for each treatment and then fit those by treatment for final param?
-source("transfer_functions.R")
+source("../transfer_functions.R")
 dat <- read.csv("Algae_Nutrient.csv")
 str(dat)
 with(dat,plot(date1,nh4))

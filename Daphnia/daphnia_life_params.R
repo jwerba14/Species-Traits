@@ -3,7 +3,7 @@
 ## fit daphnia time to adult size to food
 
 library(tidyverse)
-source("transfer_functions.R")
+source("../transfer_functions.R")
 
 daph <- read.csv("daphnia_lifetime.csv")
 # filter out individuals that were NOT born in the conditions (original daphnia)
@@ -88,12 +88,16 @@ daph_surv_curves <- daph_adult_death %>%
     group_by(treatment) %>%
     do(survcurve(.$days_adult))
 
+fit <- nls(data = daph_surv_curves, frac_surv~ exp(-day/b), start = list(b=20)) 
+## b = 24.38, std = 1.123, p <<0.05
 
 ggplot(daph_surv_curves,
        aes(day,frac_surv,colour=factor(treatment)))+
     geom_step()+
-    stat_function(fun=function(x) exp(-x/20), lwd=2)
+    stat_function(fun=function(x) exp(-x/24.38), lwd=2)
     
+
+
 ## could make a data frame with predicted survival by day, given
 ## an exponential decay starting from 1.0 with the estimated rate
 ## per treatment
@@ -161,7 +165,7 @@ daph_growth_j <- daph_growth %>%
 ## looks pretty constant
 ggplot(data = daph_growth_j, aes(chl, days_to_adult))+ geom_point(aes(color= as.factor(treatment)))
 
-##but needs to go through origin -because at 0 chl will not grow
+##but needs to go through origin -because at 0 chl will not grow-- a = 3.28, b = -1.0415
 grow <- nls(days_to_adult ~ sat_fun(a=a,b=b, k= chl), start= list(a=1, b=1), data = daph_growth_j)
 
 newdat <- data.frame(

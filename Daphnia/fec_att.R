@@ -1,5 +1,7 @@
-library(tidyverse)
+##daily fecundity
 
+library(tidyverse)
+source("../transfer_functions.R")
 daph <- read.csv("daphnia_lifetime.csv")
 daph <- daph %>%
   filter(adult_only=="N")
@@ -43,7 +45,7 @@ fit_sum_param <- fit_sum$summary[c(1:4),]
 
 tidy_pred <- tidybayes::add_fitted_draws(fit, newdata = data.frame(chl = seq(1,75)))
 
-## right now only 1 chain want all 4 eventually 
+## right now only 2 chain want all 4 eventually 
 a_pred <- rbind(t[,1,1],t[,2,1]) ## all rows, first chain, alpha
 b_pred <- rbind(t[,1,2], t[,2,2])
 
