@@ -62,9 +62,18 @@ lognor <- function(a,b,c){
   e^-((log(c)^2)/(2*a^2))/(c*a*sqrt(2*pi))
 }
 
+# linear regression
+
+lin <- function(m,b,c){
+  m*c + b
+}
 
 
+## exponential
 
+expon <- function(b,days){
+  exp(-days/b)
+}
 
  
 #logistic function for ODE

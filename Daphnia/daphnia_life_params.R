@@ -96,6 +96,9 @@ ggplot(daph_surv_curves,
     geom_step()+
     stat_function(fun=function(x) exp(-x/24.38), lwd=2)
     
+library(nlmrt)
+fit_weibull <- nlxb(data = daph_surv_curves, frac_surv ~ exp(-(gamma*day)^p), start = list(gamma = 0.1, p = 20))
+
 
 
 ## could make a data frame with predicted survival by day, given
