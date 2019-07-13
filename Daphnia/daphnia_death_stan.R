@@ -39,8 +39,9 @@ fit <- stan(file = "adult_death.stan",
             data = daph_death_list,
             control = list(adapt_delta = 0.95,
                            max_treedepth = 12))  
+saveRDS(fit, file = "adult_death.rds")
 
-launch_shinystan(fit)
+ launch_shinystan(fit)
 ## for ODE 1/beta is the rate- beta is the number of days until 1/e are lost
 fit_sum <- summary(fit)
 print(names(fit_sum))

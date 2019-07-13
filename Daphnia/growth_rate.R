@@ -27,13 +27,15 @@ daph_grow_list <- list(
   "days_to_adult" = (daph_growth_j$days_to_adult)
 )
 
-##fit with sigmoidal to force through zero
+##
 fit <- stan(file = "growth.stan", 
             data = daph_grow_list,
             control = list(adapt_delta = 0.99, max_treedepth = 17),
             iter = 5000)  # mix looks good but lots of divergent transitions-- 
- library(shinystan)
+  library(shinystan)
 launch_shinystan(fit)
+
+saveRDS(fit, file = "growth.rds")
 
 
 fit_sum <- summary(fit)

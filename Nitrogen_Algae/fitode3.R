@@ -27,7 +27,7 @@ dat_nit_54 <- dat %>%
 dat_nit_0.5 <- dat %>%
   filter(treat == 0.5)
 
-cammonium = 0.04085 # proportional ammonium lost to env-- calc in nutrient_air.R
+cammonium = (1-9.4235e-01) # proportional ammonium lost to env-- calc in nutrient_air.R
 
 chl_nh4_mod <- new("model.ode",
                    name = "algal_nit",

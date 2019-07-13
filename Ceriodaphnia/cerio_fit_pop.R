@@ -66,6 +66,8 @@ ceriodat <- list(
 fit <- stan(file = "cerio_pop.stan", 
             data = ceriodat)
 
+saveRDS(fit, file = "cerio_pop.rds")
+
 library(shinystan)
 
 launch_shinystan(fit)

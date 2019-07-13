@@ -42,10 +42,29 @@ lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep), weights = weights_scaled) ##
 ggplot(data = amm, aes(lag(NH4), (diff))) + geom_point(aes(color= as.factor(Rep))) + geom_smooth(method = "lm") 
 
 library(brms)
-ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data = amm[-c(30,108,113),], family = gaussian())
+ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data = amm[-c(30,108,113),], family = gaussian(),
+          control = list(adapt_delta = 0.95))
 stancode(ff)
-summary(ff)
+ff1 <- summary(ff)
 launch_shinystan(ff)
+
+saveRDS(ff, file = "ammonium.RDS")
+
+samples <- posterior_samples(ff)
+
+samplesb <- samples %>% select(b_Intercept)
+mean(samplesb[,1])
+samples_sigma <- samples %>% select(sigma)
+mean(samples_sigma[,1])
+
+
+with(amm[-c(30,108,113),], plot(NH4, diff))
+lines(seq(0,25), rep(median(samplesb[,1]),26))
+lines(seq(0,25), rep(quantile(samplesb[,1], c(0.025)),26))
+lines(seq(0,25), rep(quantile(samplesb[,1], c(0.975)),26))
+
+
+
 
 
 library(rstan)
