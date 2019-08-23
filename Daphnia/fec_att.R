@@ -63,4 +63,18 @@ lines(seq(0,100), pred_sum[2,])
 lines(seq(0,100), pred_sum[3,])
 
 hist(t[,1,4], breaks = 200)
+lower <- data.frame(chl = seq(0,100), daily_fec = pred_sum[1,])
+upper <- data.frame(chl = seq(0,100), daily_fec = pred_sum[3,])
+med <- data.frame(chl = seq(0,100), daily_fec = pred_sum[2,])
 
+ggplot(daph_fec_r, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 )+
+  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Daily Chl a ug/L") + ylab("Daily Fecundity")+
+  theme_bw() + theme(axis.text.x = element_text(size = 30),
+                     axis.text.y = element_text(size = 32),
+                     axis.title.x = element_text(size = 30),
+                     axis.title.y = element_text(size = 32),
+                     strip.text = element_text(size = 0),
+                     panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(),
+                     strip.background = element_blank()) 

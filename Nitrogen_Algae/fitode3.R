@@ -1,5 +1,5 @@
 ## trying again to get diff eqs correct
-
+##devtools::install_github("parksw3/boms")
 library(tidyverse)
 library(fitode)
 library(corrplot)
@@ -29,7 +29,11 @@ dat_nit_0.5 <- dat %>%
 
 cammonium = (1-9.4235e-01) # proportional ammonium lost to env-- calc in nutrient_air.R
 
-chl_nh4_mod <- new("model.ode",
+## get actual sds 
+v <- dat %>% group_by(date1, treat) %>% summarize(sd_n = sd(nh4), sd_c= sd(chl))
+v1 <- dat %>% group_by(treat) %>% summarize(sd_n = sd(nh4), sd_c =sd(chl))
+
+chl_nh4_mod <- odemodel(
                    name = "algal_nit",
                    model = list(
                      pred_nh4 ~ -pred_chl*pred_nh4*alpha*omega/(omega+pred_nh4) + gamma *(death1*pred_chl + death2*(pred_chl^2))-cammonium*pred_nh4 ,
