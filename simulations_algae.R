@@ -1,6 +1,5 @@
 ## simulate data
 library(fitode)
-
 chl_nh4_mod <- odemodel(
   name = "algal_nit",
   model = list(
@@ -49,12 +48,12 @@ fit <- fitode(
 plot(fit, level=0.95)
 
 
-##### tryi simpler model
+##### try simpler model
 chl_nh4_mod2 <- odemodel(
   name = "algal_nit",
   model = list(
     pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl,
-    pred_chl ~ a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl  ## but recy < or = to death
+    pred_chl ~  a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl  ## but recy < or = to death
   ),
   ## consider using bbmle::dnorm_n ?
   observation = list(
@@ -71,9 +70,18 @@ start <- c(a = 0.03,
           death = 0.02,
           pred_nh40= 15,
           pred_chl0 = 40
-)
+          )
+
+## FIXME: 'transform' methods?
+start2 <- start
+start2[["pred_chl0"]] <- 60
+start2[["pred_nh40"]] <- 0.01
+
 
 s1 <- ode.solve(chl_nh4_mod2, 1:40, start,
+                solver.opts=list(method="rk4", hini=0.1))
+
+s1B <- ode.solve(chl_nh4_mod2, 1:40, start2,
                 solver.opts=list(method="rk4", hini=0.1))
 
 s2 <-  simulate(chl_nh4_mod2,nsim = 5, parms= start, times = seq(1,40),
@@ -81,7 +89,14 @@ s2 <-  simulate(chl_nh4_mod2,nsim = 5, parms= start, times = seq(1,40),
 
 
 plot(s1@solution$time,s1@solution$pred_chl)
-plot(s1@solution$time,s1@solution$pred_nh4)
+plot(s1@solution$time,s1@solution$pred_nh4,log="y")
+
+with(s1@solution, plot(pred_chl, pred_nh4, type="b", xlim=c(40,60),
+                       ylim=c(0,20)))
+with(s1B@solution, plot(pred_chl, pred_nh4, type="b", col=2))
+matplot(s1B@solution[,-1],log="y")
+with(s1B@solution, lines(pred_chl, pred_nh4, type="b", col=2))
+
 
 plot(s2$times, s2$chl)
 plot(s2$times, s2$nh4)
@@ -139,8 +154,8 @@ chl_nh4_mod2 <- odemodel(
   ),
   ## consider using bbmle::dnorm_n ?
   observation = list(
-    nh4 ~ dnorm(mean = pred_nh4, sd = 1),
-    chl ~ dnorm(mean = pred_chl, sd = 10)
+    nh4 ~ dlnorm(meanlog = log(pred_nh4), sdlog = 0.05),
+    chl ~ dlnorm(meanlog = log(pred_chl), sdlog = 0.01)
   ),
   initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
   par=c("a","k", "r","death", "pred_nh40", "pred_chl0")
