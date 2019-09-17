@@ -19,7 +19,8 @@ parameters_med <- c(
   gamma =  0.365 , omega = 10.5,
   growth_a = median(param$growth_a), growth_b = median(param$growth_b),
   death_b = median(param$death_b), a_feed_m = median(param$a_feed_m),
-  a_exc_m = median(param$a_exc_m), j_feed_m = median(param$j_feed_m),
+  a_exc_m = median(param$a_exc_m), 
+  j_feed_m = median(param$j_feed_m),
   j_exc_m = median(param$j_exc_m), amm_param_b = median(param$amm_param_b),
   fec_a = median(param$fec_a), fec_b = median(param$fec_b)
 ) 

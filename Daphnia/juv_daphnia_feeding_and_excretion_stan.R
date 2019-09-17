@@ -6,7 +6,7 @@ rdatj <- read.csv("Small_Daph_Feeding.csv")
 
 cont <- rdatj %>% 
   filter(Control.Y.N == "Y") %>% 
-  mutate(chl_diff =((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff= ((Nh4.1-Nh4.2)/Nh4_Time_Dif)*1440) %>%  
+  mutate(chl_diff =((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff= ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%  
   group_by(Treatment) %>%
   summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
 
@@ -17,7 +17,7 @@ dat <- left_join(rdatj,cont)
 ## account for controls
 
 dat <- dat %>%
-  mutate(chl_diff = ((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff = ((Nh4.1-Nh4.2)/Nh4_Time_Dif)*1440) %>%
+  mutate(chl_diff = ((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff = ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%
   mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)  ## need to add in diff from control bc if positive algae grew so indiv actually ate more if neg indiv ate less
 
 dat1 <- dat %>% filter(Control.Y.N == "N") %>% filter(!is.na(chl_diff_cc)) %>% 
@@ -42,6 +42,8 @@ points(dat1$Chl.1,dat1$chl_diff_cc)
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+
+
 
 daph_grow_list <- list(
   "N" = nrow(dat1),
@@ -135,5 +137,48 @@ lines(seq(0,25), rep(quantile(b_pred[,1],c(0.025)),26))
 lines(seq(0,25), rep(quantile(b_pred[,1],c(0.975)),26))
 
 
+
+daph_excretion_list <- list(
+  "N" = nrow(dat1),
+  ##"nh4" = dat1$Nh4.1,
+  "diff" = dat1$nh4_diff_cc
+)
+
+
+fit <- stan(file = "intercept_only_excretion.stan", 
+            data = daph_excretion_list, chains = 4, control = list(adapt_delta=0.9), iter = 5000 )
+
+launch_shinystan(fit)
+
+saveRDS(fit, file = "juv_exec.RDS")
+
+
+## excretion update
+dat2 <- dat1 %>% filter(Treatment > 4)
+
+daph_excretion_list <- list(
+  "N" = nrow(dat2),
+  "chl" = dat2$chl_diff_cc,
+  "diff" = dat2$nh4_diff_cc
+)
+
+
+fit <- stan(file = "adult_excretion_update.stan", 
+            data = daph_excretion_list, chains = 4, control = list(adapt_delta=0.9), iter = 5000 )
+
+launch_shinystan(fit)
+fit_sum <- summary(fit)
+(fit_sum_param <- fit_sum$summary[c(1:4),])
+
+t <- rstan::extract(fit,permuted = FALSE)
+b_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
+
+
+saveRDS(fit, file = "juv_exec_update.RDS")
+
+with(dat2, plot(chl_diff_cc, nh4_diff_cc))
+lines(seq(0,25), rep(median(b_pred[,1]), 26))
+lines(seq(0,25), rep(quantile(b_pred[,1],c(0.025)),26))
+lines(seq(0,25), rep(quantile(b_pred[,1],c(0.975)),26))
 
 

@@ -6,13 +6,13 @@ library(brms)
 growth <- readRDS("growth.rds") ## 853 divergent transitions but mixing looks good ?? 
 adult_death <- readRDS("adult_death.rds") ##
 adult_feed <- readRDS("adult_feeding.rds") ##
-adult_exc <- readRDS("adult_exc.RDS") ##
+adult_exc <- readRDS("adult_exc_new.RDS") ##
 juv_feed <- readRDS("juv_feeding.RDS") ##
-juv_exc <- readRDS("juv_exec.RDS") ##
+juv_exc <- readRDS("juv_exec_update.RDS") ##
 fec <- readRDS("fec_stan.rds")  ##
-cerioPop <- readRDS("cerio_pop.rds") ##
-cerio_feed <- readRDS()
-cerio_exc <- readRDS()
+#cerioPop <- readRDS("cerio_pop.rds") ##
+#cerio_feed <- readRDS()
+#cerio_exc <- readRDS()
 amm_loss <- readRDS("ammonium.rds") ##
 
 
