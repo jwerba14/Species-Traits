@@ -8,11 +8,12 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(deSolve)
+library(here)
 ```
 
 
 
-```{r}
+```{r state}
 state <- c(
   ammonium = 10,
   daph_j = 0,
@@ -23,8 +24,8 @@ state <- c(
 ```
 
 
-```{r}
-param <- read.csv("parameters_no_cerio.csv")
+```{r getparams}
+param <- read.csv(here("RDS_compiled/parameters_no_cerio.csv"))
 
 parameters <- c(
   alpha = 0.5983917,    #mg N/(ug chl*day)
@@ -52,7 +53,7 @@ parameters <- c(
 
 
 
-```{r}
+```{r fulleqs}
 
 full_equations <-function(t, state, parameters) {
   with(as.list(c(state, parameters)),{
@@ -90,15 +91,16 @@ full_equations <-function(t, state, parameters) {
 
 
 
-```{r}
+```{r ode1}
 out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters)
+## out2 <- ode(y = state, times = seq(0,0.4,0.001), func = full_equations, parms = parameters, maxsteps=1e5)
 plot(out)
 out_med <- ode(y = state, times = seq(0,42,0.1), func = full_equations, parms = parameters)
 
 ```
 
 Upper bound of predictions
-```{r}
+```{r upper}
 parameters_upp <- c(
   alpha = 0.5983917,    #mg N/(ug chl*day)
   kappa = 0.2153469,    #mg N

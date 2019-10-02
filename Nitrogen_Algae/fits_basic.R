@@ -62,7 +62,11 @@ chl_fit_27_dd <- fitode(
   solver.opts=list(method="lsoda")
 )
 plot(chl_fit_27_dd, level=0.95)
+cc <- cov2cor(vcov(chl_fit_27_dd))
+library(corrplot)
+corrplot.mixed(cc,lower="ellipse",upper="number")
 coef(chl_fit_27_dd)
+confint(chl_fit_27_dd)
 
 newdat <- simulate(chl_nh4_mod3,nsim = 5, parms= coef(chl_fit_27_dd), times = seq(1,11),             
                    solver.opts=list(method="rk4"))
