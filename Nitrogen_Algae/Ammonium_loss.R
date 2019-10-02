@@ -35,7 +35,7 @@ lmer(data = amm[amm$diff < 2 ,], diff ~ lag(center_NH4)+(1+lag(center_NH4)|Rep),
 mod <- lm(data = amm, diff ~ lag(center_NH4), weights = weights_scaled) ## looked at cook's distance and found 1 rep day past 0.5 and 2 past 1
 lmer(data = amm[-c(30,108,113),], diff ~ lag(center_NH4)+(1+lag(center_NH4)|Rep), weights = weights_scaled)
 
-lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep), weights = weights_scaled) ## this seems like the model i want- intercept for constant prop loss
+lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep), weights = weights_scaled) ## this seems like the model i want- intercept for constant prop loss, bc diff is already prop
 
 
 
@@ -67,6 +67,9 @@ lines(seq(0,25), rep(quantile(samplesb[,1], c(0.975)),26))
 
 
 
+
+
+
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -92,4 +95,27 @@ fit <- stan(file = "ammonium.stan",
 
 mod <- stan_model(file = "ammonium.stan")
 gg <- sampling(mod, data= amm1)
+
+
+
+library(fitdistrplus)
+nit <- c(2.9,0.029,0.047,0.064,0.14,0.085,0.032,0.18,0.05,0.007,0.004,0.949431344,0.142046306,0.194992396,2.03456917,2.50165992,0.821949496,0.348347577)
+h<-hist(nit, breaks=50)
+d <- fitdist(nit, "lnorm")
+c <-dlnorm(x=seq(0,3, length = 100), meanlog = d$estimate[1], sdlog = d$estimate[2])
+
+df<- data.frame(
+  x = seq(0,3, length=100),
+  nit = c
+)
+
+
+nit <- data.frame(nit)
+
+p <- ggplot(nit) +
+  geom_histogram(aes(x = nit, y = ..density..),
+                 binwidth = .1, fill = "grey", color = "black")
+
+p + geom_line(data = df, aes(x = nit, y = x), color = "red")
+
 

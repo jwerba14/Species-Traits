@@ -5,7 +5,7 @@ data {
 } 
 parameters {
   real m; 
-  real b;
+  //real b;
   real tau;
 } 
 transformed parameters {
@@ -15,9 +15,9 @@ real sigma;
 model {
   // priors
   m ~ normal(0.0, 1000); 
-  b ~ normal(0.0, 1000);
+  //b ~ normal(0.0, 1000);
   tau ~ gamma(.0001, .0001);
-  diff ~ normal(m*chl + b, sigma);   
+  diff ~ normal(m*chl, sigma);   
 }
 
 

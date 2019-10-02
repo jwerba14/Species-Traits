@@ -55,7 +55,7 @@ chl_nh4_mod2 <- odemodel(
   name = "algal_nit",
   model = list(
     pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl,
-    pred_chl ~  a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl  
+    pred_chl ~  e*a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl  
   ),
   
   observation = list(
@@ -67,6 +67,7 @@ chl_nh4_mod2 <- odemodel(
 )
 
 start <- c(a = 0.03, 
+          e= 1,
           k = .03,
           r = 1,
           death = 0.02,
@@ -176,11 +177,19 @@ confint(fit2)
 
 ## try to add ammonium loss due to nitrification
 
+## try this parameterization
+##' @param x concentration
+##' @param a asymptote
+##' @param i initial slope
+micmen2 <- function(x,a,i) {
+    a*x/((a/i) + x)
+}
+
 chl_nh4_mod3 <- odemodel(
   name = "algal_nit",
   model = list(
-    pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl-cammonium,
-    pred_chl ~ a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl  
+      pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl-cammonium,
+      pred_chl ~  a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl
   ),
   observation = list(
     nh4 ~ dlnorm(meanlog = log(pred_nh4), sdlog = 0.05),
@@ -189,7 +198,6 @@ chl_nh4_mod3 <- odemodel(
   initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
   par=c("a","k", "r","death", "pred_nh40", "pred_chl0")
 )
-
 
 start3 <- c(a = 0.03, 
             k = .03,
@@ -290,9 +298,9 @@ temp <- data.frame (
   ttime  = 0
 )
 
+temp_models <- list()
 
-
-
+## stopped at 196
 for(i in 196:nrow(st)) {
   newstart <- with(st[i,], 
                    list(
@@ -308,8 +316,9 @@ for(i in 196:nrow(st)) {
   x <- system.time({
     tempm <- try((fitode(chl_nh4_mod3, data= s3, start = newstart, tcol = "times", 
                          solver.opts = list(method="rk4", hini=0.1))),silent = TRUE)
+    temp_models <- c(temp_models,list(tempm))
     if (class(tempm) == "try-error") {
-      temp[i,] <- "NA"
+        temp[i,] <- "NA"
     } else {
       temp[i,1:6] <- coef(tempm)
       temp[i,7:12] <- confint(tempm)[,2]
@@ -329,7 +338,14 @@ write.csv(temp, file = "unfiltered_sim.csv")
 nrow(temp) ## 196
 nrow(dat)  ## 11
 
-
+dat2 <- read.csv("filtered_sim.csv")
+dat2B <- dat2[1:10,] ## fit 11 is crazy
+op <- par(mfrow=c(1,2))
+library(corrplot)
+corrplot.mixed(cov2cor(vcov(fit3)),lower="ellipse",upper="number")
+dev.new()
+pairs(dat2B[,2:7],gap=0)
+par(op)
 ### repeat as above but have different parameters
 
 

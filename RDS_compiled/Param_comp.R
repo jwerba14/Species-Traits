@@ -22,7 +22,7 @@ a_feed_param <- rstan::extract(adult_feed,permuted = FALSE) ## linear
 a_exc_param <- rstan::extract(adult_exc,permuted = FALSE)  ## linear
 j_feed_param <- rstan::extract(juv_feed,permuted = FALSE)  ## linear
 j_exc_param <- rstan::extract(juv_exc,permuted = FALSE)  ## linear
-amm_param <- posterior_samples(amm_loss) ## intercept only -- constant loss
+amm_param <- posterior_samples(amm_loss) ## intercept only -- prop loss bc calc with change 
 amm_param_b <- amm_param %>% select(b_Intercept)
 fec_param <- rstan::extract(fec,permuted = FALSE) ## saturating
 

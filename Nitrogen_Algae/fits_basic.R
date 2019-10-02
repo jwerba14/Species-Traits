@@ -30,15 +30,15 @@ cammonium = (1-9.4235e-01) # proportional ammonium lost to env-- calc in nutrien
 chl_nh4_mod3 <- odemodel(
   name = "algal_nit",
   model = list(
-    pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl, #-cammonium,
-    pred_chl ~ a*pred_chl*(pred_nh4/(k+pred_nh4)) - death*pred_chl  
+    pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl -cammonium*pred_nh4,
+    pred_chl ~ a*pred_chl*(pred_nh4/(k+pred_nh4))*e - death*pred_chl  
   ),
   observation = list(
     nh4 ~ dlnorm(meanlog = log(pred_nh4), sdlog = 0.05),
     chl ~ dlnorm(meanlog = log(pred_chl), sdlog = 0.01)
   ),
   initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
-  par=c("a","k", "r","death", "pred_nh40", "pred_chl0")
+  par=c("a","k", "r","death","e", "pred_nh40", "pred_chl0")
 )
 
 
@@ -49,6 +49,7 @@ start <- c(a = 0.03,
            k = .03,
            r = 1,
            death = 0.02,
+           e = 1,
            pred_nh40= 15,
            pred_chl0 = 40
 )
@@ -58,19 +59,19 @@ chl_fit_27_dd <- fitode(
   data = dat_nit_27, 
   start=start,
   tcol = "date1",
-  solver.opts=list(method="rk4", hini=0.1)
+  solver.opts=list(method="lsoda")
 )
 plot(chl_fit_27_dd, level=0.95)
 coef(chl_fit_27_dd)
 
 newdat <- simulate(chl_nh4_mod3,nsim = 5, parms= coef(chl_fit_27_dd), times = seq(1,11),             
-                   solver.opts=list(method="rk4", hini=0.1))
+                   solver.opts=list(method="rk4"))
 
 cc <- coef(chl_fit_27_dd)
 cc["pred_nh40"] <- 15
 
 nd1 <-simulate(chl_nh4_mod3,nsim = 5, parms= cc, times = seq(1,11),             
-              solver.opts=list(method="rk4", hini=0.1))
+              solver.opts=list(method="lsoda"))
 
 nd1$date1 <- nd1$times
 

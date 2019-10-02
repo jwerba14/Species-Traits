@@ -37,7 +37,7 @@ full_equations <-function(t, state, parameters) {
        
       # also add a constant released based on density dependent death
       daph_j*dj*drj + daph_a*death(dm,daph_a)*drm - 
-      dalgae*dammonium*alpha*omega/(omega+dammonium) + gamma *(death1*dalgae + death2*(dalgae^2))-cammonium*dammonium
+      dalgae*dammonium*alpha/(kappa+dammonium) + rho*(death1*dalgae)-cammonium*dammonium
     
     
     
@@ -49,14 +49,14 @@ full_equations <-function(t, state, parameters) {
       daph_j*dj - sat_fun(l,m,dalgae)*daph_j
     
     #daphnia adults are added from growth by juveniles and are lost from death
-    ddaph_a <- sat_fun(l,m,dalgae)*daph_j- daph_a*death(dm,daph_a)
+    ddaph_a <- e1*sat_fun(l,m,dalgae)*daph_j- daph_a*death(dm,daph_a)
     
     
     
     # algae is added from growth based on uptake of ammonium and nitrate #need to add contanst to mm
-    dalgae <- beta * dalgae*dammonium*alpha*omega/(omega+dammonium) - death1*dalgae - death2*(dalgae^2)
+    dalgae <- e*dalgae*dammonium*alpha/(kappa+dammonium) - death1*dalgae 
       # algae is lost from being eaten by each of the 3 zooplankon
-      -daph_a*hollings2(j,k,dalgae) + daph_j*hollings2(l,m,dalgae)
+      -daph_a*hollings2(j,k,dalgae) - daph_j*hollings2(tt,bb,dalgae)
       
     
     
