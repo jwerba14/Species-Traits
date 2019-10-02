@@ -25,12 +25,22 @@ parameters <- c(
 
 ## fecundity (b1 and b2 -- units-- baby/(indiv*day))
 
+not_all_na <- function(x) !all(is.na(x))
+lit_clean <- (lit
+    %>% drop_na(daphnia_reproduction)   ## drop rows with no response
+    %>% select_if(not_all_na)
+)
+names(lit) -- all columns
+setdiff(names(lit),names(lit_clean))
+all(sapply(lit_clean, not_all_na))
+
+##  -- all values *excluded* from lit_clean
 fec_lit <- lit %>% dplyr::select(c("daphnia_reproduction", "sd_repro", "units_reproduction", "Replicates")) %>%
   filter(daphnia_reproduction != "NA")
 
 q <- fitdist(fec_lit$daphnia_reproduction, "lnorm")
-y=seq(0,2, length = 100)
-c <-dlnorm(y, meanlog = q$estimate[1], sdlog = q$estimate[2])
+y <- seq(0,10, length = 100)
+c <- dlnorm(y, meanlog = q$estimate[1], sdlog = q$estimate[2])
 
 df<- data.frame(
   y = y,
@@ -41,10 +51,18 @@ df<- data.frame(
 ### ahhh why can't i get this to work at all?????????
 p <- ggplot(fec_lit) +
   geom_histogram(aes(x = daphnia_reproduction, y = ..density..),
-                 binwidth = .1, fill = "grey", color = "black")
+                 binwidth = .5, fill = "grey", color = "black")+
+    scale_x_continuous(limits=c(0,10))
 
-p + geom_line(data = df, aes(x = daphnia_reproduction, y = y), color = "red")
 
+## compute the function on the fly
+dlfun <- function(x) {
+    with(as.list(q$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+##p + geom_line(data = df, aes(y = daphnia_reproduction, x = y), color = "red")
+
+## plot(daphnia_reproduction~y,data=df)
 
 ### daphnia survival I have days until death, do i need actual curves? or can I do 1/days survival? 
 
