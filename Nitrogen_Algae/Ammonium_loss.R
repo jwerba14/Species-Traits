@@ -42,8 +42,9 @@ lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep), weights = weights_scaled) ##
 ggplot(data = amm, aes(lag(NH4), (diff))) + geom_point(aes(color= as.factor(Rep))) + geom_smooth(method = "lm") 
 
 library(brms)
+ prs <- prior(lognormal(-1.79,1.87), class='Intercept')
 ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data = amm[-c(30,108,113),], family = gaussian(),
-          control = list(adapt_delta = 0.95))
+          control = list(adapt_delta = 0.95), prior=prs)
 stancode(ff)
 ff1 <- summary(ff)
 launch_shinystan(ff)

@@ -31,7 +31,7 @@ parameters <- c(
   alpha = 0.5983917,    #mg N/(ug chl*day)
   kappa = 0.2153469,    #mg N
   e =  12,               #ug chl/mgN
-  death1 = 1/26,         # 1/day
+  death1 = 7,         # 1/day
   fa = median(param$a_feed_m),       # ug chl/(daphniaA*day)
   fj = median(param$j_feed_m),       # ug chl/(daphniaj*day)
   rho = 0.0785709,                    # mg N/ chl

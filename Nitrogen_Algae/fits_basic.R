@@ -42,6 +42,20 @@ chl_nh4_mod3 <- odemodel(
 )
 
 
+## try with normal to check confidence intervals
+chl_nh4_mod_norm <- odemodel(
+  name = "algal_nit",
+  model = list(
+    pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl -cammonium*pred_nh4,
+    pred_chl ~ a*pred_chl*(pred_nh4/(k+pred_nh4))*e - death*pred_chl  
+  ),
+  observation = list(
+    nh4 ~ dnorm(mean = (pred_nh4), sd = 0.05),
+    chl ~ dnorm(mean = (pred_chl), sd = 0.01)
+  ),
+  initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
+  par=c("a","k", "r","death","e", "pred_nh40", "pred_chl0")
+)
 
 ## fits
 
@@ -55,12 +69,24 @@ start <- c(a = 0.03,
 )
 
 chl_fit_27_dd <- fitode(
-  chl_nh4_mod3,
+  chl_nh4_mod_norm,
   data = dat_nit_27, 
   start=start,
   tcol = "date1",
   solver.opts=list(method="lsoda")
 )
+
+## fit is worse with normal and completely different estimates.
+##estimate        2.5 %       97.5 %
+ ## a         5.632117e-02 5.619769e-02 5.644492e-02
+##k         2.606270e-01 2.583268e-01 2.629477e-01
+###r         2.649103e+01 2.646204e+01 2.652006e+01
+##death     4.031304e-04 4.026942e-04 4.035672e-04
+##e         8.335558e+00 8.317527e+00 8.353627e+00
+##pred_nh40 1.482714e+01 1.479514e+01 1.485921e+01
+##pred_chl0 4.244136e+01 4.243418e+01 4.244853e+01
+
+
 plot(chl_fit_27_dd, level=0.95)
 cc <- cov2cor(vcov(chl_fit_27_dd))
 library(corrplot)

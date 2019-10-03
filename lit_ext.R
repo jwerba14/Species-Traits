@@ -30,9 +30,9 @@ lit_clean <- (lit
     %>% drop_na(daphnia_reproduction)   ## drop rows with no response
     %>% select_if(not_all_na)
 )
-names(lit) -- all columns
-setdiff(names(lit),names(lit_clean))
-all(sapply(lit_clean, not_all_na))
+#names(lit) -- all columns
+#setdiff(names(lit),names(lit_clean))
+#all(sapply(lit_clean, not_all_na))
 
 ##  -- all values *excluded* from lit_clean
 fec_lit <- lit %>% dplyr::select(c("daphnia_reproduction", "sd_repro", "units_reproduction", "Replicates")) %>%
@@ -47,8 +47,6 @@ df<- data.frame(
   daphnia_reproduction = c
 )
 
-
-### ahhh why can't i get this to work at all?????????
 p <- ggplot(fec_lit) +
   geom_histogram(aes(x = daphnia_reproduction, y = ..density..),
                  binwidth = .5, fill = "grey", color = "black")+
@@ -64,7 +62,22 @@ p + stat_function(fun=dlfun, color="red")
 
 ## plot(daphnia_reproduction~y,data=df)
 
-### daphnia survival I have days until death, do i need actual curves? or can I do 1/days survival? 
+### daphnia survival I have days until death if assume exponential than 1/days survival
+surv <- lit %>% dplyr::select("Replicates","daphnia_survival","range") %>% drop_na(daphnia_survival)
+hist(surv$daphnia_survival)
+d<-fitdistr(surv$daphnia_survival, "normal")
+
+p <- ggplot(surv) +
+  geom_histogram(aes(x = daphnia_survival, y = ..density..),
+                 binwidth = .2, fill = "grey", color = "black") 
+
+
+## compute the function on the fly
+dlfun <- function(x) {
+  with(as.list(d$estimate), dnorm(x, mean, sd))
+}
+p + stat_function(fun=dlfun, color="red")
+
 
 ## daphnia growth have days until 1st clutch, which is what i can get most info on but could get growth curves which would match my data better....
 
@@ -88,23 +101,40 @@ death1 <- lit %>% dplyr::select("Replicates","Genus","species","death_rate","uni
 
 ## daphnia adult excretion 
 x <- lit %>% dplyr::select("Replicates", "Excretion.rate", "sd_error_excretion", "units_excretion", "algal_conc") %>%
-  filter(Excretion.rate != "NA")
+  filter(Excretion.rate != "NA") 
 
 
 ## daphnia juvenile excretion
 
 ## daphnia adult uptake algae
 f <- lit %>% dplyr::select("Replicates","Max_filtering","sd_filtering","CI_filtering_upper","CI_filtering_low","units",
-                           "daphnia_size") %>% filter(Max_filtering != "NA")
+                           "daphnia_size") %>% filter(Max_filtering != "NA") %>%
+  filter(units != "millions cells per individual per hour") %>% 
+  filter(units != "millions chlorella per indiv per hour")
 
+hist(f$Max_filtering)
 
 ## daphnia juvenile uptake algae
 
 
 ## nitrification
-n <- lit %>%dplyr::select("Replicates","nitrification","units.6", "convert_mg_N_day", "sd.2","range.2","X75.quartile","Title") %>%
-  filter(nitrification != "NA") ## VSS is volatile suspended solid...
+n <- lit %>%dplyr::select("Replicates","nitrification","units.6", "convert_mg_N_day", "sd.2","range.2","X75.quartile") %>%
+  filter(nitrification != "NA")%>% filter(units.6 != "g NH4-N g per VSS per day") %>% 
+  drop_na(convert_mg_N_day) %>% filter(units.6 != "mg N per g per dry weight day")
+## VSS is volatile suspended solid...
 ## would like to select columns that aren't all NAs to make sure i don't miss any important information in my select....
-n1 <- lit %>% filter(nitrification != "NA") %>% select(col)
+n1 <- lit %>% drop_na(nitrification)%>% select_if(not_all_na)   ## drop rows with no response
 
+d <- fitdist(n$convert_mg_N_day, "lnorm")
+
+p <- ggplot(n) +
+  geom_histogram(aes(x = convert_mg_N_day, y = ..density..),
+                 binwidth = .2, fill = "grey", color = "black") 
+
+
+## compute the function on the fly
+dlfun <- function(x) {
+  with(as.list(d$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
 
