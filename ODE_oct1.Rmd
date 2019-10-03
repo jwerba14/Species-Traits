@@ -38,8 +38,9 @@ parameters <- c(
   camm = 1- median(param$amm_param_b),     # 1/day
   xa = median(param$a_exc_m),       # mg N/ (daphniaA*day) 
   xj= median(param$j_exc_m),        # mg N/ (daphniaJ*day) 
-  g1 =median(param$growth_a),        # daphniaD/(daphniaJ*day)
-  g2=median(param$growth_b),         # ug chl
+  #g1 =median(param$growth_a),        # daphniaD/(daphniaJ*day)
+  #g2=median(param$growth_b),         # ug chl
+  g1 = 1/4.8,
   death2 = 1/median(param$death_b),   # 1/day
   b1 = median(param$fec_a),       # daphniaJ/(daphniaD*day)
   b2 = median(param$fec_b),        # ug chl 
@@ -70,7 +71,7 @@ full_equations <-function(t, state, parameters) {
       
       
     #daphnia adults are added from growth by juveniles and are lost from death
-    ddaph_a <- daph_j*(g1*algae)/(g2+algae) - daph_a*death3
+    ddaph_a <- daph_j*g1 - daph_a*death3 #(g1*algae)/(g2+algae) 
     
     
     
