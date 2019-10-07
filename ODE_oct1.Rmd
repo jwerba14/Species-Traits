@@ -29,9 +29,9 @@ param <- read.csv(here("RDS_compiled/parameters_no_cerio.csv"))
 
 parameters <- c(
   alpha = 0.5983917,    #mg N/(ug chl*day)
-  kappa = 0.2153469,    #mg N
+  kappa = 1.3,  # 0.2153469,    #mg N
   e =  12,               #ug chl/mgN
-  death1 = 7,         # 1/day
+  death1 = 0.03, #7,         # 1/day
   fa = median(param$a_feed_m),       # ug chl/(daphniaA*day)
   fj = median(param$j_feed_m),       # ug chl/(daphniaj*day)
   rho = 0.0785709,                    # mg N/ chl
@@ -93,7 +93,7 @@ full_equations <-function(t, state, parameters) {
 
 
 ```{r ode1}
-out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters)
+out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters, maxsteps = 1e5)
 ## out2 <- ode(y = state, times = seq(0,0.4,0.001), func = full_equations, parms = parameters, maxsteps=1e5)
 plot(out)
 out_med <- ode(y = state, times = seq(0,42,0.1), func = full_equations, parms = parameters)

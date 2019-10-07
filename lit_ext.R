@@ -65,11 +65,13 @@ p + stat_function(fun=dlfun, color="red")
 ### daphnia survival I have days until death if assume exponential than 1/days survival
 surv <- lit %>% dplyr::select("Replicates","daphnia_survival","range") %>% drop_na(daphnia_survival)
 hist(surv$daphnia_survival)
-d<-fitdistr(surv$daphnia_survival, "normal")
-
+## subtract average number of days to large size (based on my experiment- because I need this to be a prior for survival after growth to adult)
+surv$survival <- surv$daphnia_survival- 4.8
+d<-fitdistr(surv$survival, "normal")
+hist(surv$survival)
 p <- ggplot(surv) +
-  geom_histogram(aes(x = daphnia_survival, y = ..density..),
-                 binwidth = .2, fill = "grey", color = "black") 
+  geom_histogram(aes(x = survival, y = ..density..),
+                 binwidth = 1, fill = "grey", color = "black") 
 
 
 ## compute the function on the fly
@@ -82,10 +84,28 @@ p + stat_function(fun=dlfun, color="red")
 ## daphnia growth have days until 1st clutch, which is what i can get most info on but could get growth curves which would match my data better....
 
 ## kappa -- half saturation uptake algae-- units mg N
+## algal uptake
+#uptake <- lit %>% dplyr::select("Replicates","ammoium.conc","nitrogen.removal.1", "Authors") %>% filter(nitrogen.removal.1 != "NA") #%>%
+  #filter(ammoium.conc != "NA") %>% 
+
+with(uptake, plot(ammoium.conc, nitrogen.removal.1))
+
 kappa <- lit %>% dplyr::select(c("Replicates","half_sat_mg_N_L","sd_half_sat","range_half_sat")) %>% filter(half_sat_mg_N_L != "NA")
 
+d <- fitdistr(kappa$half_sat_mg_N_L, "lognormal")
 
-## alpha - max uptake algae of N -- units mgN/(chl*day)  ## clearly need more data.....
+hist(kappa$half_sat_mg_N_L)
+p <- ggplot(kappa) +
+  geom_histogram(aes(x = half_sat_mg_N_L, y = ..density..),
+                 binwidth = 1, fill = "grey", color = "black") 
+
+dlfun <- function(x) {
+  with(as.list(d$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+
+
+## alpha - max uptake algae of N -- units mgN/(chl*day) 
 
 alpha <- lit %>% dplyr::select("Replicates","max_ammonium_uptake","max_uptake_units","max_uptake_sd")%>% 
                 filter(max_ammonium_uptake != "NA")
@@ -96,8 +116,19 @@ alpha <- lit %>% dplyr::select("Replicates","max_ammonium_uptake","max_uptake_un
 
 ## death1 -- algae death 1/day
 
-death1 <- lit %>% dplyr::select("Replicates","Genus","species","death_rate","units_death","X95_conf_death",
-                                "sd_death","range_death") %>% filter(death_rate != "NA")
+death1 <- lit %>% dplyr::select("Replicates","Genus","species","algal_death_per_day") %>% filter(algal_death_per_day != "NA")
+hist(death1$algal_death_per_day)
+dd <- fitdistr(death1$algal_death_per_day, "lognormal")
+p <- ggplot(death1) +
+  geom_histogram(aes(x = algal_death_per_day, y = ..density..),
+                 binwidth = 1, fill = "grey", color = "black") 
+
+dlfun <- function(x) {
+  with(as.list(dd$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+
+
 
 ## daphnia adult excretion 
 x <- lit %>% dplyr::select("Replicates", "Excretion.rate", "sd_error_excretion", "units_excretion", "algal_conc") %>%
