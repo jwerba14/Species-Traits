@@ -69,7 +69,7 @@ start <- c(a = 0.03,
 )
 
 chl_fit_27_dd <- fitode(
-  chl_nh4_mod_norm,
+  chl_nh4_mod3,
   data = dat_nit_27, 
   start=start,
   tcol = "date1",

@@ -20,6 +20,7 @@ model {
   alpha ~ normal(0.0, 1000); 
   beta ~ normal(0.0, 1000);
   tau ~ gamma(.0001, .0001);
+  m ~ lognormal(1.3, 0.58);
   daily_fec ~ normal(m, sigma);   
 }
 

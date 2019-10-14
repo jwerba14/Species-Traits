@@ -28,19 +28,19 @@ state <- c(
 param <- read.csv(here("RDS_compiled/parameters_no_cerio.csv"))
 
 parameters <- c(
-  alpha = 0.5983917,    #mg N/(ug chl*day)
-  kappa = 1.3,  # 0.2153469,    #mg N
+  alpha = 0.2339,    #mg N/(ug chl*day)
+  kappa = 0.639,  # 0.2153469,    #mg N
   e =  12,               #ug chl/mgN
-  death1 = 0.03, #7,         # 1/day
+  death1 = 2.4,         # 1/day
   fa = median(param$a_feed_m),       # ug chl/(daphniaA*day)
   fj = median(param$j_feed_m),       # ug chl/(daphniaj*day)
   rho = 0.0785709,                    # mg N/ chl
   camm = 1- median(param$amm_param_b),     # 1/day
   xa = median(param$a_exc_m),       # mg N/ (daphniaA*day) 
   xj= median(param$j_exc_m),        # mg N/ (daphniaJ*day) 
-  #g1 =median(param$growth_a),        # daphniaD/(daphniaJ*day)
-  #g2=median(param$growth_b),         # ug chl
-  g1 = 1/4.8,
+  g1 =median(param$growth_a),        # daphniaD/(daphniaJ*day)
+  g2=median(param$growth_b),         # ug chl
+  #g1 = 1/4.8,
   death2 = 1/median(param$death_b),   # 1/day
   b1 = median(param$fec_a),       # daphniaJ/(daphniaD*day)
   b2 = median(param$fec_b),        # ug chl 
@@ -60,18 +60,19 @@ full_equations <-function(t, state, parameters) {
   with(as.list(c(state, parameters)),{
   
     # ammonium is added from release by both juvenile and adult daphnia  and lost through algal update and nitritfication 
-    dammonium <- -(alpha*ammonium)/(kappa+ammonium)*algae + rho*death1*algae - camm*ammonium + daph_a*xa + daph_j*xj
+    dammonium <- -(alpha*ammonium)/(kappa+ammonium)*algae + rho*death1*algae - camm*ammonium + daph_a*xa + daph_j*xa/10
     
     
     
     
     
     #juvenile daphia are added by density dependent (large daphnia) birth      
-    ddaph_j <- daph_a*(b1*algae)/(b2+algae) - daph_j*death3
+    ddaph_j <- daph_a*(b1*algae)/(b2+algae) - daph_j*death3*10
+
       
       
     #daphnia adults are added from growth by juveniles and are lost from death
-    ddaph_a <- daph_j*g1 - daph_a*death3 #(g1*algae)/(g2+algae) 
+    ddaph_a <- - daph_a*death3 +(g1*algae)/(g2+algae)  #+daph_j*g1
     
     
     
@@ -93,7 +94,7 @@ full_equations <-function(t, state, parameters) {
 
 
 ```{r ode1}
-out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters, maxsteps = 1e5)
+out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters, maxsteps = 1e6)
 ## out2 <- ode(y = state, times = seq(0,0.4,0.001), func = full_equations, parms = parameters, maxsteps=1e5)
 plot(out)
 out_med <- ode(y = state, times = seq(0,42,0.1), func = full_equations, parms = parameters)

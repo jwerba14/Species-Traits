@@ -24,7 +24,7 @@ options(mc.cores = parallel::detectCores())
 
 
 
-daph_fec_r <- daph_fec %>% select(rep, chl, daily_fec)
+daph_fec_r <- daph_fec %>% dplyr::select(rep, chl, daily_fec)
 daph_fec_r$rep <- seq(1,70)
 daph_fec_r <- data.frame(daph_fec_r)
 
@@ -38,7 +38,7 @@ fit <- stan(file = "fec_stan.stan",
             data = daph_fec_list,
             control = list(adapt_delta = 0.95))
 
-saveRDS(fit, file = "fec_stan.rds")
+saveRDS(fit, file = "fec_stan_prior.rds")
 
 t <- rstan::extract(fit,permuted = FALSE)
 fit_sum <- summary(fit)

@@ -19,6 +19,10 @@ fec_lit <- lit %>% dplyr::select(c("daphnia_reproduction", "sd_repro", "units_re
   filter(daphnia_reproduction != "NA")
 
 q <- fitdist(fec_lit$daphnia_reproduction, "lnorm")
+##         estimate Std. Error
+#meanlog 1.3227908  0.1681421
+#sdlog   0.5824612  0.1188928
+
 y <- seq(0,10, length = 100)
 c <- dlnorm(y, meanlog = q$estimate[1], sdlog = q$estimate[2])
 
@@ -64,6 +68,7 @@ p + stat_function(fun=dnfun, color="red")
 death1 <- lit %>% dplyr::select("Replicates","Genus","species","algal_death_per_day") %>% filter(algal_death_per_day != "NA")
 hist(death1$algal_death_per_day)
 dd <- fitdistr(death1$algal_death_per_day, "lognormal")
+dd1 <- fitdistr(death1$algal_death_per_day, "gamma")
 p <- ggplot(death1) +
   geom_histogram(aes(x = algal_death_per_day, y = ..density..),
                  binwidth = 1, fill = "grey", color = "black") 
@@ -96,7 +101,7 @@ p + stat_function(fun=dlfun, color="red")
 
 kappa <- lit %>% dplyr::select(c("Replicates","half_sat_mg_N_L","sd_half_sat","range_half_sat")) %>% filter(half_sat_mg_N_L != "NA")
 
-d <- fitdistr(kappa$half_sat_mg_N_L, "lognormal")
+d <- fitdistr(kappa$half_sat_mg_N_L, "gamma")
 
 hist(kappa$half_sat_mg_N_L)
 p <- ggplot(kappa) +
@@ -113,6 +118,14 @@ p + stat_function(fun=dlfun, color="red")
 ```{r alpha}
 alpha <- lit %>% dplyr::select("Replicates","max_ammonium_uptake","max_uptake_units","max_uptake_sd")%>% 
                 filter(max_ammonium_uptake != "NA")
+
+##convert umol to mg per day per liter
+alpha[4,2] <- (500/1000000)*14*1000*24/1000
+## convert mol to mg
+alpha[5,2] <- 0.696*14
+hist(alpha$max_ammonium_uptake)
+ad <- fitdistr(alpha$max_ammonium_uptake, "gamma")
+
 
 ```
 
