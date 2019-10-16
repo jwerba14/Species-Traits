@@ -1,5 +1,5 @@
 ---
-title: "ODE_Oct1"
+title: "ODE_Event"
 author: "Jo"
 date: "October 1, 2019"
 output: html_document
@@ -53,30 +53,35 @@ parameters <- c(
 ```
 
 
+```{r event}
+eventdat <- data.frame(var = c("ammonium"),
+                       time = c(21) ,
+                       value = c(2),
+                       method = c("multiply"))
+```
+
 
 ```{r fulleqs}
 
 full_equations <-function(t, state, parameters) {
   with(as.list(c(state, parameters)),{
   
-    # ammonium is added from release by both juvenile and adult daphnia  and lost through algal update and nitritfication 
+    
     dammonium <- -(alpha*ammonium)/(kappa+ammonium)*algae + rho*death1*algae - camm*ammonium + daph_a*xa + daph_j*xa/10
     
     
     
     
     
-    #juvenile daphia are added by density dependent (large daphnia) birth      
+         
     ddaph_j <- daph_a*(b1*algae)/(b2+algae) - daph_j*death3*10
 
       
       
-    #daphnia adults are added from growth by juveniles and are lost from death
-    ddaph_a <- - daph_a*death3 +(g1*algae)/(g2+algae)  #+daph_j*g1
+
+    ddaph_a <- - daph_a*death3 +(g1*algae)/(g2+algae)  
     
-    
-    
-    # algae is added from growth based on uptake of ammonium 
+     
     dalgae <- (alpha*ammonium)/(kappa+ammonium)*algae*e - death1*algae- daph_a*fa - daph_j*fj
       
     
@@ -94,11 +99,10 @@ full_equations <-function(t, state, parameters) {
 
 
 ```{r ode1}
-out <- ode(y = state, times = seq(0,100,0.1), func = full_equations, parms = parameters, maxsteps = 1e6)
-## out2 <- ode(y = state, times = seq(0,0.4,0.001), func = full_equations, parms = parameters, maxsteps=1e5)
-plot(out)
-out_med <- ode(y = state, times = seq(0,42,0.1), func = full_equations, parms = parameters)
+out_med <- ode(y = state, times = seq(0,42,0.1), func = full_equations, parms = parameters,
+                 events = list(data = eventdat))
 plot(out_med)
+
 ```
 
 Upper bound of predictions
