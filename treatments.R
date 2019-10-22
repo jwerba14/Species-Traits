@@ -19,14 +19,16 @@
 ## treat 13- daphnia, cerio and snail 3,17,42,47,60,61,80,95,98,108
 
 ## treat 14 - daphnia, cerio and snail disturb 2,16,20,43,48,53,65,109,124, 134
+library(tidyverse)
 
 dat <- read.csv("Master_Data.csv")
 pop <- read.csv("Counts.csv")
 
+dat <- dat %>% filter(TankNum != "NA")
 dat$treatment <- 0
 
 for (i in 1:nrow(dat)){
-  if (dat$TankNum[i] ==19| dat$TankNum[i] == 26| dat$TankNum[i] == 41| 
+  if (dat$TankNum[i] ==19| dat$TankNum[i] == 26| dat$TankNum[i]==41|
       dat$TankNum[i] == 45|  dat$TankNum[i] ==63|
       dat$TankNum[i] ==70| dat$TankNum[i] ==71| 
       dat$TankNum[i] ==105| dat$TankNum[i] ==133|dat$TankNum[i] ==135){

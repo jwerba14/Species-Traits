@@ -170,12 +170,12 @@ predmed$quantile <- "med"
 
 source("treatments.R")
 
-dat_daph <- dat %>% filter(treatment == 3) %>% filter(NH4 < 20)%>% 
-  filter(Chl < 100, Chl >= 0) %>% select(TankNum, NH4, Chl,Day)
+dat_daph <- dat %>% filter(treatment == 4) %>% filter(NH4 < 20)%>% 
+   dplyr:: select(TankNum, NH4, Chl,Day)
 names(dat_daph) <- c("TankNum", "ammonium","algae","time")
 amm_g <- ggplot(predmed, aes(time,ammonium)) + geom_line(linetype = "solid")+ 
   #geom_line(data= predup, linetype = "dotdash") +
-  geom_line(data=pred, linetype ="dotdash")+
+  #geom_line(data=pred, linetype ="dotdash")+
   theme_bw()+ geom_point(data = dat_daph,aes(time,ammonium) )+
   ylab("Ammonium mg/L")+xlab("Days")+
   theme(axis.text.x = element_text(size = 30),
@@ -189,7 +189,7 @@ amm_g <- ggplot(predmed, aes(time,ammonium)) + geom_line(linetype = "solid")+
 
 
 alg_g <- ggplot(predmed, aes(time,algae)) + geom_line(linetype = "solid")+ 
-  geom_line(data= predup, linetype = "dotdash") + geom_line(data=pred, linetype ="dotdash")+
+ # geom_line(data= predup, linetype = "dotdash") + geom_line(data=pred, linetype ="dotdash")+
   theme_bw()+ geom_point(data = dat_daph,aes(time,algae) )+
   ylab("Chl a ug/L")+xlab("Days")+
   theme(axis.text.x = element_text(size = 30),
