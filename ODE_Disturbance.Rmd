@@ -204,4 +204,42 @@ alg_g <- ggplot(predmed, aes(time,algae)) + geom_line(linetype = "solid")+
 ```
 
 
+```{r daphnia graphing}
+source("pop_curves.R")
+adult <- popA %>% filter(treatment == 4) %>% group_by(TankNum,ExptDay) %>%
+  summarize(pop_mean = mean(count)*(mean(Liters)/.01)) %>% dplyr::select(TankNum, ExptDay, pop_mean)
+names(adult) <- c("TankNum", "time","daph_a")
+
+juv <- popJ %>% filter(treatment == 4) %>% group_by(TankNum,ExptDay) %>%
+  summarize(pop_mean = mean(count)*(mean(Liters)/.01))
+names(juv) <- c("TankNum","time","daph_j")
+
+ad_graph <- ggplot(predmed, aes(time,daph_a)) + geom_line(linetype = "solid")+ 
+  #geom_line(data= predup, linetype = "dotdash") + geom_line(data=pred, linetype ="dotdash")+
+  theme_bw()+ geom_point(data = adult,aes(time,daph_a) )+
+  ylab("Adult Daphnia")+xlab("Days")+
+  theme(axis.text.x = element_text(size = 30),
+        axis.text.y = element_text(size = 32),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 32),
+        strip.text = element_text(size = 0),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank()) 
+
+juv_graph <- ggplot(predmed, aes(time,daph_j)) + geom_line(linetype = "solid")+ 
+  #geom_line(data= predup, linetype = "dotdash") + geom_line(data=pred, linetype ="dotdash")+
+  theme_bw()+ geom_point(data = juv,aes(time,daph_j) )+
+  ylab("Adult Daphnia")+xlab("Days")+
+  theme(axis.text.x = element_text(size = 30),
+        axis.text.y = element_text(size = 32),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 32),
+        strip.text = element_text(size = 0),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
+
+
+```
 
