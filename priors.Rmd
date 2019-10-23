@@ -1,0 +1,175 @@
+---
+title: "building_priors"
+author: "Jo"
+date: "October 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(fitdistrplus)
+lit <- read.csv("literature_extraction.csv")
+```
+
+
+
+```{r fecundity}
+fec_lit <- lit %>% dplyr::select(c("daphnia_reproduction", "sd_repro", "units_reproduction", "Replicates")) %>%
+  filter(daphnia_reproduction != "NA")
+
+q <- fitdist(fec_lit$daphnia_reproduction, "lnorm")
+##         estimate Std. Error
+#meanlog 1.3227908  0.1681421
+#sdlog   0.5824612  0.1188928
+
+y <- seq(0,10, length = 100)
+c <- dlnorm(y, meanlog = q$estimate[1], sdlog = q$estimate[2])
+
+df<- data.frame(
+  y = y,
+  daphnia_reproduction = c
+)
+
+p <- ggplot(fec_lit) +
+  geom_histogram(aes(x = daphnia_reproduction, y = ..density..),
+                 binwidth = .5, fill = "grey", color = "black")+
+    scale_x_continuous(limits=c(0,10))
+
+
+## compute the function on the fly
+dlfun <- function(x) {
+    with(as.list(q$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+```
+
+
+
+```{r survival}
+surv <- lit %>% dplyr::select("Replicates","daphnia_survival","range") %>% drop_na(daphnia_survival)
+hist(surv$daphnia_survival)
+## subtract average number of days to large size (based on my experiment- because I need this to be a prior for survival after growth to adult)
+surv$survival <- surv$daphnia_survival- 4.8
+d<-fitdistr(surv$survival, "normal")
+hist(surv$survival)
+p <- ggplot(surv) +
+  geom_histogram(aes(x = survival, y = ..density..),
+                 binwidth = 2, fill = "grey", color = "black") 
+dnfun <- function(x) {
+    with(as.list(d$estimate), dnorm(x, mean, sd))
+}
+p + stat_function(fun=dnfun, color="red")
+
+```
+
+
+```{r algae death}
+death1 <- lit %>% dplyr::select("Replicates","Genus","species","algal_death_per_day") %>% filter(algal_death_per_day != "NA")
+hist(death1$algal_death_per_day)
+dd <- fitdistr(death1$algal_death_per_day, "lognormal")
+dd1 <- fitdistr(death1$algal_death_per_day, "gamma")
+p <- ggplot(death1) +
+  geom_histogram(aes(x = algal_death_per_day, y = ..density..),
+                 binwidth = 1, fill = "grey", color = "black") 
+
+dlfun <- function(x) {
+  with(as.list(dd$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+
+```
+
+
+```{r daphnia adult excretion}
+x <- lit %>% dplyr::select("Replicates", "Excretion.rate","exc_rate_mg_per_ind_day" , "sd_error_excretion", "units_excretion", "algal_conc") %>%
+  filter(exc_rate_mg_per_ind_day != "NA") 
+xx <- fitdistr(x$exc_rate_mg_per_ind_day, "lognormal")
+p <- ggplot(x) +
+  geom_histogram(aes(x = exc_rate_mg_per_ind_day, y = ..density..),
+                 binwidth = 1, fill = "grey", color = "black") 
+
+dlfun <- function(x) {
+  with(as.list(xx$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+
+```
+
+
+```{r kappa}
+
+kappa <- lit %>% dplyr::select(c("Replicates","half_sat_mg_N_L","sd_half_sat","range_half_sat")) %>% filter(half_sat_mg_N_L != "NA")
+
+d <- fitdistr(kappa$half_sat_mg_N_L, "gamma")
+
+hist(kappa$half_sat_mg_N_L)
+p <- ggplot(kappa) +
+  geom_histogram(aes(x = half_sat_mg_N_L, y = ..density..),
+                 binwidth = 1, fill = "grey", color = "black") 
+
+dlfun <- function(x) {
+  with(as.list(d$estimate), dlnorm(x, meanlog, sdlog))
+}
+p + stat_function(fun=dlfun, color="red")
+```
+
+
+```{r alpha}
+alpha <- lit %>% dplyr::select("Replicates","max_ammonium_uptake","max_uptake_units","max_uptake_sd")%>% 
+                filter(max_ammonium_uptake != "NA")
+
+##convert umol to mg per day per liter
+alpha[4,2] <- (500/1000000)*14*1000*24/1000
+## convert mol to mg
+alpha[5,2] <- 0.696*14
+hist(alpha$max_ammonium_uptake)
+ad <- fitdistr(alpha$max_ammonium_uptake, "gamma")
+
+
+```
+
+```{r cammonium}
+n <- lit %>%dplyr::select("Replicates","nitrification","units.6", "convert_mg_N_day", "sd.2","range.2","X75.quartile") %>%
+  filter(nitrification != "NA")%>% filter(units.6 != "g NH4-N g per VSS per day") %>% 
+  drop_na(convert_mg_N_day) %>% filter(units.6 != "mg N per g per dry weight day")
+## VSS is volatile suspended solid...
+
+n1 <- lit %>% drop_na(nitrification)%>% select_if(not_all_na)   ## drop rows with no response
+
+d <- fitdist(n$convert_mg_N_day, "lnorm")
+
+p <- ggplot(n) +
+  geom_histogram(aes(x = convert_mg_N_day, y = ..density..),
+                 binwidth = .2, fill = "grey", color = "black") 
+```
+
+```{r daphnia adult filtering}
+f <- lit %>% dplyr::select("Replicates","Max_filtering","sd_filtering","CI_filtering_upper","CI_filtering_low","units",
+                           "daphnia_size") %>% filter(Max_filtering != "NA") %>%
+  filter(units != "millions cells per individual per hour") %>% 
+  filter(units != "millions chlorella per indiv per hour")
+
+hist(f$Max_filtering)
+```
+
+
+```{r juvenile exretion}
+
+```
+
+```{r growth}
+
+```
+
+```{r rho}
+
+```
+
+```{r efficiency}
+
+```
+
+```{r juvenile filtering}
+
+```

@@ -37,9 +37,40 @@ launch_shinystan(fit)
 
 saveRDS(fit, file = "growth.rds")
 
+## instead lets do exponential bc does look pretty even across food groups and will be easier to interpret
+
+survcurve <- function(x) {
+  x <- c(0,sort(x))
+  tibble(day=x,frac_surv=seq(1,0,length.out=length(x)))
+}
+
+daph_growth_curves <- daph_growth_j %>%
+  group_by(treatment) %>%
+  do(survcurve(.$days_to_adult))
+
+
+daph_grow_list1 <- list(
+  "N" = 68,
+  "days" = daph_growth_curves$day,
+  "survival" = (daph_growth_curves$frac_surv)
+)
+
+fit <- stan(file = "adult_death.stan", 
+            data = daph_grow_list1,
+            control = list(adapt_delta = 0.99, max_treedepth = 17),
+            iter = 5000)
+
+library(shinystan)
+launch_shinystan(fit)
+
 
 fit_sum <- summary(fit)
 print(names(fit_sum))
+
+t <- rstan::extract
+
+
+
 fit_sum_param <- fit_sum$summary[c(1:4),]
 
 t <- rstan::extract(fit,permuted = FALSE)

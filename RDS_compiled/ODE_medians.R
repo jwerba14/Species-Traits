@@ -64,7 +64,7 @@ d_equations <-function(t, state, parameters) {
 }
 
 
-out_med <- ode(y = state, times = seq(0,42,0.1), func = d_equations, parms = parameters_med)
+out_med <- ode(y = state, times = seq(0,42,0.1), func = d_equations, parms = parameters_me)
 plot(out_med)
 
 

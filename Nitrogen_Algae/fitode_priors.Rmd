@@ -1,0 +1,122 @@
+---
+title: "fitode_priors"
+author: "Jo"
+date: "14/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(fitode)
+library(corrplot)
+
+dat <- read.csv("Algae_Nutrient.csv")
+```
+
+
+
+```{r data split}
+dat_nit_27 <- dat %>%
+  filter(treat == 27)
+
+dat_nit_9 <- dat %>%
+  filter(treat == 9)
+
+dat_nit_3 <- dat %>%
+  filter(treat == 3)
+
+dat_nit_108 <- dat %>%
+  filter(treat == 108)
+
+dat_nit_54 <- dat %>%
+  filter(treat == 54)
+
+dat_nit_0.5 <- dat %>%
+  filter(treat == 0.5)
+
+
+```
+
+
+
+```{r model}
+cammonium = (1-9.4235e-01) # proportional ammonium lost to env-- calc in nutrient_air.R
+
+chl_nh4_mod3 <- odemodel(
+  name = "algal_nit",
+  model = list(
+    pred_nh4 ~ -a*pred_chl*(pred_nh4/(k+pred_nh4))+r*death*pred_chl -cammonium*pred_nh4,
+    pred_chl ~ a*pred_chl*(pred_nh4/(k+pred_nh4))*e - death*pred_chl  
+  ),
+  observation = list(
+    nh4 ~ dlnorm(meanlog = log(pred_nh4), sdlog = 0.05),
+    chl ~ dlnorm(meanlog = log(pred_chl), sdlog = 0.01)
+  ),
+  initial = list(pred_nh4 ~ pred_nh40 , pred_chl ~ pred_chl0),
+  par=c("a","k", "r","death","e", "pred_nh40", "pred_chl0")
+)
+
+```
+
+
+```{r priors}
+prior_list <- list(
+    a~dgamma(shape=0.6916, rate=0.117),
+    k~dgamma(shape=.3656, rate=0.045),
+    r~dgamma(shape=0.5, rate=1), ## needs to be broad no lit
+    death~dgamma(shape=0.68, rate=8.95),
+    e~dgamma(shape=3, rate=0.5) ## needs to be broad no lit
+)
+
+```
+
+```{r parms}
+parms <- c(a = 0.5, 
+           k = 1,
+           r = .7,
+           death = 1,
+           e = 12,
+           pred_nh40= 15,
+           pred_chl0 = 40
+)
+
+```
+
+
+
+```{r fit}
+system.time(ff2 <- fitode(
+    model=chl_nh4_mod3,
+    data=dat_nit_27,
+    tcol = "date1",
+    start=parms,
+    prior=prior_list,
+     solver.opts=list(method="lsoda")
+))
+
+```
+
+
+```{r}
+coef(ff2)
+confint(ff2)
+summary(ff2)
+```
+
+
+```{r plot}
+newdat <- simulate(chl_nh4_mod3,nsim = 5, parms= coef(ff2), times = seq(1,11),           
+                      solver.opts=list(method="rk4", hini=0.1))
+newdat$date1 <- newdat$times
+
+ggplot(dat_nit_27, aes(date1,chl)) + geom_point()+ geom_line(data = newdat)
+
+ggplot(dat_nit_27, aes(date1,nh4)) + geom_point()+ geom_line(data = newdat)
+```
+
+```{r correlation}
+cc <- cov2cor(vcov(ff2))
+corrplot.mixed(cc,lower="ellipse",upper="number")
+
+```
