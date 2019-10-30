@@ -1,21 +1,166 @@
 ## build priors
 library(tidyverse)
 library(fitdistrplus)
+library(MASS)
+library(bbmle)
+library(broom)
+library(dotwhisker)
+library(ggplot2); theme_set(theme_bw())
+library(ggstance)
+## note: MASS::fitdistr vs. fitdistrplus::fitdist
 
+tidy.fitdist <- broom:::tidy.fitdistr
+
+augment.fitdistr <- function(x, dname, data, n=101, varname="x", log=FALSE) {
+    if (varname %in% names(data)) data <- data[[varname]]
+    tibble(xval=seq(min(data, na.rm=TRUE),
+                    max(data, na.rm=TRUE),
+                    length.out=n),
+           density=do.call(paste0("d",dname),
+                           c(list(x=xval, log=log), as.list(coef(x))))
+           )
+}
+
+augment.fitdist <- function(x, data, n=101, log=FALSE, dname=x$distname) {
+    augment.fitdistr(x, dname=dname, data=data, n=n, log=log)
+}
+
+## not generic: works for this problem 
+augment.mle2 <- function(x, data, n=101, log=FALSE, dname=NULL) {
+    if (is.null(dname))
+        dname <- sub("^d","",deparse(as.formula(x@formula)[[3]][[1]]))
+    augment.fitdistr(x, dname=dname, data=data, n=n, log=log)
+}
+
+glance.fitdist <- function(x) {
+    with(x,tibble(n=n,logLik=loglik,AIC=aic,BIC=bic))
+}
+
+glance.mle2 <- function(x) {
+    tibble(n=length(x@data[[1]]),  ## fragile? nobs() method??
+           logLik=c(logLik(x)),AIC=AIC(x),BIC=BIC(x))
+}
+
+mle2_fit_gamma <- function(x,...) {
+    ## CV = 1/sqrt(shape)
+    ## -> shape = 1/CV^2 = mean^2/var
+    ## mean = shape/rate = (mean^2/var)/rate
+    ## rate = mean/var
+    m <- mean(x)
+    v <- var(x)
+    m <- mle2(
+        x~dgamma(shape,rate),
+        data=data.frame(x),
+        start=list(shape=m^2/v,rate=m/v),
+        ...)
+    return(m)
+}
+
+## manage conflict
+select <- dplyr::select
 litdat <- read.csv("literature_extraction.csv")
 
+make_fits <- function(x_name="half_sat_mg_N_L", data=litdat) {
+    x <- c(na.omit(data[[x_name]]))
+    ## c() drops attributes (fitdist doesn't like them)
 
-## half saturation constant
-hist(litdat$half_sat_mg_N_L)
+    ## three ways to fit a distribution (lognormal)
+    ## 1. MASS package: output class = "fitdistr"
+    fit1 <- fitdistr(x, "lognormal")
 
-half_sat <- litdat %>% dplyr::select(half_sat_mg_N_L) %>% filter(half_sat_mg_N_L != "NA")
+    ## 2. fitdistrplus package: output class = "fitdist"
+    fit2 <- fitdist(x, "lnorm")
 
-half_sat <- as.vector(half_sat$half_sat_mg_N_L)
+    ## 3. bbmle package
+    ## more control (can specify fitting scale, bounds, parscale, etc.)
+    ## but need to specify starting values
+    fit3 <- mle2(
+        x~dlnorm(meanlog,sdlog),
+        data=data.frame(x),
+        start=list(meanlog=mean(log(x)),sdlog=sd(log(x)))
+    )
 
-ff1 <- fitdistr(half_sat, "lognormal")  ##uses maximum likelihood-- exp(0.12)  # lognormal 0.2664,2.9
+    ## same for Gamma distribution
+    fit4 <- fitdistr(x, "Gamma")
+    fit5 <- fitdist(x, "gamma")
+    ## use method of moments to compute starting values
+    fit6 <- mle2_fit_gamma(x, method="L-BFGS-B", lower=c(0.002,0.002))
+
+    ## list of lists: distributions/methods
+    fitList <- list(lnorm=list(MASS=fit1,
+                               fitdistrplus=fit2,
+                               mle2=fit3),
+                    gamma=list(MASS=fit4,
+                               fitdistrplus=fit5,
+                               mle2=fit6))
+
+    attr(fitList,"data") <- x
+    return(fitList)
+}
+
+sum_fits <- function(fitList, y_max=NA, bins=30) {
+    data <- attr(fitList,"data")
+    ## parameters: map_dfr runs the function, then row-binds the results
+    params <- map_dfr(fitList,.id="dist",
+                      ~(map_dfr(.,tidy,.id="pkg")
+                          %>% select(pkg,term,estimate,std.error)))
+
+    ## don't really need this, but ...
+    params_plot <- ggplot(params,aes(estimate,term,colour=pkg))+
+        geom_pointrangeh(aes(xmin=estimate-2*std.error,
+                             xmax=estimate+2*std.error),
+                         position=position_dodgev(height=0.5))+
+        facet_wrap(~dist,ncol=1,scale="free")+
+        scale_color_brewer(palette="Dark2")
+    
+    ## goodness-of-fit (log-likelihood, AIC)
+    gof <- map_dfr(fitList,
+                   .id="dist",
+                   ~(map_dfr(.,glance,.id="pkg")
+                       %>% select(pkg,logLik,AIC)))
+
+    ## predictions
+    pred <- map2_dfr(fitList,names(fitList),.id="dist",
+                     ~(map_dfr(.x,augment,dname=.y,
+                               data=data,
+                               .id="pkg")))
+
+    pred_plot <- ggplot(pred,aes(xval,density))+
+        geom_histogram(data=data.frame(xval=data),
+                       bins=bins,
+                       aes(y=..density..))+
+        geom_line(aes(colour=dist,linetype=pkg),lwd=2)+
+        scale_y_continuous(limits=c(0,y_max))+
+        scale_colour_brewer(palette="Dark2")
+
+    return(lme4:::namedList(params, params_plot,
+                           gof, pred,
+                           pred_plot))
+}
+
+
+
+
+half_sat_fits <- make_fits("half_sat_mg_N_L")
+half_sat_sum <- sum_fits(half_sat_fits,y_max=0.4)
+
+half_sat_sum$gof
+half_sat_sum$pred_plot
+
+growth_day_fits <- make_fits("growth_day")
+growth_day_sum <- sum_fits(growth_day_fits)
+growth_day_sum$pred_plot
+growth_day_sum$gof  ## gamma fit is considerably better
+
+death_rate_day_fits <- make_fits("death_rate_day")
+death_rate_day_sum <- sum_fits(death_rate_day_fits,bins=10)
+death_rate_day_sum$pred_plot
+death_rate_day_sum$gof 
+
+### end of BMB code
 
 hist(half_sat,breaks = 10)
-denscomp(ff1)
+denscomp(ff2B)
 xfit <- seq(min(half_sat), max(half_sat), length = 40)
 yfit <- dlnorm(xfit,meanlog = .2665, sdlog = 2.9)
 lines(xfit, yfit)
