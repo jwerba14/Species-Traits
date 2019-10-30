@@ -15,7 +15,7 @@ lit <- read.csv("literature_extraction.csv")
 
 
 ```{r fecundity}
-fec_lit <- lit %>% dplyr::select(c("daphnia_reproduction", "sd_repro", "units_reproduction", "Replicates")) %>%
+fec_lit <- lit %>% dplyr::select(c("daphnia_reproduction", "sd_repro", "units_reproduction", "Replicates","algal_conc" ,"Authors")) %>%
   filter(daphnia_reproduction != "NA")
 
 q <- fitdist(fec_lit$daphnia_reproduction, "lnorm")
