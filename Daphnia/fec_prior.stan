@@ -8,27 +8,45 @@ data {
   real sd_lit[L]; //  sd from literature
 } 
 parameters {
-  real alpha; 
+  real alpha;  // these would be vectors of length (n_studies+1)
   real beta; 
   real tau;
 } 
 transformed parameters {
-real sigma; 
+  real sigma; 
   real m[N];
   real q[L];
   for (i in 1:N) 
-    m[i] = alpha * chl[i] / (chl[i] + beta) ;
+      m[i] = alpha * chl[i] / (chl[i] + beta) ;
+      // m[i] = alpha[1] ... beta[1]
   sigma = 1 / sqrt(tau); 
   for (i in 1:L) 
-    q[i] = alpha * chl_lit[i] / (chl_lit[i] + beta) ;
-  
+      q[i] = alpha * chl_lit[i] / (chl_lit[i] + beta) ;
+      // alpha[i+1], beta[i+1]
 }
+// BMB: consider drawing alpha and beta from a distribution,
+// one value per study (study=1 for yours, 2, ... n for the literature
+// results
 model {
   // priors
+  // BMB: these are probably too broad!
   alpha ~ normal(0.0, 1000); 
   beta ~ normal(0.0, 1000);
+  // especially tau: works for this example but try (half-)t or (half-)Cauchy
+  //  prior on sigma
   tau ~ gamma(.0001, .0001);
-  daily_fec ~ normal(m, sigma);   
+  // alpha[i] ~ normal(alpha_bar,sigma_alpha)
+  // OR ("centred parameterization"):
+  // eps_alpha[i] ~ normal(0,1)
+  // alpha[i] = alpha_bar + sigma_alpha*eps_alpha
+  // alpha_bar ~ normal(0.0, 5)
+  // sigma_alpha ~ cauchy(...)
+  // might need to have a fairly informative prior (not much data)
+  // could parameterize sigma_alpha as a *coefficient of variation*
+  // i.e. relative to the value of alpha (maybe sd_log?)
+  // may be easier to work with log_alpha and then alpha[i] = exp(log_alpha[i])
+  daily_fec ~ normal(m, sigma);
+  daily_fec_lit ~ normal(q, sd_lit);
 }
 
 generated quantities{  // not a necessity but is giving predictions and error -- posterior on mean and predictions

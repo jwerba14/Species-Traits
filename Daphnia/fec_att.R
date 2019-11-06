@@ -56,12 +56,14 @@ daph_fec_list <- list(
   "daily_fec" = daph_fec_adj$daily_fec,
   "L" = 5,
   "daily_fec_lit" = fec_lit$daily_fec,
-  "sd_lit" = fec_lit$sd_repro
+  "sd_lit" = fec_lit$sd_repro,
+  "chl_lit" = fec_lit$cell
 )
 
 ##
 fit <- stan(file = "fec_prior.stan", 
-            data = daph_fec_list ) #,
+            data = daph_fec_list,
+            verbose = TRUE) #,
             #control = list(adapt_delta = 0.99, max_treedepth = 17),
             #iter = 5000)  
 library(shinystan)
