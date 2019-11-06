@@ -15,12 +15,13 @@ parameters {
 transformed parameters {
 real sigma; 
   real m[N];
+  real q[L];
   for (i in 1:N) 
     m[i] = alpha * chl[i] / (chl[i] + beta) ;
   sigma = 1 / sqrt(tau); 
   for (i in 1:L) 
-    m[i] = alpha * chl_lit[i] / (chl_lit[i] + beta) ;
-  sigma[i] = sd_lit[i];
+    q[i] = alpha * chl_lit[i] / (chl_lit[i] + beta) ;
+  
 }
 model {
   // priors
