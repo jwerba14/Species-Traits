@@ -24,24 +24,57 @@ daph_fec <- daph %>% group_by(rep, treatment) %>%
 daph_fec_adj <- daph_fec %>% 
   mutate(cell = chl_adj(chl = chl))
 
-daph_fec_adj$se <- 0
+daph_fec_adj$sd <- 0
 
 ## data from literature
 fec_lit <- read.csv("fec_lit.csv")
 
 fec_lit$cell <- c(NA,1e+09, NA, NA, 1e+08,5e+05, 166666.7, NA, 5e+05, NA,NA, NA)
-fec_lit$se <- fec_lit$sd_repro/sqrt(fec_lit$Replicates)
+fec_lit$sd <- fec_lit$sd_repro
 fec_lit$daily_fec <- fec_lit$daphnia_reproduction
 fec_lit$rep <- as.factor(rep("A", nrow(fec_lit)))
 
 fec_lit <- fec_lit %>% filter(!is.na(cell))
 
-ndat <- daph_fec_adj %>% select("cell","se","daily_fec")
-ndat1 <- fec_lit %>% select("cell", "se", "daily_fec", "rep")
+ndat <- daph_fec_adj %>% select("cell","sd","daily_fec", "rep")
+ndat1 <- fec_lit %>% select("cell", "sd", "daily_fec", "rep")
 
 p <- as.data.frame(rbind(as.matrix(ndat), as.matrix(ndat1)))
-p1 <- p %>% filter(rep == 1)
-names(p1) <- c("rep","cell","se","dailyfec")
+#p1 <- p %>% filter(rep == 1)
+# names(p1) <- c("rep","cell","se","dailyfec")
+
+
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+
+
+daph_fec_list <- list(
+  "N" = 70,
+  "chl" = daph_fec_adj$cell,
+  "daily_fec" = daph_fec_adj$daily_fec,
+  "L" = 5,
+  "daily_fec_lit" = fec_lit$daily_fec,
+  "sd_lit" = fec_lit$sd_repro
+)
+
+##
+fit <- stan(file = "fec_prior.stan", 
+            data = daph_fec_list ) #,
+            #control = list(adapt_delta = 0.99, max_treedepth = 17),
+            #iter = 5000)  
+library(shinystan)
+launch_shinystan(fit)
+
+
+
+
+
+
+
+
+
 ## fit with weights by se
 library(brms)
 ff <- brm(bf(dailyfec|weights(se) ~  alpha * cell / (cell + beta), data = p1, family = lognormal(),
