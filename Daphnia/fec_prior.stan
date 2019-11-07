@@ -8,8 +8,8 @@ data {
   real sd_lit[L]; //  sd from literature
 } 
 parameters {
-  real alpha;  // these would be vectors of length (n_studies+1)
-  real beta; 
+  vector[L+1] alpha;  // these would be vectors of length (n_studies+1)
+  vector[L+1] beta; 
   real tau;
 } 
 transformed parameters {
@@ -17,15 +17,13 @@ transformed parameters {
   real m[N];
   real q[L];
   for (i in 1:N) 
-      m[i] = alpha * chl[i] / (chl[i] + beta) ;
-      // m[i] = alpha[1] ... beta[1]
+      m[i] = alpha[1] * chl[i] / (chl[i] + beta[1]) ;
   sigma = 1 / sqrt(tau); 
   for (i in 1:L) 
-      q[i] = alpha * chl_lit[i] / (chl_lit[i] + beta) ;
-      // alpha[i+1], beta[i+1]
+      q[i] = alpha[i+1] * chl_lit[i] / (chl_lit[i] + beta[i+1]) ;
+      
 }
-// BMB: consider drawing alpha and beta from a distribution,
-// one value per study (study=1 for yours, 2, ... n for the literature
+// allows for different alpha/beta by study
 // results
 model {
   // priors
@@ -49,17 +47,16 @@ model {
   daily_fec_lit ~ normal(q, sd_lit);
 }
 
-generated quantities{  // not a necessity but is giving predictions and error -- posterior on mean and predictions
-  real Y_mean[4]; 
-  real Y_pred[4]; 
-  for(i in 1:4){
+//generated quantities{  // not a necessity but is giving predictions and error -- posterior on mean and predictions
+  //real Y_mean[4]; 
+  //real Y_pred[4]; 
+  //for(i in 1:4){
     // Posterior parameter distribution of the mean
   //  Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
-    Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
+    //Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
     // Posterior predictive distribution random number generator from normal
-    Y_pred[i] = normal_rng(Y_mean[i], sigma);   
-}
-}
+    //Y_pred[i] = normal_rng(Y_mean[i], sigma);   
+
 
 
 

@@ -36,10 +36,10 @@ fec_lit$rep <- as.factor(rep("A", nrow(fec_lit)))
 
 fec_lit <- fec_lit %>% filter(!is.na(cell))
 
-ndat <- daph_fec_adj %>% select("cell","sd","daily_fec", "rep")
-ndat1 <- fec_lit %>% select("cell", "sd", "daily_fec", "rep")
+#ndat <- daph_fec_adj %>% select("cell","sd","daily_fec", "rep")
+#ndat1 <- fec_lit %>% select("cell", "sd", "daily_fec", "rep")
 
-p <- as.data.frame(rbind(as.matrix(ndat), as.matrix(ndat1)))
+#p <- as.data.frame(rbind(as.matrix(ndat), as.matrix(ndat1)))
 #p1 <- p %>% filter(rep == 1)
 # names(p1) <- c("rep","cell","se","dailyfec")
 
@@ -69,52 +69,6 @@ fit <- stan(file = "fec_prior.stan",
 library(shinystan)
 launch_shinystan(fit)
 
-
-
-
-
-
-
-
-
-## fit with weights by se
-library(brms)
-ff <- brm(bf(dailyfec|weights(se) ~  alpha * cell / (cell + beta), data = p1, family = lognormal(),
-          control = list(adapt_delta = 0.95),  prior = c(
-              prior(normal(0.0, 1000), nlpar = "alpha"),
-              prior(normal(0.0, 1000), nlpar = "beta") 
-              )
-))
-
-
-
-ff <- brm(bf(dailyfec ~  alpha * cell / (cell + beta), data = p1, family = lognormal(),
-             control = list(adapt_delta = 0.95),  prior = c(
-               prior(normal(0.0, 1000), nlpar = "alpha"),
-               prior(normal(0.0, 1000), nlpar = "beta") 
-             )
-))
-
- ## fit without weights
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-
-
-
-daph_fec_r <- daph_fec %>% dplyr::select(rep, chl, daily_fec)
-daph_fec_r$rep <- seq(1,70)
-daph_fec_r <- data.frame(daph_fec_r)
-
-daph_fec_list <- list(
-   "N" = 70,
-   "chl" = daph_fec_r$chl,
-   "daily_fec" = daph_fec_r$daily_fec
-)
-
-fit <- stan(file = "fec_stan.stan", 
-            data = daph_fec_list,
-            control = list(adapt_delta = 0.95))
 
 saveRDS(fit, file = "fec_stan_prior.rds")
 
