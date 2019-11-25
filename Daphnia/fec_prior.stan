@@ -8,9 +8,13 @@ data {
   real sd_lit[L]; //  sd from literature
 } 
 parameters {
-  vector[L+1] alpha;  // these would be vectors of length (n_studies+1)
+  vector[L+1] alpha;  //  vectors of length (n_studies+1)
   vector[L+1] beta; 
   real tau;
+  real alpha_bar;
+  real sigma_alpha;
+  real beta_bar;
+  real sigma_beta;
 } 
 transformed parameters {
   real sigma; 
@@ -28,17 +32,22 @@ transformed parameters {
 model {
   // priors
   // BMB: these are probably too broad!
-  alpha ~ normal(0.0, 1000); 
-  beta ~ normal(0.0, 1000);
+ // alpha ~ normal(0.0, 1000); 
+  //beta ~ normal(0.0, 1000);
   // especially tau: works for this example but try (half-)t or (half-)Cauchy
   //  prior on sigma
   tau ~ gamma(.0001, .0001);
-  // alpha[i] ~ normal(alpha_bar,sigma_alpha)
+  for (i in 1:L+1)
+  alpha[i] ~ normal(alpha_bar,sigma_alpha); // random effect, alpha random draw from distribution with mean alpha_bar, sd sigma_alpha
   // OR ("centred parameterization"):
   // eps_alpha[i] ~ normal(0,1)
   // alpha[i] = alpha_bar + sigma_alpha*eps_alpha
-  // alpha_bar ~ normal(0.0, 5)
-  // sigma_alpha ~ cauchy(...)
+  alpha_bar ~ normal(0.0, 100);
+  sigma_alpha ~ cauchy(0,10);
+  for(i in 1:L+1)
+  beta[i] ~ normal(beta_bar, sigma_beta);
+  beta_bar ~ normal(0,100); //should be correlated with alpha? 
+  sigma_beta ~ cauchy(0,10);
   // might need to have a fairly informative prior (not much data)
   // could parameterize sigma_alpha as a *coefficient of variation*
   // i.e. relative to the value of alpha (maybe sd_log?)

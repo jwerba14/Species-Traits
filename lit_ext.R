@@ -63,7 +63,15 @@ p + stat_function(fun=dlfun, color="red")
 ## plot(daphnia_reproduction~y,data=df)
 
 ### daphnia survival I have days until death if assume exponential than 1/days survival
-surv <- lit %>% dplyr::select("Replicates","daphnia_survival","range") %>% drop_na(daphnia_survival)
+surv <- lit %>% dplyr::select("Replicates","daphnia_survival","range",
+                              "sd_survival","X95CI", "units_survival") %>% drop_na(daphnia_survival)
+
+surv$ci <- c(NA,16.75,NA,10.9,13.5,3,8.3,11.7,8.8)
+surv$sd <- (surv$ci*2*sqrt(as.numeric(as.character(surv$Replicates))))/3.92
+surv$sd[1] <- 0.26
+surv <- surv %>% select(Replicates, daphnia_survival, sd)
+##write.csv(surv, file = "survival_literature.csv" )
+
 hist(surv$daphnia_survival)
 ## subtract average number of days to large size (based on my experiment- because I need this to be a prior for survival after growth to adult)
 surv$survival <- surv$daphnia_survival- 4.8
@@ -134,7 +142,7 @@ p + stat_function(fun=dlfun, color="red")
 x <- lit %>% dplyr::select("Replicates", "Excretion.rate", "sd_error_excretion", "units_excretion", "algal_conc") %>%
   filter(Excretion.rate != "NA") 
 
-
+write.csv(x, file = "excretion_literature.csv")
 ## daphnia juvenile excretion
 
 ## daphnia adult uptake algae

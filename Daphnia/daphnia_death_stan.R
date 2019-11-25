@@ -2,6 +2,8 @@
 library(tidyverse)
 source("../transfer_functions.R")
 daph <- read.csv("daphnia_lifetime.csv")
+dat <- read.csv("survival_literature.csv")
+
 # filter out individuals that were NOT born in the conditions (original daphnia)
 daph <- daph %>%
   filter(adult_only=="N")
@@ -34,6 +36,7 @@ daph_death_list <- list(
   "survival" = daph_surv_curves$frac_surv
 )
 
+## problem for incorporating literature - i have average number of days survival by indiv not percent by day
 
 fit <- stan(file = "adult_death.stan", 
             data = daph_death_list,

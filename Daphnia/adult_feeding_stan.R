@@ -177,6 +177,7 @@ saveRDS(fit, file = "adult_exc.RDS")
 fit2 <- readRDS("adult_exc.RDS")
 
 
+
 daph_excretion_list <- list(
   "N" = nrow(dat1),
   "chl" = dat1$chl_diff_cc,

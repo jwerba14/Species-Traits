@@ -1,7 +1,8 @@
 data { 
    int<lower=0> N; 
+   int<lower=0> L;
    vector[N] days; 
-   vector[N] survival; 
+   vector[N] survival;
  } 
   
  parameters { 

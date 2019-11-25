@@ -63,14 +63,14 @@ daph_fec_list <- list(
 ##
 fit <- stan(file = "fec_prior.stan", 
             data = daph_fec_list,
-            verbose = TRUE) #,
-            #control = list(adapt_delta = 0.99, max_treedepth = 17),
-            #iter = 5000)  
+            verbose = TRUE,
+            control = list(adapt_delta = 0.99, max_treedepth = 17))#,
+            #iter = 5000)  ## medium mixing, one chain quite bad, 100+ divergent transitions...so not good
 library(shinystan)
 launch_shinystan(fit)
 
 
-saveRDS(fit, file = "fec_stan_prior.rds")
+saveRDS(fit, file = "fec_mix_stan_prior.rds")
 
 t <- rstan::extract(fit,permuted = FALSE)
 fit_sum <- summary(fit)
