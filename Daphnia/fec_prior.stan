@@ -12,15 +12,20 @@ parameters {
   // vector[L+1] beta; 
   real<lower=0> tau;
   real alpha_bar;
-  real sigma_alpha;
+  real<lower=0> sigma_alpha;
   real beta_bar;
-  real sigma_beta;
+  real<lower=0> sigma_beta;
   vector[L+1] eps_alpha;
   vector[L+1] eps_beta;
 } 
 transformed parameters {
-  real sigma;
-  sigma = 1/sqrt(tau);
+  real alpha[L+1];
+  real beta[L+1];
+  for(i in 1:L+1){
+      alpha[i] = alpha_bar + sigma_alpha*eps_alpha[i];
+      beta[i] = beta_bar + sigma_beta*eps_beta[i];
+  }
+  
 }
 // allows for different alpha/beta by study
 // results
@@ -28,12 +33,7 @@ model {
   // priors
   real m[N]; // daily fecundity
   real q[L]; // ?? BMB: maybe call this m_lit?
-  real alpha[L+1];
-  real beta[L+1];
-  for(i in 1:L+1){
-      alpha[i] = alpha_bar + sigma_alpha*eps_alpha[i];
-      beta[i] = beta_bar + sigma_beta*eps_beta[i];
-  }
+  
   // BMB: these are probably too broad!
  // alpha ~ normal(0.0, 1000); 
   //beta ~ normal(0.0, 1000);
@@ -44,10 +44,10 @@ model {
   // https://mc-stan.org/docs/2_21/functions-reference/cauchy-distribution.html
   // https://mc-stan.org/users/documentation/case-studies/divergences_and_bias.html
   // sigma ~ cauchy(0,3)    // BMB: ?
-  alpha_bar ~ normal(0.0, 100);
-  sigma_alpha ~ cauchy(0,10);
-  beta_bar ~ normal(0,100); //should be correlated with alpha? 
-  sigma_beta ~ cauchy(0,10);
+  alpha_bar ~ normal(0.0, 10);
+  sigma_alpha ~ cauchy(0,3);
+  beta_bar ~ normal(0,10); //should be correlated with alpha? 
+  sigma_beta ~ cauchy(0,3);
   
   for (i in 1:L+1){
   eps_alpha[i] ~ normal(0,1);
@@ -63,7 +63,7 @@ model {
   // may be easier to work with log_alpha and then alpha[i] = exp(log_alpha[i])
   for (i in 1:N) { 
       m[i] = alpha[1] * chl[i] / (chl[i] + beta[1]) ;
-      daily_fec[i] ~ normal(m[i], sigma);
+      daily_fec[i] ~ normal(m[i], 1/sqrt(tau));
   }
   for (i in 1:L) {
       q[i] = alpha[i+1] * chl_lit[i] / (chl_lit[i] + beta[i+1]) ;
