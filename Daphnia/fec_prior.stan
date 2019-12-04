@@ -8,8 +8,6 @@ data {
   real sd_lit[L]; //  sd from literature
 } 
 parameters {
-  // vector[L+1] alpha;  //  vectors of length (n_studies+1)
-  // vector[L+1] beta; 
   real<lower=0> tau;
   real alpha_bar;
   real<lower=0> sigma_alpha;
@@ -40,9 +38,7 @@ model {
   // especially tau: works for this example but try (half-)t or (half-)Cauchy
   //  prior on sigma
   tau ~ gamma(.0001, .0001); // BMB: OK, but could be improved
-  // http://mc-stan.org/rstanarm/reference/priors.html
-  // https://mc-stan.org/docs/2_21/functions-reference/cauchy-distribution.html
-  // https://mc-stan.org/users/documentation/case-studies/divergences_and_bias.html
+ 
   // sigma ~ cauchy(0,3)    // BMB: ?
   alpha_bar ~ normal(0.0, 10);
   sigma_alpha ~ cauchy(0,3);
@@ -54,13 +50,7 @@ model {
   eps_beta[i] ~ normal(0,1);
     // alpha[i] ~ normal(alpha_bar,sigma_alpha); // random effect, alpha random draw from distribution with mean alpha_bar, sd sigma_alpha
   }
-  // OR ("non-centred parameterization"):
-  // for(i in 1:L+1)
-    // beta[i] ~ normal(beta_bar, sigma_beta);
-  // might need to have a fairly informative prior (not much data)
-  // could parameterize sigma_alpha as a *coefficient of variation*
-  // i.e. relative to the value of alpha (maybe sd_log?)
-  // may be easier to work with log_alpha and then alpha[i] = exp(log_alpha[i])
+  
   for (i in 1:N) { 
       m[i] = alpha[1] * chl[i] / (chl[i] + beta[1]) ;
       daily_fec[i] ~ normal(m[i], 1/sqrt(tau));
@@ -72,9 +62,19 @@ model {
 }
 
 
+// OR ("non-centred parameterization"):
+  // for(i in 1:L+1)
+    // beta[i] ~ normal(beta_bar, sigma_beta);
+  // might need to have a fairly informative prior (not much data)
+  // could parameterize sigma_alpha as a *coefficient of variation*
+  // i.e. relative to the value of alpha (maybe sd_log?)
+  // may be easier to work with log_alpha and then alpha[i] = exp(log_alpha[i])
+
 // http://nross626.math.yorku.ca/ICPSR2017/#5_non-linear_models_for_normal_responses:_asymptotic_functions_of_time
 // http://www.ling.uni-potsdam.de/~vasishth/JAGSStanTutorial/SorensenVasishthMay12014.pdf
-
+ // http://mc-stan.org/rstanarm/reference/priors.html
+  // https://mc-stan.org/docs/2_21/functions-reference/cauchy-distribution.html
+  // https://mc-stan.org/users/documentation/case-studies/divergences_and_bias.html
 
 //generated quantities{  // not a necessity but is giving predictions and error -- posterior on mean and predictions
   //real Y_mean[4]; 
