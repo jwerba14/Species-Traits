@@ -5,30 +5,44 @@ data {
   int<lower=0> L; // literature length 
   vector[L] lit_chl; // literature algal conc
   real diff_lit [L]; // literature feeding rates
+  real sd_lit [L]; // literatrue SD
 } 
 parameters {
-  real slope[L+1]; 
-  real tau;
-  vector[2] beta; //fixed intercept and slope
-  real<lower=0> sigma_e; //error sd
-  real<lower=0> sigma_u; //subj sd
+  real slope_bar;
+  real<lower=0> sigma;
+  real<lower=0> sigma_slope; 
+  vector[L+1] eps_slope;
 
 } 
-
+transformed parameters {
+  real slope[L+1];
+  real beta[L+1];
+  for(i in 1:L+1){
+      slope[i] = slope_bar + sigma_slope*eps_slope[i];
+  }
+  
 }
+
 model {
   // priors
   //m ~ normal(0.0, 1000); 
   //b ~ normal(0.0, 1000);
-  real mu;
- //priors
- u ~ normal(0, sigma_u); //subj random effects
-
+  real fr[N]; // daily feeding rate
+  real fr_lit[L];
+ sigma ~ cauchy(0,3);
+ slope_bar ~ lognormal(0,1);
+ sigma_slope ~ cauchy(0,3);
+ for (i in 1:L+1){
+  eps_slope[i] ~ normal(0,1);}
 // likelihood
  for (i in 1:N){
- mu = beta[1] + u[subj[i]]] + beta[2] * chl[i];
-diff[i] ~ lognormal(mu, sigma_e);
-     
+ fr[i] = slope[1] * chl[i];
+ diff[i] ~ normal(fr, sigma);}
+ for(i in 1:L){
+   fr_lit[i] = slope[i+1]*lit_chl[i];
+   diff_lit[i] ~ normal(fr_lit, sd_lit);
+ }
+
 }
 
 

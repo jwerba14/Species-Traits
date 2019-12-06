@@ -60,7 +60,7 @@ points(dat1$chl1,dat1$chl_diff_cc)
 feed_lit <- read.csv("feeding.csv")
 feed_lit <- feed_lit %>% filter(!is.na(point_est_cell_indiv_day)) %>% 
   filter(!is.na(algal_conc_cellperml)) %>% 
-  dplyr::select(Title, replicates,point_est_cell_indiv_day,point_error,algal_conc_cellperml)
+  dplyr::select(Title, replicates,point_est_cell_indiv_day,point_error,algal_conc_cellperml,sd)
 
 ## convert chl to cells in my data
 dat1$cells <- chl_adj(dat1$chl1)
@@ -73,6 +73,12 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 library(shinystan)
 
+## for now to see if I can get it run put in NA sds as 1 in lit sd ## hmm ok not the issue
+for (i  in 1:nrow(feed_lit)){
+  if(is.na(feed_lit$sd[i]) ) {
+    feed_lit$sd[i] <- 1000
+  }
+}
 
 daph_grow_list <- list(
   "N" = nrow(dat1),
@@ -80,12 +86,13 @@ daph_grow_list <- list(
   "diff" = dat1$cell_diff,
   "L" = nrow(feed_lit),
   "chl_lit" = feed_lit$algal_conc_cellperml,
-  "diff_lit" = feed_lit$point_est_cell_indiv_day
+  "diff_lit" = feed_lit$point_est_cell_indiv_day,
+  "sd_lit" = feed_lit$sd
 )
 
 
 fit <- stan(file = "adult_feeding.stan", 
-            data = daph_grow_list, control = list(max_treedepth = 12))
+            data = daph_grow_list, verbose = T ) #, control = list(max_treedepth = 12))
 
 launch_shinystan(fit)
 
