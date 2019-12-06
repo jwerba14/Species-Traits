@@ -1,6 +1,7 @@
 ## adult daphnia feeding and excretion
 
 source("../transfer_functions.R")
+source("../chl_adj.R")
 library(tidyverse)
 
 rdat <- read.csv("Daphnia_large_Feeding_Nov11.csv")
@@ -28,7 +29,7 @@ dat <- dat %>%
   mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)
 
 dat1 <- dat %>% filter(control == 1) %>% filter(!is.na(chl_diff_cc)) %>% ## 1 entry is NA
-  select(Rep, Treatment,chl1,nh41, chl_diff_cc,nh4_diff_cc, Num_Daphnia)
+  dplyr::select(Rep, Treatment,chl1,nh41, chl_diff_cc,nh4_diff_cc, Num_Daphnia)
 
 ggplot(dat1, aes(chl1,chl_diff_cc)) + geom_point()
 
@@ -54,6 +55,18 @@ points(dat1$chl1,dat1$chl_diff_cc)
 ## linear line exactly the same as saturating, looks like good fit, range of chl1 close to final experiment -- get rid of intercept still good
 ## so keep linear ie type I
 
+### data from literature
+
+feed_lit <- read.csv("feeding.csv")
+feed_lit <- feed_lit %>% filter(!is.na(point_est_cell_indiv_day)) %>% 
+  filter(!is.na(algal_conc_cellperml)) %>% 
+  dplyr::select(Title, replicates,point_est_cell_indiv_day,point_error,algal_conc_cellperml)
+
+## convert chl to cells in my data
+dat1$cells <- chl_adj(dat1$chl1)
+dat1$cell_diff <-chl_adj(dat1$chl_diff_cc) 
+  
+
 #######  fit in stan
 library(rstan)
 rstan_options(auto_write = TRUE)
@@ -63,8 +76,11 @@ library(shinystan)
 
 daph_grow_list <- list(
   "N" = nrow(dat1),
-  "chl" = dat1$chl1,
-  "diff" = dat1$chl_diff_cc
+  "chl" = dat1$cells,
+  "diff" = dat1$cell_diff,
+  "L" = nrow(feed_lit),
+  "chl_lit" = feed_lit$algal_conc_cellperml,
+  "diff_lit" = feed_lit$point_est_cell_indiv_day
 )
 
 
