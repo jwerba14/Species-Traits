@@ -81,18 +81,28 @@ for (i  in 1:nrow(feed_lit)){
 }
 
 daph_grow_list <- list(
-  "N" = nrow(dat1),
-  "chl" = dat1$cells,
-  "diff" = dat1$cell_diff,
-  "L" = nrow(feed_lit),
-  "chl_lit" = feed_lit$algal_conc_cellperml,
-  "diff_lit" = feed_lit$point_est_cell_indiv_day,
-  "sd_lit" = feed_lit$sd
+  N = as.numeric(nrow(dat1)),
+  chl = dat1$cells,
+  diff = dat1$cell_diff,
+  L = as.numeric(nrow(feed_lit)),
+  chl_lit = as.numeric(feed_lit$algal_conc_cellperml),
+  diff_lit = as.numeric(feed_lit$point_est_cell_indiv_day),
+  sd_lit = feed_lit$sd
 )
 
+daph_grow_list <- 
+  list(
+    N = 10,
+    chl = c(10,15,20,25,30,35,40,45,50,55),
+    diff = c(2,5,12,15,15,26,29,35,42,50),
+    L = 7,
+    chl_lit = c(8,15,25,27,35,50,80),
+    diff_lit = c(2,2,15,17,19,35,62),
+    sd_lit = c(0.5,0.75,1,2.5,2.2,3,5)
+  )
 
 fit <- stan(file = "adult_feeding.stan", 
-            data = daph_grow_list, verbose = T ) #, control = list(max_treedepth = 12))
+            data = daph_grow_list, verbose = T, chains = 1 ) #, control = list(max_treedepth = 12))
 
 launch_shinystan(fit)
 
