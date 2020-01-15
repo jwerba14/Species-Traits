@@ -30,9 +30,9 @@ model {
   real fr[N]; // daily feeding rate
   real fr_lit[L];
   
- sigma ~ cauchy(0,3);
+ sigma ~ cauchy(0,2);
  slope_bar ~ lognormal(0,1);
- sigma_slope ~ cauchy(0,3);
+ sigma_slope ~ cauchy(0,2);
  
  for (i in 1:(L+1)){
   eps_slope[i] ~ normal(0,1);
