@@ -37,7 +37,7 @@ model {
   //beta ~ normal(0.0, 1000);
   // especially tau: works for this example but try (half-)t or (half-)Cauchy
   //  prior on sigma
-  tau ~ gamma(.0001, .0001); // BMB: OK, but could be improved
+  tau ~ cauchy(0,3); // BMB: OK, but could be improved
  
   // sigma ~ cauchy(0,3)    // BMB: ?
   alpha_bar ~ normal(0.0, 10);

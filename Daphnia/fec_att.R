@@ -55,14 +55,6 @@ ggplot(daph_fec_adj, aes((chl), daily_fec)) + geom_point() + geom_point(data = f
   
 
 
-#ndat <- daph_fec_adj %>% select("cell","sd","daily_fec", "rep")
-#ndat1 <- fec_lit %>% select("cell", "sd", "daily_fec", "rep")
-
-#p <- as.data.frame(rbind(as.matrix(ndat), as.matrix(ndat1)))
-#p1 <- p %>% filter(rep == 1)
-# names(p1) <- c("rep","cell","se","dailyfec")
-
-
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -92,6 +84,8 @@ saveRDS(fit, file = "fec_mix_stan_prior2.rds")
 rd <- readRDS(file = "RDS_Files/fec_mix_stan_prior2.rds") ## this rds is from previous iteration, b4 dropped 0s
 
 
+## i think the current model is weighting the lit data too heavily.
+
 t <- rstan::extract(fit,permuted = FALSE)
 fit_sum <- summary(fit)
 print(names(fit_sum))
@@ -109,39 +103,65 @@ newdat <- data.frame(cell = seq(26000000,1141832222, 10000000))
 pred_out <- apply(newdat,1,sat_fun,a=a_pred,b=b_pred)
 pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-with(daph_fec_r, plot(chl, daily_fec))
-lines(seq(0,100), pred_sum[1,])
-lines(seq(0,100), pred_sum[2,])
-lines(seq(0,100), pred_sum[3,])
-
-hist(t[,1,4], breaks = 200)
 lower <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[1,])
 upper <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[3,])
 med <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[2,])
 
 ggplot(daph_fec_adj, aes((cell), daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
-  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Algal Cell Count") + ylab("Daily Fecundity")+
-  theme_bw() + theme(axis.text.x = element_text(size = 30),
-                     axis.text.y = element_text(size = 32),
-                     axis.title.x = element_text(size = 30),
-                     axis.title.y = element_text(size = 32),
-                     strip.text = element_text(size = 0),
-                     panel.grid.major = element_blank(),
-                     panel.grid.minor = element_blank(),
-                     strip.background = element_blank()) 
+  geom_line(data = med, linetype = "solid", lwd =1.25) +
+  geom_point(data = fec_lit, color = "blue", size = 3, shape = 4)+ 
+  geom_errorbar(data=fec_lit, aes(ymin = daily_fec-sd_repro, ymax=daily_fec+sd_repro), color = "blue")+
+  xlab("Algal Cell Count") +
+  ylab("Daily Fecundity") + 
+  ggtitle("Stan: heirarchical model")
 
 
-## wtf is going on with predictions
 
 
-pracdat <- data.frame(chl=seq(0,25,0.5),
-                      pred = 0)
 
-pracdat$pred <- sat_fun(3.8,.198, pracdat$chl)
-with(pracdat, plot(chl,pred))
+##fit with wide priors (not incorporating lit data)
+daph_fec_list_1 <- list(
+  "N" = 64,
+  "chl" = daph_fec_adj$chl,
+  "daily_fec" = daph_fec_adj$daily_fec
+  )
 
-with(daph_fec_adj, plot(chl, daily_fec))
+##
+fit <- stan(file = "fec_stan.stan", 
+            data = daph_fec_list_1,
+            verbose = TRUE, control = list(adapt_delta = 0.99))
+
+launch_shinystan(fit)
+
+
+t <- rstan::extract(fit,permuted = FALSE)
+fit_sum <- summary(fit)
+print(names(fit_sum))
+print(fit_sum$summary)
+fit_sum_param <- fit_sum$summary[c(1:4),]
+
+
+
+a_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains alpha?
+b_pred <- rbind(t[,1,2], t[,2,2], t[,3,2], t[,4,2])
+
+newdat <- data.frame(chl = seq(1,100))
+
+pred_out <- apply(newdat,1,sat_fun,a=a_pred,b=b_pred)
+pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower <- data.frame(chl = seq(1,100), daily_fec = pred_sum[1,])
+upper <- data.frame(chl = seq(1,100), daily_fec = pred_sum[3,])
+med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
+
+ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
+  
+
+
 
 ## fit with nls
 fec_param <- nls(daily_fec ~ sat_fun(z,w,chl), data = daph_fec_adj,
@@ -186,4 +206,80 @@ ggplot(data = daph_fec_adj, aes(chl, daily_fec)) + geom_point() +
   geom_line(data = newdat_lm) + geom_ribbon(data = newdat_lm, aes(ymax = upper, ymin = lower), alpha = 0.3)+ 
   ggtitle("Linear Fit (LS)") + xlab("Chlorophyll a (ug/L)") + ylab("Daily Fecundity")
 
-## fit straight line (stan)
+## fit straight line wide priors (stan)
+daph_fec_list_1 <- list(
+  "N" = 64,
+  "chl" = daph_fec_adj$chl,
+  "daily_fec" = daph_fec_adj$daily_fec
+)
+
+fit1 <- stan(file = "fec_linear_wideprior.stan", 
+            data = daph_fec_list_1,
+            verbose = TRUE) 
+
+launch_shinystan(fit1)
+
+
+t <- rstan::extract(fit1,permuted = FALSE)
+fit_sum <- summary(fit1)
+print(names(fit_sum))
+print(fit_sum$summary)
+fit_sum_param <- fit_sum$summary[c(1:2),]
+
+slope_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains 
+
+
+newdat <- data.frame(chl = seq(1,100))
+
+pred_out <- apply(newdat,1,lin2,m=slope_pred)
+pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower <- data.frame(chl = seq(1,100), daily_fec = pred_sum[1,])
+upper <- data.frame(chl = seq(1,100), daily_fec = pred_sum[3,])
+med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
+
+ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
+
+
+## fit straight line with literature (stan)
+daph_fec_list <- list(
+  "N" = 64,
+  "chl" = daph_fec_adj$cell,
+  "daily_fec" = daph_fec_adj$daily_fec,
+  "L" = 5,
+  "daily_fec_lit" = fec_lit$daily_fec,
+  "sd_lit" = fec_lit$sd_repro,
+  "chl_lit" = fec_lit$cell
+)
+
+fit2 <- stan(file = "fec_linear_mixed.stan", 
+             data = daph_fec_list, control = list(adapt_delta = 0.9, max_treedepth = 12)) ## not working yet
+
+launch_shinystan(fit2)
+
+
+t <- rstan::extract(fit2,permuted = FALSE)
+fit_sum <- summary(fit2)
+print(names(fit_sum))
+print(fit_sum$summary)
+fit_sum_param <- fit_sum$summary[c(1:2),]
+
+slope_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains 
+
+
+newdat <- data.frame(chl = seq(1,100))
+
+pred_out <- apply(newdat,1,lin2,m=slope_pred)
+pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower <- data.frame(chl = seq(1,100), daily_fec = pred_sum[1,])
+upper <- data.frame(chl = seq(1,100), daily_fec = pred_sum[3,])
+med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
+
+ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
