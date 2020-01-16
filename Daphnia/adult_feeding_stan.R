@@ -2,7 +2,9 @@
 
 source("../transfer_functions.R")
 source("../chl_adj.R")
+source("../Graphing_Set_Up.R")
 library(tidyverse)
+library(nlmrt)
 
 rdat <- read.csv("Daphnia_large_Feeding_Nov11.csv")
 
@@ -34,27 +36,87 @@ dat1 <- dat %>% filter(control == 1) %>% filter(!is.na(chl_diff_cc)) %>% ## 1 en
 ggplot(dat1, aes(chl1,chl_diff_cc)) + geom_point()
 
 
-mod <- nls(data = dat1, chl_diff_cc ~ (chl1*h)/(1+chl1*h*r), start = list(h=1,r=1))
 
-library(nlmrt)
-mod_sig <- nlxb(data=dat1, chl_diff_cc ~ (a*chl1^b)/(c+chl1^b), start = list(a=1,b=0.1,c=1))
+##mod_sig <- nlxb(data=dat1, chl_diff_cc ~ (a*chl1^b)/(c+chl1^b), start = list(a=1,b=0.1,c=1))
 mod_sat <- nlxb(data = dat1, chl_diff_cc ~ (chl1*a)/(chl1+b), start = list(a=1,b=1))
 mod_lm <- lm(data = dat1, chl_diff_cc ~ chl1)
 mod_lm2 <- lm(data = dat1, chl_diff_cc ~ chl1-1)
-newpred <- sig_fun(k= seq(1,100,1), a = 0.154319 , b = 0.861941, c = 83.8371)
-plot(seq(1,100,1), newpred)
-points(dat1$chl1,dat1$chl_diff_cc)
+#newpred <- sig_fun(k= seq(1,100,1), a = 0.154319 , b = 0.861941, c = 83.8371)
+#plot(seq(1,100,1), newpred)
+#points(dat1$chl1,dat1$chl_diff_cc)
 
 newdata = data.frame(chl1 = seq(1,100,1))
 
-newpred <- sat_fun(k= seq(1,100,1), a=960892 ,b =1339121459)
-newpred1 <- predict(mod_lm, newdata = newdata )
-plot(seq(1,100,1), newpred)
-points(seq(1,100,1),newpred1)
-points(dat1$chl1,dat1$chl_diff_cc)
+
+sat_pred <- sat_fun(k= seq(1,100,1), a=mod_sat$coefficients[1], b=mod_sat$coefficients[2])
+#sat_pred_lwr <- sat_fun(k= seq(1,100,1), a=mod_sat$coefficients[1], b=mod_sat$coefficients[2]) ## how to get this hmm..
+#sat_pred_upr <- sat_fun(k= seq(1,100,1), a=mod_sat$coefficients[1], b=mod_sat$coefficients[2])
+newdat1 = data.frame(chl1 = newdata$chl1,
+                     chl_diff_cc = sat_pred)
+
+ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
+  geom_line(data = newdat1) + xlab("Chlorphyll a (ug/L") + 
+  ylab("Change in Chlorophyll a/Daphnia/Day") +
+  ggtitle("NLS:Saturating Curve")
+
+## straight line
+newpred1 <- data.frame(predict(mod_lm, newdata = newdata, interval="confidence" ))
+newpred1$chl_diff_cc <- newpred1$fit
+newpred1$chl1 <- seq(1,100)
+ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
+  geom_line(data = newpred1) +
+  geom_ribbon(data = newpred1, aes(ymin=lwr, ymax=upr),alpha = 0.3)+
+  xlab("Chlorphyll a (ug/L") + 
+  ylab("Change in Chlorophyll a/Daphnia/Day") +
+  ggtitle("LS")
+
+
 ## linear line exactly the same as saturating, looks like good fit, range of chl1 close to final experiment -- get rid of intercept still good
 ## so keep linear ie type I
 
+## fit linear in Stan with wide priors
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+library(shinystan)
+
+daph_feed_list <- 
+  list(
+    N = nrow(dat1),
+    chl = dat1$chl1,
+    daily_fec = dat1$chl_diff_cc ## using lm from fec- exactly the same just label is weird
+    
+  )
+
+fit <- stan(file = "fec_linear_wideprior.stan", 
+            data = daph_feed_list, verbose = F, chains = 4) # control = list(adapt_delta = 0.95, max_treedepth = 12) ) 
+launch_shinystan(fit)
+
+
+t <- rstan::extract(fit,permuted = FALSE)
+fit_sum <- summary(fit)
+print(names(fit_sum))
+print(fit_sum$summary)
+fit_sum_param <- fit_sum$summary[c(1:2),]
+
+slope_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains 
+
+
+newdat <- data.frame(chl = seq(1,100))
+
+pred_out <- apply(newdat,1,lin2,m=slope_pred)
+pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum[1,])
+upper <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum[3,])
+med <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum[2,])
+
+ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Wide Priors")
+
+## fit in stan with literature
 ### data from literature
 
 feed_lit <- read.csv("feeding.csv")
@@ -68,10 +130,7 @@ dat1$cell_diff <-chl_adj(dat1$chl_diff_cc)
   
 
 #######  fit in stan
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-library(shinystan)
+
 
 ## for now to see if I can get it run put in NA sds as 1 in lit sd ## hmm ok not the issue
 for (i  in 1:nrow(feed_lit)){
@@ -107,8 +166,6 @@ launch_shinystan(fit)
 
 fit_sum <- summary(fit)
 (fit_sum_param <- fit_sum$summary[c(1:4),])
-saveRDS(fit, file = "adult_feeding.RDS")
-
 t <- rstan::extract(fit,permuted = FALSE)
 m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
 
@@ -118,129 +175,13 @@ newdat <- data.frame(chl1 = seq(0,100))
 pred_out <- apply(newdat,1,lin2,m= m_pred)
 pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-with(dat1, plot(chl1, chl_diff_cc))
-lines(seq(0,100), pred_sum[1,])
-lines(seq(0,100), pred_sum[2,])
-lines(seq(0,100), pred_sum[3,])
+
+feed_lit$cells <- feed_lit$algal_conc_cellperml
+feed_lit$cell_diff <- feed_lit$point_est_cell_indiv_day
+
+ggplot(data = dat1, aes(cells,cell_diff)) + geom_point() +
+  geom_point(data = feed_lit, color = "blue", shape=4) + scale_x_log10()
 
 
-### ammonium excretion 
-ggplot(dat1, aes(nh41,nh4_diff_cc)) + geom_point()+geom_smooth(method = "lm")
-ggplot(dat1, aes(chl_diff_cc,nh4_diff_cc)) + geom_point()+ geom_smooth(method = "lm")
-
-lm(data = dat1, nh4_diff_cc ~1/chl_diff_cc)
-
-
-
-mod_nh4 <- lm(data = dat1, nh4_diff_cc ~ nh41)
-mod_int_only <- lm(data = dat1, nh4_diff_cc ~1)
-mod_sat <- nlxb(data = dat1, nh4_diff_cc ~ (nh41*a)/(nh41+b), start = list(a=1,b=1))
-mod_lm <- lm(data = dat1, nh4_diff_cc ~1/chl_diff_cc)
-
-newpred <- sat_fun(k= seq(5,22,.1), a=1667 ,b =9905303)
-
-newdata = data.frame(nh41 = seq(5,22,0.1))
-newpred2 <- predict(mod_nh4, newdata = newdata)
-newpred3 <- predict(mod_int_only, newdata = newdata)
-plot(seq(5,22,0.1), newpred2)
-points(dat1$nh41,dat1$nh4_diff_cc)
-points(seq(5,22,0.1), newpred3)
-points(seq(5,22,0.1), newpred)
-
-newdata1 = data.frame(chl_diff_cc = seq(0,15,0.1))
-newpred5 <- predict(mod_lm, newdata = newdata1)
-plot(seq(0,10,0.1), newpred5)
-plot(dat1$chl_diff_cc,dat1$nh4_diff_cc)
-points(seq(0,15,0.1), newpred5)
-
-## ok so actually I think that excretion has to be a function of the ingestion parameter a_feed_m
-
-a_feed_m = fit_sum_param[1,6]
-
-newmod <- nls(data = dat1, nh4_diff_cc ~ a_feed_m*chl1*m, start = list(m=1))
-newdata2 = data.frame(chl1 = seq(0,110,1))
-newpred6 <- predict(newmod, newdata = newdata2)
-plot(seq(0,110,1), newpred6)
-plot(dat1$chl1,dat1$nh4_diff_cc)
-points(seq(0,110,1), newpred6)
-
-## i think has to be 1/a_feed_m to get correct units....
-a_feed_m1 <- 1/a_feed_m
-newmod <- nls(data = dat1, nh4_diff_cc ~ a_feed_m1*chl1*m, start = list(m=1))
-newdata2 = data.frame(chl1 = seq(0,110,1))
-newpred6 <- predict(newmod, newdata = newdata2)
-#plot(seq(0,110,1), newpred6)
-plot(dat1$chl1,dat1$nh4_diff_cc)
-points(seq(0,110,1), newpred6)
-
-
-### fit in stan
-
-daph_excretion_list <- list(
-  "N" = nrow(dat1),
-  "nh4" = dat1$nh41,
-  "diff" = dat1$nh4_diff_cc
-)
-
-
-fit <- stan(file = "adult_excretion.stan", 
-            data = daph_excretion_list)
-
-launch_shinystan(fit)
-
-fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-
-t <- rstan::extract(fit,permuted = FALSE)
-m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
-b_pred <- rbind(t[,1,2],t[,2,2],t[,3,2],t[,4,2]) 
-
-newdat <- data.frame(nh41 = seq(0,20))
-
-pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
-
-with(dat1, plot(nh41, nh4_diff_cc))
-lines(seq(0,20), pred_sum[1,])
-lines(seq(0,20), pred_sum[2,])
-lines(seq(0,20), pred_sum[3,])
-
-saveRDS(fit, file = "adult_exc.RDS")
-fit2 <- readRDS("adult_exc.RDS")
-
-
-
-daph_excretion_list <- list(
-  "N" = nrow(dat1),
-  "chl" = dat1$chl_diff_cc,
-  "diff" = dat1$nh4_diff_cc
-)
-
-
-fit <- stan(file = "adult_excretion_update.stan", 
-            data = daph_excretion_list)
-
-launch_shinystan(fit)
-
-fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-
-t <- rstan::extract(fit,permuted = FALSE)
-m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
-b_pred <- rbind(t[,1,2],t[,2,2],t[,3,2],t[,4,2]) 
-
-newdat <- data.frame(chl1 = seq(0,100))
-
-pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
-
-with(dat1, plot(chl_diff_cc, nh4_diff_cc))
-lines(seq(0,20), pred_sum[1,])
-lines(seq(0,20), pred_sum[2,])
-lines(seq(0,20), pred_sum[3,])
-
-saveRDS(fit, file = "adult_exc_new.RDS")
-fit2 <- readRDS("adult_exc_new.RDS")
-
-
+##ok clearly my cell conversion is wrong, or i just used so much food-- which doesn't really seem true
 
