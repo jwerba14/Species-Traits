@@ -25,6 +25,8 @@ daph_fec <- daph %>% group_by(rep, treatment) %>%
 daph_fec_adj <- daph_fec %>% 
   mutate(cell = chl_adj(chl = chl))
 
+daph_fec_adj %>% dplyr::select(cell, chl)
+
 daph_fec_adj$sd <- 0
 ## remove 0s because those are dead individuals
 
@@ -79,7 +81,7 @@ fit <- stan(file = "fec_prior.stan",
 library(shinystan)
 launch_shinystan(fit)
 
-
+## sigma beta high then all studies dif, if measure on log10 scale then can have std of 1- dont allow to take impossible values
 saveRDS(fit, file = "fec_mix_stan_prior2.rds")
 rd <- readRDS(file = "RDS_Files/fec_mix_stan_prior2.rds") ## this rds is from previous iteration, b4 dropped 0s
 

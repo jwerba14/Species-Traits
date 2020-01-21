@@ -47,15 +47,21 @@ mod_lm2 <- lm(data = dat1, chl_diff_cc ~ chl1-1)
 
 newdata = data.frame(chl1 = seq(1,100,1))
 
-
-sat_pred <- sat_fun(k= seq(1,100,1), a=mod_sat$coefficients[1], b=mod_sat$coefficients[2])
-#sat_pred_lwr <- sat_fun(k= seq(1,100,1), a=mod_sat$coefficients[1], b=mod_sat$coefficients[2]) ## how to get this hmm..
-#sat_pred_upr <- sat_fun(k= seq(1,100,1), a=mod_sat$coefficients[1], b=mod_sat$coefficients[2])
+mod_obj <- summary(mod_sat)
+sat_pred <- sat_fun(k= seq(1,100,1), a=mod_obj$coeff[1], b=mod_obj$coeff[2])
+sat_pred_lwr <- sat_fun(k= seq(1,100,1), a=mod_obj$coeff[1]-mod_obj$SEs[1], b=mod_obj$coeff[2]-mod_obj$SEs[2]) 
+sat_pred_upr <- sat_fun(k= seq(1,100,1), a=mod_obj$coeff[1]+mod_obj$SEs[1], b=mod_obj$coeff[2]+mod_obj$SEs[2])
 newdat1 = data.frame(chl1 = newdata$chl1,
-                     chl_diff_cc = sat_pred)
+                     chl_diff_cc = sat_pred,
+                     upr = sat_pred_upr,
+                     lwr = sat_pred_lwr)
+
+
 
 ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
-  geom_line(data = newdat1) + xlab("Chlorphyll a (ug/L") + 
+  geom_line(data = newdat1) + 
+  geom_ribbon(data = newdat1, aes(ymin = lwr, ymax= upr)) +
+  xlab("Chlorphyll a (ug/L)") + 
   ylab("Change in Chlorophyll a/Daphnia/Day") +
   ggtitle("NLS:Saturating Curve")
 
@@ -88,8 +94,8 @@ daph_feed_list <-
     
   )
 
-fit <- stan(file = "fec_linear_wideprior.stan", 
-            data = daph_feed_list, verbose = F, chains = 4) # control = list(adapt_delta = 0.95, max_treedepth = 12) ) 
+fit1 <- stan(file = "fec_linear_wideprior.stan", 
+            data = daph_feed_list, verbose = F, chains = 4) 
 launch_shinystan(fit)
 
 
@@ -138,6 +144,9 @@ for (i  in 1:nrow(feed_lit)){
     feed_lit$sd[i] <- 10
   }
 }
+
+## simplest thing to do is to assume sd is same as in my dataset, a little conservative- but
+## could model sd as mixed model among studies, could be lognormal, need if statement in stan (if sd is NA than likelihood)
 
 daph_grow_list <- list(
   N = as.numeric(nrow(dat1)),
