@@ -1,11 +1,19 @@
 ##daily fecundity
 
 library(tidyverse)
+library(nlstools)
+library(fitdistrplus)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+library(shinystan)
+
 source("../transfer_functions.R")
 source("../chl_adj.R")
 source("../Graphing_Set_Up.R")
+
 daph <- read.csv("daphnia_lifetime.csv")
-daph <- daph %>%
+daph <- daph %>% 
   filter(adult_only=="N")
 
 ## to get fecundity parameter fit saturating curve (params z and w in full ode)
@@ -43,13 +51,13 @@ fec_lit$daily_fec <- fec_lit$daphnia_reproduction
 fec_lit$rep <- as.factor(rep("A", nrow(fec_lit)))
 
 
-fec_lit <- fec_lit %>% filter(!is.na(cell))
-fec_lit<- fec_lit %>% 
+fec_lit1 <- fec_lit %>% filter(!is.na(cell))
+fec_lit1<- fec_lit1 %>% 
   mutate(chl = cell_adj(cell = cell)) 
 
 ggplot(daph_fec_adj, aes((cell), daily_fec)) + geom_point() + geom_point(data = fec_lit, color="blue") +
-  geom_errorbar(data = fec_lit, aes(ymin=daily_fec-sd_repro, ymax=daily_fec+sd_repro)) +
-  geom_errorbarh(data = fec_lit, aes(xmin=(cell-sd), xmax=(cell+sd))) +
+  geom_errorbar(data = fec_lit1, aes(ymin=daily_fec-sd_repro, ymax=daily_fec+sd_repro)) +
+  geom_errorbarh(data = fec_lit1, aes(xmin=(cell-sd), xmax=(cell+sd))) +
   scale_x_log10()
 
 ggplot(daph_fec_adj, aes((chl), daily_fec)) + geom_point() + geom_point(data = fec_lit, color="blue") +
@@ -57,44 +65,41 @@ ggplot(daph_fec_adj, aes((chl), daily_fec)) + geom_point() + geom_point(data = f
   
 
 
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
 
 
+## this fit is when we include literature, it is a mixed model (estimating parameters for each study)
+## gets a weird fit because conversion of chla to cells is not precise and dependent on many environmental and growth conditions
 
 daph_fec_list <- list(
   "N" = 64,
   "chl" = daph_fec_adj$cell,
   "daily_fec" = daph_fec_adj$daily_fec,
   "L" = 5,
-  "daily_fec_lit" = fec_lit$daily_fec,
-  "sd_lit" = fec_lit$sd_repro,
-  "chl_lit" = fec_lit$cell
+  "daily_fec_lit" = fec_lit1$daily_fec,
+  "sd_lit" = fec_lit1$sd_repro,
+  "chl_lit" = fec_lit1$cell
 )
 
 ##
-fit <- stan(file = "fec_prior.stan", 
+fit1 <- stan(file = "fec_prior.stan", 
             data = daph_fec_list,
             verbose = TRUE,iter = 5000, control = list(adapt_delta = 0.99, max_treedepth = 17)) 
  ## hmm no divergent transitions, runs pretty fast but mixing for sigma_beta not great, maybe we have no idea what beta is..
-library(shinystan)
-launch_shinystan(fit)
+
+launch_shinystan(fit1)
 
 ## sigma beta high then all studies dif, if measure on log10 scale then can have std of 1- dont allow to take impossible values
-saveRDS(fit, file = "fec_mix_stan_prior2.rds")
-rd <- readRDS(file = "RDS_Files/fec_mix_stan_prior2.rds") ## this rds is from previous iteration, b4 dropped 0s
+#saveRDS(fit, file = "fec_mix_stan_prior2.rds")
+#rd <- readRDS(file = "RDS_Files/fec_mix_stan_prior2.rds") ## this rds is from previous iteration, b4 dropped 0s
 
 
-## i think the current model is weighting the lit data too heavily.
-
-t <- rstan::extract(fit,permuted = FALSE)
-fit_sum <- summary(fit)
+t <- rstan::extract(fit1,permuted = FALSE)
+fit_sum <- summary(fit1)
 print(names(fit_sum))
 print(fit_sum$summary)
-fit_sum_param <- fit_sum$summary[c(1:4),]
+fit_sum_param1 <- fit_sum$summary[c(1:5),]
 
-#tidy_pred <- tidybayes::add_fitted_draws(fit, newdata = data.frame(chl = seq(1,75)))
+
 
 
 a_pred <- rbind(t[,1,2],t[,2,2], t[,3,2], t[,4,2]) ## all rows, all chains alpha?
@@ -109,20 +114,20 @@ lower <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_
 upper <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[3,])
 med <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[2,])
 
-ggplot(daph_fec_adj, aes((cell), daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+(stan_lit_sat_g <- ggplot(daph_fec_adj, aes((cell), daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med, linetype = "solid", lwd =1.25) +
   geom_point(data = fec_lit, color = "blue", size = 3, shape = 4)+ 
   geom_errorbar(data=fec_lit, aes(ymin = daily_fec-sd_repro, ymax=daily_fec+sd_repro), color = "blue")+
   xlab("Algal Cell Count") +
   ylab("Daily Fecundity") + 
-  ggtitle("Stan: heirarchical model")
+  ggtitle("Stan: heirarchical model"))
 
 
 
 
 
-##fit with wide priors (not incorporating lit data)
+##fit with wide priors (not incorporating literature data)
 daph_fec_list_1 <- list(
   "N" = 64,
   "chl" = daph_fec_adj$chl,
@@ -140,7 +145,6 @@ launch_shinystan(fit)
 t <- rstan::extract(fit,permuted = FALSE)
 fit_sum <- summary(fit)
 print(names(fit_sum))
-print(fit_sum$summary)
 fit_sum_param <- fit_sum$summary[c(1:4),]
 
 
@@ -157,11 +161,32 @@ lower <- data.frame(chl = seq(1,100), daily_fec = pred_sum[1,])
 upper <- data.frame(chl = seq(1,100), daily_fec = pred_sum[3,])
 med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
 
-ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+stan_wide_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
   
+
+## fit with literature only as constraining upper limit of curve 
+
+fec_lit2 <- fec_lit %>% mutate(chl = 20) %>% filter(daphnia_reproduction > 4)
+
+
+daph_fec_list2 <- list(
+  "N" = 64,
+  "chl" = daph_fec_adj$chl,
+  "daily_fec" = daph_fec_adj$daily_fec,
+  "L" = 5,
+  "daily_fec_lit" = fec_lit2$daily_fec,
+  "sd_lit" = fec_lit2$sd_repro,
+  "chl_lit" = fec_lit2$chl
+)
+
+
+fit3 <- stan(file = "fec_prior_a.stan", 
+            data = daph_fec_list2) 
+           # verbose = TRUE,iter = 5000, control = list(adapt_delta = 0.99, max_treedepth = 17)) 
+
 
 
 
@@ -178,16 +203,17 @@ newdat_nls <- data.frame(chl = seq(0,100),
                          lower = 0)
 
 chl <- data.frame(chl = seq(0,100))
+confidence <- confint2(fec_param)
 newdat_nls$daily_fec<- apply(chl,1,sat_fun,a=coef_nls[1,1],b=coef_nls[2,1])
-newdat_nls$upper<- apply(chl,1,sat_fun,a=coef_nls[1,1]+coef_nls[1,2],b=coef_nls[2,1]+coef_nls[2,2])
-newdat_nls$lower<- apply(chl,1,sat_fun,a=coef_nls[1,1]-coef_nls[1,2],b=coef_nls[2,1]-coef_nls[2,2])
+newdat_nls$upper<- apply(chl,1,sat_fun,a=confidence[1,2],b=confidence[2,2])
+newdat_nls$lower<- apply(chl,1,sat_fun,a=confidence[1,1],b=confidence[2,1])
 
 
 
-ggplot(data = daph_fec_adj, aes(chl, daily_fec)) + geom_point() + 
-  geom_ribbon(data = newdat_nls, aes(ymax = upper, ymin=lower), alpha = 0.3) + 
+(nls_fec_g <- ggplot(data = daph_fec_adj, aes(chl, daily_fec)) + geom_point() + 
+  geom_ribbon(data = newdat_nls, aes(ymax = upper, ymin=lower), linetype = "dotdash", fill = ) + 
   geom_line(data = newdat_nls) +
-  ggtitle("Saturating Fit (NLS)") + xlab("Chlorophyll a (ug/L)") + ylab("Daily Fecundity")
+  ggtitle("Saturating Fit (NLS)") + xlab("Chlorophyll a (ug/L)") + ylab("Daily Fecundity"))
  
 
 ## fit straight line (lm)
@@ -244,6 +270,32 @@ ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
+
+
+## fit with literature as overarching distribution on daily-fecundity
+
+lit <- fec_lit %>% dplyr::select(daphnia_reproduction, sd_repro, Replicates)
+
+d <- fitdist(lit$daphnia_reproduction, "lnorm")
+d1 <-fitdist(lit$daphnia_reproduction, "gamma")
+par(mfrow = c(2, 2))
+
+plot.legend <- c("lognormal", "gamma")
+ 
+denscomp(list(d, d1), legendtext = plot.legend)
+qqcomp(list(d, d1), legendtext = plot.legend)
+cdfcomp(list(d, d1), legendtext = plot.legend)
+ppcomp(list(d, d1), legendtext = plot.legend)
+
+
+
+
+
+
+
+
+
+
 
 
 ## fit straight line with literature (stan)

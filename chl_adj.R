@@ -11,9 +11,8 @@ cell_adj <- function(cell){
 }
 
 ## make own equations based on Dust and Shindala 1970
-chl_dat <- read.csv("chla_conversion.csv")
-names(chl_dat)[1] <- "chla"
+#chl_dat <- read.csv("chla_conversion.csv")
+#names(chl_dat)[1] <- "chla"
 
-#eq <- lm(cells~chla+0, data = chl_dat)
 
-ggplot(chl_dat, aes(chla, cells)) + geom_point(aes(color=type))
+#ggplot(chl_dat, aes(chla, cells)) + geom_point(aes(color=type))

@@ -19,8 +19,8 @@ model {
   // priors
   alpha ~ normal(0.0, 1000); 
   beta ~ normal(0.0, 1000);
-  tau ~ cauchy(0, 3);
-  m ~ lognormal(1.3, 0.58);
+  tau ~ cauchy(0,2);
+  m ~ normal(0,1000);
   daily_fec ~ normal(m, sigma);   
 }
 

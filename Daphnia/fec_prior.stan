@@ -40,10 +40,10 @@ model {
   tau ~ cauchy(0,3); // BMB: OK, but could be improved
  
   // sigma ~ cauchy(0,3)    // BMB: ?
-  alpha_bar ~ normal(0.0, 10);
-  sigma_alpha ~ cauchy(0,3);
-  beta_bar ~ normal(0,10); //should be correlated with alpha? 
-  sigma_beta ~ cauchy(0,3);
+  alpha_bar ~ normal(0.0, 1000);
+  sigma_alpha ~ lognormal(0,1);
+  beta_bar ~ normal(0,1000); //should be correlated with alpha? 
+  sigma_beta ~ lognormal(0,1);
   
   for (i in 1:L+1){
   eps_alpha[i] ~ normal(0,1);
