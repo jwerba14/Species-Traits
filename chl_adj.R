@@ -6,7 +6,7 @@ chl_adj <- function(chl){
 }
 
 cell_adj <- function(cell){
-  ((9*cell)/10^8)-0.0301
+  ((9*cell)/10^8)+0.0301
   
 }
 
