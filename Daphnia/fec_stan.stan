@@ -17,7 +17,7 @@ real sigma;
 }
 model {
   // priors
-  alpha ~ normal(0.0, 1000); 
+  alpha ~ normal(0.0, 1000); // maybe should be lognormal to constrain to biologically meaningful- then need to exp in model
   beta ~ normal(0.0, 1000);
   tau ~ cauchy(0,2);
   m ~ normal(0,1000);

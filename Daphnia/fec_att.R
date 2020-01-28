@@ -183,7 +183,7 @@ daph_fec_list2 <- list(
 )
 
 
-fit3 <- stan(file = "fec_prior_a.stan", 
+fit3 <- stan(file = "fec_max_constrained.stan", 
             data = daph_fec_list2) 
            # verbose = TRUE,iter = 5000, control = list(adapt_delta = 0.99, max_treedepth = 17)) 
 
@@ -225,7 +225,7 @@ lit <- fec_lit %>%
   
 ##look at other function options to fit with non-integer weights
 d <- fitdist(lit$daphnia_reproduction, "lnorm", weights = lit$Replicates)
-d1 <-fitdist(lit$daphnia_reproduction, "gamma", weights = lit$Replicates)
+#d1 <-fitdist(lit$daphnia_reproduction, "gamma", weights = lit$Replicates)
 par(mfrow = c(2, 2))
 
 plot.legend <- c("lognormal", "gamma")
@@ -238,8 +238,7 @@ ppcomp(list(d, d1), legendtext = plot.legend)
 
 
 fit4 <- stan(file = "fec_lit_hyperparam.stan", 
-            data = daph_fec_list_1, iter = 5000) #,
-            #verbose = TRUE, control = list(adapt_delta = 0.99))
+            data = daph_fec_list_1, iter = 5000) 
 
 launch_shinystan(fit4)
 
@@ -270,7 +269,7 @@ med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
 
 
 
-### get parameter just from literature (NLS)
+### get parameter just from literature (NLS) ## this gives impossible values so use Stan
 
 d_fec <- nls(daily_fec ~ sat_fun(z,w,chl), data = fec_lit1, start = list(z=1,w=1))
 coef_nls_lit <- data.frame(coef(d_fec))
@@ -291,6 +290,29 @@ newdat_nls_lit$lower<- apply(chl,1,sat_fun,a=confidence[1,1],b=confidence[2,1])
     geom_ribbon(data = newdat_nls_lit, aes(ymax = upper, ymin=lower), linetype = "dotdash" ) + 
     geom_line(data = newdat_nls_lit) +
     ggtitle("Saturating Fit Literature (NLS)") + xlab("Chlorophyll a (ug/L)") + ylab("Daily Fecundity"))
+
+
+### parameter from literature only Stan
+
+daph_fec_list_lit <- list(
+  "N" = 5,
+  "chl" = fec_lit1$chl,
+  "daily_fec" = fec_lit1$daily_fec
+)
+
+
+fit_lit <- stan(file = "fec_stan.stan", 
+            data = daph_fec_list_lit,
+            verbose = TRUE, control = list(adapt_delta = 0.99))
+
+
+
+## final graphic
+grid.arrange()
+
+
+
+
 
 
 
