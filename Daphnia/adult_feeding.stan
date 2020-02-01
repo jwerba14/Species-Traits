@@ -24,7 +24,7 @@ transformed parameters {
   for(i in 1:(L+1)){
       slope[i] = slope_bar + sigma_slope*eps_slope[i];
   }
-  for(i in 1:(L));
+ 
   
 }
 

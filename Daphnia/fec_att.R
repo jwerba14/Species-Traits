@@ -330,9 +330,7 @@ fit_lit <- stan(file = "fec_stan.stan",
 
 launch_shinystan(fit_lit)
 # still divergent transitions, but like there are only 5 points so how good can it possibly get??
-##Info (non-fatal):
-##Left-hand side of sampling statement (~) may contain a non-linear transform of a parameter or local variable.
-#If it does, you need to include a target += statement with the log absolute determinant of the Jacobian of the transform.
+ 
 
 ## final graphic
 grid.arrange(stan_lit_sat_g,stan_wide_g,stan_hyper_g,nls_fec_g,nls_lit_g, #stan_lit,g)

@@ -12,7 +12,7 @@ transformed parameters {
 real sigma; 
   real m[N];
   for (i in 1:N) 
-    m[i] = (log_alpha) * chl[i] / (chl[i] + (log_beta)) ;
+    m[i] = (log_alpha) * log(chl[i]) / (log(chl[i]) + (log_beta)) ;
   sigma = 1 / sqrt(tau); 
 }
 model {
@@ -21,7 +21,7 @@ model {
   log_beta ~ lognormal(0,1);
   tau ~ cauchy(0,2);
   m ~ lognormal(0,1);
-  daily_fec ~ normal(m, sigma);   
+  daily_fec ~ normal(exp(m), sigma);   
 }
 
 
