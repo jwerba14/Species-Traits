@@ -55,13 +55,13 @@ fec_lit1 <- fec_lit %>% filter(!is.na(cell))
 fec_lit1<- fec_lit1 %>% 
   mutate(chl = cell_adj(cell = cell)) 
 
-ggplot(daph_fec_adj, aes((cell), daily_fec)) + geom_point() + geom_point(data = fec_lit, color="blue") +
-  geom_errorbar(data = fec_lit1, aes(ymin=daily_fec-sd_repro, ymax=daily_fec+sd_repro)) +
-  geom_errorbarh(data = fec_lit1, aes(xmin=(cell-sd), xmax=(cell+sd))) +
-  scale_x_log10()
+#ggplot(daph_fec_adj, aes((cell), daily_fec)) + geom_point() + geom_point(data = fec_lit, color="blue") +
+ # geom_errorbar(data = fec_lit1, aes(ymin=daily_fec-sd_repro, ymax=daily_fec+sd_repro)) +
+  #geom_errorbarh(data = fec_lit1, aes(xmin=(cell-sd), xmax=(cell+sd))) +
+  #scale_x_log10()
 
-ggplot(daph_fec_adj, aes((chl), daily_fec)) + geom_point() + geom_point(data = fec_lit, color="blue") +
-  geom_errorbar(data = fec_lit, aes(ymin=daily_fec-sd_repro, ymax=daily_fec+sd_repro)) 
+#ggplot(daph_fec_adj, aes((chl), daily_fec)) + geom_point() + geom_point(data = fec_lit, color="blue") +
+  #geom_errorbar(data = fec_lit, aes(ymin=daily_fec-sd_repro, ymax=daily_fec+sd_repro)) 
   
 
 
@@ -169,7 +169,7 @@ stan_wide_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.
 
 ## fit with literature only as constraining upper limit of curve 
 
-fec_lit2 <- fec_lit %>% mutate(chl = 20) %>% filter(daphnia_reproduction > 4)
+fec_lit2 <- fec_lit %>% mutate(chl = 25) %>% filter(daphnia_reproduction > 4)
 
 
 daph_fec_list2 <- list(
@@ -184,9 +184,34 @@ daph_fec_list2 <- list(
 
 
 fit3 <- stan(file = "fec_max_constrained.stan", 
-            data = daph_fec_list2) 
-           # verbose = TRUE,iter = 5000, control = list(adapt_delta = 0.99, max_treedepth = 17)) 
+            data = daph_fec_list2,chains = 1,
+            control = list(adapt_delta = 0.99, stepsize = 0.25, max_treedepth = 13) )
+          
+## still many divergent transitions
 
+t <- rstan::extract(fit,permuted = FALSE)
+fit_sum <- summary(fit)
+print(names(fit_sum))
+fit_sum_param <- fit_sum$summary[c(1:4),]
+
+
+
+a_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains alpha?
+b_pred <- rbind(t[,1,2], t[,2,2], t[,3,2], t[,4,2])
+
+newdat <- data.frame(chl = seq(1,100))
+
+pred_out <- apply(newdat,1,sat_fun,a=a_pred,b=b_pred)
+pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower <- data.frame(chl = seq(1,100), daily_fec = pred_sum[1,])
+upper <- data.frame(chl = seq(1,100), daily_fec = pred_sum[3,])
+med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
+
+stan_hyper_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Daily Fecundity") + ggtitle("Stan: HyperParameter")
 
 
 
@@ -225,15 +250,13 @@ lit <- fec_lit %>%
   
 ##look at other function options to fit with non-integer weights
 d <- fitdist(lit$daphnia_reproduction, "lnorm", weights = lit$Replicates)
-#d1 <-fitdist(lit$daphnia_reproduction, "gamma", weights = lit$Replicates)
-par(mfrow = c(2, 2))
 
-plot.legend <- c("lognormal", "gamma")
- 
-denscomp(list(d, d1), legendtext = plot.legend)
-qqcomp(list(d, d1), legendtext = plot.legend)
-cdfcomp(list(d, d1), legendtext = plot.legend)
-ppcomp(list(d, d1), legendtext = plot.legend)
+
+set.seed(100)
+h <- hist(lit$daphnia_reproduction) 
+xfit <- seq(0,100)
+yfit <- rnorm(xfit,d$estimate[1], d$sd[1] )
+lines(xfit,yfit, col="blue")
 
 
 
@@ -303,12 +326,16 @@ daph_fec_list_lit <- list(
 
 fit_lit <- stan(file = "fec_stan.stan", 
             data = daph_fec_list_lit,
-            verbose = TRUE, control = list(adapt_delta = 0.99))
+            verbose = TRUE, control = list(adapt_delta = 0.99, stepsize = 1, max_treedepth =13))
 
-
+launch_shinystan(fit_lit)
+# still divergent transitions, but like there are only 5 points so how good can it possibly get??
+##Info (non-fatal):
+##Left-hand side of sampling statement (~) may contain a non-linear transform of a parameter or local variable.
+#If it does, you need to include a target += statement with the log absolute determinant of the Jacobian of the transform.
 
 ## final graphic
-grid.arrange()
+grid.arrange(stan_lit_sat_g,stan_wide_g,stan_hyper_g,nls_fec_g,nls_lit_g, #stan_lit,g)
 
 
 
