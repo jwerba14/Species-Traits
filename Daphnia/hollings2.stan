@@ -12,21 +12,17 @@ transformed parameters {
 real sigma; 
   real m[N];
   for (i in 1:N) 
-    m[i] = alpha * (chl[i]) / (chl[i] + beta) ;
+    m[i] = alpha * chl[i] / (1+chl[i]*beta*alpha) ;
   sigma = 1 / sqrt(tau); 
 }
 model {
   // priors
-  alpha ~ normal(0,1000); 
-  beta ~ normal(0,1000);
-  tau ~ gamma(0.0001,0.0001);
-  m ~ normal(0,1000);
+  alpha ~ normal(0,100); // maybe should be lognormal to constrain to biologically meaningful- then need to exp in model
+  beta ~ normal(0,100);
+  tau ~ cauchy(0,2);
+  m ~ normal(0,10);
   daily_fec ~ normal(m, sigma);   
 }
-
-
-
-
 
 
 

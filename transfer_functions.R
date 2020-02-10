@@ -34,6 +34,13 @@ sat_fun <- function(a,b,k) {
   
 }
 
+
+sat_fun_log <- function(a,b,k) {
+  
+  log(a) + log(k) - log(b+k)
+  
+}
+
 sat_fun_inv <- function(a,b,k) {
   
    (k + b) / (a * k)

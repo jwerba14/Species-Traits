@@ -9,10 +9,10 @@ data {
 } 
 parameters {
   real<lower=0> tau;
-  real log_alpha_bar;
-  real<lower=0> sigma_alpha;
-  real log_beta_bar;
-  real<lower=0> sigma_beta;
+  real alpha_bar;
+  real<lower=0> log_sigma_alpha;
+  real beta_bar;
+  real<lower=0> log_sigma_beta;
   vector[L+1] eps_alpha;
   vector[L+1] eps_beta;
 } 
@@ -20,8 +20,8 @@ transformed parameters {
   real alpha[L+1];
   real beta[L+1];
   for(i in 1:L+1){
-      alpha[i] = exp(log_alpha_bar) + sigma_alpha*eps_alpha[i];
-      beta[i] = exp(log_beta_bar) + sigma_beta*eps_beta[i];
+      alpha[i] = alpha_bar + exp(log_sigma_alpha)*eps_alpha[i];
+      beta[i] = beta_bar + exp(log_sigma_beta)*eps_beta[i];
   }
   
 }
@@ -40,10 +40,10 @@ model {
   tau ~ cauchy(0,3); // BMB: OK, but could be improved
  
   // sigma ~ cauchy(0,3)    // BMB: ?
-  log_alpha_bar ~ lognormal(0, 1);
-  sigma_alpha ~  cauchy(0,3);
-  log_beta_bar ~ normal(0,1); //should be correlated with alpha? 
-  sigma_beta ~ cauchy(0,3);
+  alpha_bar ~ normal(0.0, 1000);
+  log_sigma_alpha ~ lognormal(0,1);
+  beta_bar ~ normal(0,1000); //should be correlated with alpha? 
+  log_sigma_beta ~ lognormal(0,1);
   
   for (i in 1:L+1){
   eps_alpha[i] ~ normal(0,1);

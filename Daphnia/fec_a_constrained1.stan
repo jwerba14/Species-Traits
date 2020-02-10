@@ -32,15 +32,11 @@ model {
   real m[N]; // daily fecundity
   real q[L]; // ?? BMB: maybe call this m_lit?
   
-  // BMB: these are probably too broad!
- // alpha ~ normal(0.0, 1000); 
-  //beta ~ normal(0.0, 1000);
-  // especially tau: works for this example but try (half-)t or (half-)Cauchy
-  //  prior on sigma
+
   tau ~ cauchy(0,3); // BMB: OK, but could be improved
  
-  // sigma ~ cauchy(0,3)    // BMB: ?
-  log_alpha_bar ~ lognormal(0, 1);
+ 
+  log_alpha_bar ~ lognormal(0,1);
   sigma_alpha ~  cauchy(0,3);
   log_beta_bar ~ normal(0,1); //should be correlated with alpha? 
   sigma_beta ~ cauchy(0,3);
@@ -56,8 +52,7 @@ model {
       daily_fec[i] ~ normal(m[i], 1/sqrt(tau));
   }
   for (i in 1:L) {
-      q[i] = alpha[i+1] * chl_lit[i] / (chl_lit[i] + beta[i+1]) ;
-      daily_fec_lit[i] ~ normal(q[i], sd_lit);
+      daily_fec_lit[i] ~ normal(alpha[i+1], sd_lit);
   }
 }
 
