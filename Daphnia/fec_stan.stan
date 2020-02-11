@@ -19,7 +19,7 @@ model {
   // priors
   alpha ~ normal(0,1000); 
   beta ~ normal(0,1000);
-  tau ~ gamma(0.0001,0.0001);
+  tau ~ cauchy(0,2);
   m ~ normal(0,1000);
   daily_fec ~ normal(m, sigma);   
 }
