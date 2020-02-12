@@ -101,8 +101,8 @@ fit1 <- stan(file = "fec_linear_wideprior.stan",
 launch_shinystan(fit)
 
 
-t <- rstan::extract(fit,permuted = FALSE)
-fit_sum <- summary(fit)
+t <- rstan::extract(fit1,permuted = FALSE)
+fit_sum <- summary(fit1)
 print(names(fit_sum))
 print(fit_sum$summary)
 fit_sum_param <- fit_sum$summary[c(1:2),]
@@ -132,9 +132,14 @@ feed_lit <- feed_lit %>% filter(!is.na(point_est_cell_indiv_day)) %>%
   filter(!is.na(algal_conc_cellperml)) %>% 
   dplyr::select(Title, replicates,point_est_cell_indiv_day,point_error,algal_conc_cellperml,sd)
 
+index_sd <- with(feed_lit, which(is.na(sd),)) ## index of which rows have missing SD 
+missing_n <- length(index_sd)
 
-feed_lit_sd <- feed_lit %>% filter(!is.na(sd))
-feed_lit_n_sd <- feed_lit %>% filter(is.na(sd))
+##copy dataframe
+feed_lit1 <- feed_lit
+## replace NAs with dummy
+feed_lit1[is.na(feed_lit1)] <- 100
+
 ## convert chl to cells in my data
 dat1$cells <- chl_adj(dat1$chl1)
 dat1$cell_diff <-chl_adj(dat1$chl_diff_cc) 
@@ -143,44 +148,39 @@ dat1$cell_diff <-chl_adj(dat1$chl_diff_cc)
 #######  fit in stan
 
 
-## for now to see if I can get it run put in NA sds as 1 in lit sd ## hmm ok not the issue
-for (i  in 1:nrow(feed_lit)){
-  if(is.na(feed_lit$sd[i]) ) {
-    feed_lit$sd[i] <- 10
-  }
-}
-
-## simplest thing to do is to assume sd is same as in my dataset, a little conservative- but
-## could model sd as mixed model among studies, could be lognormal, need if statement in stan (if sd is NA than likelihood)
-
 daph_grow_list <- list(
   N = as.numeric(nrow(dat1)),
+  L = as.numeric(nrow(feed_lit)),
+  miss = missing_n,
   chl = dat1$cells,
   diff = dat1$cell_diff,
-  L = as.numeric(nrow(feed_lit)),
-  M = as.numeric(nrow(feed_lit_sd)),
-  P = as.numeric(nrow(feed_lit_n_sd)),
   lit_chl = as.numeric(feed_lit$algal_conc_cellperml),
   diff_lit = as.numeric(feed_lit$point_est_cell_indiv_day),
-  sd_lit = feed_lit_sd$sd
+  sd_lit = feed_lit1$sd,
+  sd_index = index_sd 
 )
 
-#daph_grow_list <- 
-  #list(
-   # N = 10,
-    #chl = c(10,15,20,25,30,35,40,45,50,55),
-    #diff = c(2,5,12,15,15,26,29,35,42,50),
-    #L = 7,
-    #lit_chl = c(8,15,25,27,35,50,80),
-    #diff_lit = c(2,2,15,17,19,35,62),
-    #sd_lit = c(0.5,0.75,1,2.5,2.2,3,5)
-  #)
 
-fit <- stan(file = "adult_feeding.stan", 
-            data = daph_grow_list, verbose = F, chains = 1, control = list(adapt_delta = 0.95, max_treedepth = 12) ) 
+daph_imp_list <- list(
+  L = as.numeric(nrow(feed_lit)),
+  miss = missing_n,
+  lit_chl = as.numeric(feed_lit$algal_conc_cellperml),
+  diff_lit = as.numeric(feed_lit$point_est_cell_indiv_day),
+  sd_lit = feed_lit1$sd,
+  sd_index = index_sd 
+)
+
+
+fit <- stan(file = "adult_feeding.stan", init=list(list(shape = 5, scale = 5, slope_bar = 1)), 
+            data = daph_grow_list, verbose = F, chains = 1) #, control = list(adapt_delta = 0.95, max_treedepth = 12) ) 
 launch_shinystan(fit)
 
-fit_sum <- summary(fit)
+## something about shape/scale is wrong -- on the wrong scale cant get past initial value
+fit <- stan(file = "lit_imputation.stan",  
+            data = daph_grow_list, verbose = F, chains = 1)
+
+
+ fit_sum <- summary(fit)
 (fit_sum_param <- fit_sum$summary[c(1:4),])
 t <- rstan::extract(fit,permuted = FALSE)
 m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
