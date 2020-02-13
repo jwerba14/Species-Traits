@@ -178,18 +178,30 @@ daph_imp_list <- list(
 )
 
 
+daph_imp_list1 <- list(
+  L = as.numeric(nrow(feed_lit1)),
+  miss = missing_n,
+  lit_chl = as.numeric(feed_lit1$algal_conc_cellperml),
+  diff_lit = as.numeric(feed_lit1$point_est_cell_indiv_day),
+  sd_lit = feed_lit1$sd,
+  sd_index = index_sd 
+)
+
+
 fit <- stan(file = "adult_feeding.stan", init=list(list(shape = 5, scale = 5, slope_bar = 1)), 
             data = daph_grow_list, verbose = F, chains = 1) #, control = list(adapt_delta = 0.95, max_treedepth = 12) ) 
 launch_shinystan(fit)
 
 library(fitdistrplus)
-sd <- feed_lit1 %>% dplyr::select(sd_feed) %>% filter(sd_feed > 100))
+sd <- feed_lit1 %>% dplyr::select(sd_feed) %>% filter(sd_feed > 100)
 
 fitdist(sd$sd, "lnorm")
-## something about shape/scale is wrong -- on the wrong scale cant get past initial value
-fit <- stan(file = "lit_imputation.stan", init = list(list(meanlog =12, sdlog = 0.5)),  
-            data = daph_imp_list, verbose = F, chains = 1)
 
+fit <- stan(file = "lit_imputation.stan",  
+            data = daph_imp_list, verbose = F, chains = 1,
+            control = list(adapt_delta = 0.9))
+
+launch_shinystan(fit)
 
  fit_sum <- summary(fit)
 (fit_sum_param <- fit_sum$summary[c(1:4),])
