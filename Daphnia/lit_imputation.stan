@@ -15,8 +15,8 @@ parameters {
   vector[L] eps_slope;
   
   //for imputation
-  vector[1] shape;
-  vector[1] scale;
+  real<lower=0> meanlog; // have had these as vectors as well...as in the example but then couldn't give                                starting values
+  real<lower=0> sdlog;
   
   //missing
   vector[miss] imp_sd;
@@ -42,14 +42,15 @@ model {
   }
  
   for(i in 1:L){
-        Data[i,3] ~ gamma(shape,scale);
+        Data[i,3] ~ lognormal(meanlog,sdlog); // tried this as gamma as well
     }
     
  sigma ~ cauchy(0,2);
  slope_bar ~ lognormal(0,1);
  sigma_slope ~ cauchy(0,2);
- shape ~ gamma(0.001,0.001);
- scale ~ gamma(0.001,0.001); 
+ meanlog ~ lognormal(12,1);
+ sdlog ~ lognormal(0.5,1); 
+ 
  
  for (i in 1:(L)){
   eps_slope[i] ~ normal(0,1);
