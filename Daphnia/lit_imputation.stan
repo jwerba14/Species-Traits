@@ -12,12 +12,12 @@ parameters {
   // for model
   real slope_bar;
   //real<lower = 0> sigma;
-  real<lower = 0> sigma_slope; 
-  vector[L] eps_slope;
+  // real<lower = 0> sigma_slope; 
+  // vector[L] eps_slope;
   
   // for imputation
-  real meanlog;    
-  real<lower = 0> sdlog;
+  // real meanlog;    
+  // real<lower = 0> sdlog;
   
   // missing
   vector<lower = 0>[miss] imp_sd;
@@ -40,28 +40,31 @@ model {
   real slope[L];
 
   for(i in 1:L){
-      slope[i] = exp(slope_bar) + exp(sigma_slope)*eps_slope[i];
+    // forget about estimating different slopes for every
+    // study? that OR assume there's no measurement error in the study
+    slope[i] = slope_bar; // + sigma_slope*eps_slope[i];
   }
  
- all_sd ~ lognormal(meanlog, sdlog);
+  // all_sd ~ lognormal(meanlog, sdlog);
+  all_sd ~ lognormal(-1,1);
     
 // sigma     ~ cauchy(0,2);
 // sigma_slope ~ cauchy(0,2);
  
  //sigma       ~ lognormal(-2,0.5); 
  slope_bar   ~ lognormal(0,0.5);
- sigma_slope ~ lognormal(0,0.5);
- meanlog     ~ lognormal(-1,0.5);
- sdlog       ~ lognormal(-2,0.5); 
+ // sigma_slope ~ lognormal(0,0.5);
+ // meanlog     ~ lognormal(-1,0.5);
+ // sdlog       ~ lognormal(-2,0.5); 
  
   
- eps_slope ~ normal(0,1);
+ // eps_slope ~ normal(0,1);
 
 // likelihood
  
- for(i in 1:L){
-   fr_lit[i] = slope[i]*lit_chl[i];
-   diff_lit[i] ~ normal(fr_lit[i], exp(all_sd[i])); 
+for(i in 1:L){
+  fr_lit[i] = slope_bar*lit_chl[i]; // expected change
+  diff_lit[i] ~ normal(fr_lit[i], all_sd[i]); 
  }
 
 }
