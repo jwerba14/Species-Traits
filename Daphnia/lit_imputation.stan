@@ -11,7 +11,7 @@ parameters {
 
   // for model
   real slope_bar;
-  real<lower = 0> sigma;
+  //real<lower = 0> sigma;
   real<lower = 0> sigma_slope; 
   vector[L] eps_slope;
   
@@ -48,8 +48,8 @@ model {
 // sigma     ~ cauchy(0,2);
 // sigma_slope ~ cauchy(0,2);
  
- sigma       ~ lognormal(-2,0.5); 
- slope_bar   ~ normal(0,10);
+ //sigma       ~ lognormal(-2,0.5); 
+ slope_bar   ~ lognormal(0,0.5);
  sigma_slope ~ lognormal(0,0.5);
  meanlog     ~ lognormal(-1,0.5);
  sdlog       ~ lognormal(-2,0.5); 
@@ -61,7 +61,7 @@ model {
  
  for(i in 1:L){
    fr_lit[i] = slope[i]*lit_chl[i];
-   diff_lit[i] ~ normal(fr_lit[i], all_sd[i]); 
+   diff_lit[i] ~ normal(fr_lit[i], exp(all_sd[i])); 
  }
 
 }

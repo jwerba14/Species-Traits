@@ -96,32 +96,31 @@ daph_feed_list <-
     
   )
 
-fit1 <- stan(file = "fec_linear_wideprior.stan", 
+fit_wide <- stan(file = "fec_linear_wideprior.stan", 
             data = daph_feed_list, verbose = F, chains = 4) 
-launch_shinystan(fit)
+launch_shinystan(fit_wide)
 
 
-t <- rstan::extract(fit1,permuted = FALSE)
-fit_sum <- summary(fit1)
-print(names(fit_sum))
-print(fit_sum$summary)
-fit_sum_param <- fit_sum$summary[c(1:2),]
+t_wide <- rstan::extract(fit_wide,permuted = FALSE)
+fit_sum_wide <- summary(fit_wide)
+fit_sum_param_wide <- fit_sum_wide$summary[c(1:2),]
 
-slope_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains 
+slope_pred_wide <- rbind(t_wide[,1,1],t_wide[,2,1], t_wide[,3,1], t_wide[,4,1]) ## all rows, all chains 
 
 
-newdat <- data.frame(chl = seq(1,100))
+newdat_wide <- data.frame(chl = seq(1,100))
 
-pred_out <- apply(newdat,1,lin2,m=slope_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+pred_out_wide <- apply(newdat_wide,1,lin2,m=slope_pred_wide)
+pred_sum_wide <- apply(pred_out_wide, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum[1,])
-upper <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum[3,])
-med <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum[2,])
+lower_wide <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_wide[1,])
+upper_wide <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_wide[3,])
+med_wide <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_wide[2,])
 
 stan_wide_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
-  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
-  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Wide Priors")
 
 ## fit in stan with literature
@@ -163,7 +162,7 @@ daph_grow_list <- list(
   diff = dat1$cell_diff,
   lit_chl = as.numeric(feed_lit$algal_conc_cellperml),
   diff_lit = as.numeric(feed_lit$point_est_cell_indiv_day),
-  sd_lit = feed_lit1$sd,
+  sd_lit = log(feed_lit1$sd),
   sd_index = index_sd 
 )
 
@@ -188,31 +187,73 @@ daph_imp_list1 <- list(
 )
 
 
-fit <- stan(file = "adult_feeding.stan", init=list(list(shape = 5, scale = 5, slope_bar = 1)), 
-            data = daph_grow_list, verbose = F, chains = 1) #, control = list(adapt_delta = 0.95, max_treedepth = 12) ) 
-launch_shinystan(fit)
+fit_mixed <- stan(file = "adult_feeding.stan", 
+            data = daph_grow_list, verbose = F, chains = 1, iter = 5000,
+            control = list(adapt_delta = 0.99,
+            max_treedepth = 15))
+                                                                        
+launch_shinystan(fit_mixed)
+
+fit_sum_mixed <- summary(fit_mixed)
+(fit_sum_param_mixed <- fit_sum_mixed$summary[c(1:4),])
+t_mix <- rstan::extract(fit_mixed,permuted = FALSE)
+m_pred_mix <- rbind(t_mix[,1,1],t_mix[,2,1],t_mix[,3,1],t_mix[,4,1]) 
+
+
+newdat_mix <- data.frame(chl1 = seq(0,100))
+
+pred_out_mix <- apply(newdat_mix,1,lin2,m= m_pred_mix)
+pred_sum_mix <- apply(pred_out_mix, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower_mix <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_mix[1,])
+upper_mix <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_mix[3,])
+med_mix <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_mix[2,])
+
+stan_mix_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_mix, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_mix, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_mix, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Mixed model")
+
+
+
+
+## literature only
 
 library(fitdistrplus)
 sd <- feed_lit1 %>% dplyr::select(sd_feed) %>% filter(sd_feed > 100)
 
 fitdist(sd$sd, "lnorm")
 
-fit <- stan(file = "lit_imputation.stan",  
-            data = daph_imp_list, verbose = F, chains = 1,
-            control = list(adapt_delta = 0.9))
+fit_lit <- stan(file = "lit_imputation.stan",  
+            data = daph_imp_list, verbose = F, chains = 4,
+            control = list(adapt_delta = 0.99, max_treedepth=13))
 
-launch_shinystan(fit)
+launch_shinystan(fit_lit)
 
- fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-t <- rstan::extract(fit,permuted = FALSE)
-m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
+ fit_sum_lit <- summary(fit_lit)
+(fit_sum_param_lit <- fit_sum_lit$summary[c(1:4),])
+t_lit <- rstan::extract(fit_lit,permuted = FALSE)
+m_pred_lit <- rbind(t_lit[,1,1],t_lit[,2,1],t_lit[,3,1],t_lit[,4,1]) 
 
 
-newdat <- data.frame(chl1 = seq(0,100))
+newdat_lit <- data.frame(chl1 = seq(0,100))
 
-pred_out <- apply(newdat,1,lin2,m= m_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+pred_out_lit <- apply(newdat_lit,1,lin2,m= m_pred_lit)
+pred_sum_lit <- apply(pred_out_lit, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower_lit <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_lit[1,])
+upper_lit <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_lit[3,])
+med_lit <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_lit[2,])
+
+lit_g <- ggplot(feed_lit1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_lit, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_lit, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_lit, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Literature Only")
+
+
+
 
 
 feed_lit$cells <- feed_lit$algal_conc_cellperml
@@ -222,7 +263,6 @@ ggplot(data = dat1, aes(cells,cell_diff)) + geom_point() +
   geom_point(data = feed_lit, color = "blue", shape=4) + scale_x_log10()
 
 
-##ok clearly my cell conversion is wrong, or i just used so much food-- which doesn't really seem true
 
 ## hyperparameter stan
 feed_lit[is.na(feed_lit$replicates)] <- 1
@@ -258,44 +298,7 @@ newdat$lwr <- pred$lwr
 (lit_g <- ggplot(feed_lit1, aes(algal_conc_cellperml, point_est_cell_indiv_day)) + geom_point()+
   geom_line(data = newdat) + geom_ribbon(data = newdat, aes(ymin=lwr,ymax=upr), alpha = 0.3))
 
-##doesn't at all look linear....
-d_feed <- nls(point_est_cell_indiv_day ~ sat_fun(z,w,algal_conc_cellperml),
-             data = feed_lit1, start = list(z=1000000,w=10000))
-coef_nls_lit <- data.frame(coef(d_feed))
-newdat_nls_lit <- data.frame(algal_conc_cellperml = seq(min(feed_lit1$algal_conc_cellperml),
-                                                        max(feed_lit1$algal_conc_cellperml),
-                                                        length = 1000),
-                             point_est_cell_indiv_day = numeric(length = 1000),
-                             upper = 0,
-                             lower = 0)
-
-algal_conc_cellperml <- data.frame(algal_conc_cellperml = seq(min(feed_lit1$algal_conc_cellperml),
-                                                              max(feed_lit1$algal_conc_cellperml),
-                                                              length = 1000))
-confidence <- confint2(d_feed)
-newdat_nls_lit$point_est_cell_indiv_day<- apply(algal_conc_cellperml,1,sat_fun,a=coef_nls_lit[1,1],b=coef_nls_lit[2,1])
-newdat_nls_lit$upper<- apply(algal_conc_cellperml,1,sat_fun,a=confidence[1,2],b=confidence[2,2])
-newdat_nls_lit$lower<- apply(algal_conc_cellperml,1,sat_fun,a=confidence[1,1],b=confidence[2,1])
 
 
-
-(nls_lit_g <- ggplot(data =feed_lit1, aes(algal_conc_cellperml, point_est_cell_indiv_day)) + geom_point() + 
-    geom_ribbon(data = newdat_nls_lit, aes(ymax = upper, ymin=lower), linetype = "dotdash" ) + 
-    geom_line(data = newdat_nls_lit) +
-    ggtitle("Saturating Fit Literature (NLS)") + xlab("Chlorophyll a (ug/L)") + ylab("Feeding"))
-## nope negative problem again....
-
-daph_feed_list_lit <- list(
-  "N" = as.numeric(nrow(feed_lit1)),
-  "chl" = feed_lit1$algal_conc_cellperml,
-  "daily_fec" = feed_lit1$point_est_cell_indiv_day
-)
-
-
-fit_lit <- stan(file = "fec_stan.stan", 
-                data = daph_feed_list_lit,
-                verbose = TRUE, control = list(adapt_delta = 0.99, stepsize = 1, max_treedepth =13))
-
-launch_shinystan(fit_lit)
-## many divergent transitions
+## models: ls, wideprior, mixed, lit only, hyper param?
 

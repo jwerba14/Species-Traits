@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(nlstools)
+library(gridExtra)
 library(fitdistrplus)
 library(rstan)
 rstan_options(auto_write = TRUE)
@@ -55,7 +56,8 @@ fec_lit1 <- fec_lit %>% filter(!is.na(cell))
 fec_lit1<- fec_lit1 %>% 
   mutate(chl = cell_adj(cell = cell)) 
 
-
+fec_lit1 <- fec_lit1 %>% mutate(cell1 = chl_adj(chl))
+which(fec_lit1$cell != fec_lit1$cell1)
 
 ## this fit is when we include literature, it is a mixed model (estimating parameters for each study)
 ## gets a weird fit because conversion of chla to cells is not precise and dependent on many environmental and growth conditions
@@ -70,13 +72,29 @@ daph_fec_list <- list(
   "chl_lit" = fec_lit1$cell
 )
 
+daph_fec_list <- list(
+  "N" = 64,
+  "chl" = daph_fec_adj$chl,
+  "daily_fec" = daph_fec_adj$daily_fec,
+  "L" = 5,
+  "daily_fec_lit" = fec_lit1$daily_fec,
+  "sd_lit" = fec_lit1$sd_repro,
+  "chl_lit" = fec_lit1$chl
+)
+
 ##
+
+
+fit_chl <- stan(file = "fec_prior.stan", 
+             data = daph_fec_list, chains = 4,
+             control = list(adapt_delta = 0.99, max_treedepth = 17)) 
+
 
 fit2 <- stan(file = "fec_prior.stan", 
              data = daph_fec_list, chains = 4,
              control = list(adapt_delta = 0.99, max_treedepth = 17)) 
 
-##working finally!
++##working finally!
 
 launch_shinystan(fit2)
 
@@ -113,9 +131,11 @@ med_mixed <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = p
 
 
 ##fit with wide priors (not incorporating literature data)
+daph_fec_adj$cell2 <- chl_adj2(daph_fec_adj$chl)
+
 daph_fec_list_1 <- list(
   "N" = 64,
-  "chl" = daph_fec_adj$chl,
+  "chl" = daph_fec_adj$cell2,
   "daily_fec" = daph_fec_adj$daily_fec
   )
 
@@ -131,6 +151,11 @@ t2 <- rstan::extract(fit_wide,permuted = FALSE)
 fit_sum_wide <- summary(fit_wide)
 fit_sum_param_wide <- fit_sum_wide$summary[c(1:4),]
 
+ftscell <- summary(fit_wide)
+ftscell_p <- ftscell$summary[c(1:4),]
+
+ftscell2 <- summary(fit_wide)
+ftscell_p2 <- ftscell$summary[c(1:4),]
 
 
 a_wide <- rbind(t2[,1,1],t2[,2,1], t2[,3,1], t2[,4,1]) ## all rows, all chains alpha?
@@ -151,7 +176,7 @@ lower_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[1,])
 upper_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[3,])
 med_wide <- data.frame(chl = seq(0,100), daily_fec = pred_sum_wide[2,])
 
-stan_wide_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+stan_wide_g <- ggplot(daph_fec_adj, aes(cell, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Algal Cell Count") +
   ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
@@ -180,38 +205,38 @@ fit3 <- stan(file = "fec_a_constrained1.stan",
 ## no divergent transitions! I have never been happier in my whole life.
 launch_shinystan(fit3)
 
-t <- rstan::extract(fit3,permuted = FALSE)
-fit_sum <- summary(fit3)
-print(names(fit_sum))
-fit_sum_param <- fit_sum$summary[c(1:4),]
+t3 <- rstan::extract(fit3,permuted = FALSE)
+fit_sum_cona <- summary(fit3)
+print(names(fit_sum_cona))
+fit_sum_param_cona <- fit_sum_cona$summary[c(1:4),]
 
 
 
-a_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains alpha?
-b_pred <- rbind(t[,1,2], t[,2,2], t[,3,2], t[,4,2])
+a_cona <- rbind(t3[,1,1],t3[,2,1], t3[,3,1], t3[,4,1]) ## all rows, all chains alpha?
+b_cona <- rbind(t3[,1,2], t3[,2,2], t3[,3,2], t3[,4,2])
 
-newdat <- data.frame(cell = seq(26000000,1141832222, 10000000))
+newdat_cona <- data.frame(cell = seq(26000000,1141832222, 10000000))
 
-pred_out <- apply(newdat,1,sat_fun,a=exp(a_pred),b=exp(b_pred))
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+pred_out_cona <- apply(newdat_cona,1,sat_fun,a=exp(a_cona),b=exp(b_cona))
+pred_sum_cona <- apply(pred_out_cona, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[1,])
-upper <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[3,])
-med <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum[2,])
+lower_cona <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_cona[1,])
+upper_cona <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_cona[3,])
+med_cona <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_cona[2,])
 
-stan_hyper_g <- ggplot(daph_fec_adj, aes(cell, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
-  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
-  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Cell count") +
+stan_con_g <- ggplot(daph_fec_adj, aes(cell, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_cona, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_cona, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_cona, linetype = "solid", lwd =1.25) + xlab("Cell count") +
   ylab("Daily Fecundity") + ggtitle("Stan: Constrain a")
 
 ## makes me feel that priors are too tight
 
 ## fit with nls
-fec_param <- nls(daily_fec ~ sat_fun(z,w,chl), data = daph_fec_adj,
+fec_param_nls <- nls(daily_fec ~ sat_fun(z,w,chl), data = daph_fec_adj,
                  start = list(z=1,w=1))
 
-pred_sum <- summary(fec_param)
-coef_nls <- as.data.frame(pred_sum$coefficients)
+pred_sum_nls <- summary(fec_param_nls)
+coef_nls <- as.data.frame(pred_sum_nls$coefficients)
 ## graph
 newdat_nls <- data.frame(chl = seq(0,100),
                          daily_fec = numeric(length = 101),
@@ -219,7 +244,7 @@ newdat_nls <- data.frame(chl = seq(0,100),
                          lower = 0)
 
 chl <- data.frame(chl = seq(0,100))
-confidence <- confint2(fec_param)
+confidence <- confint2(fec_param_nls)
 newdat_nls$daily_fec<- apply(chl,1,sat_fun,a=coef_nls[1,1],b=coef_nls[2,1])
 newdat_nls$upper<- apply(chl,1,sat_fun,a=confidence[1,2],b=confidence[2,2])
 newdat_nls$lower<- apply(chl,1,sat_fun,a=confidence[1,1],b=confidence[2,1])
@@ -227,7 +252,7 @@ newdat_nls$lower<- apply(chl,1,sat_fun,a=confidence[1,1],b=confidence[2,1])
 
 
 (nls_fec_g <- ggplot(data = daph_fec_adj, aes(chl, daily_fec)) + geom_point() + 
-  geom_ribbon(data = newdat_nls, aes(ymax = upper, ymin=lower), linetype = "dotdash", fill = ) + 
+  geom_ribbon(data = newdat_nls, aes(ymax = upper, ymin=lower), linetype = "dotdash", alpha = 0.2) + 
   geom_line(data = newdat_nls) +
   ggtitle("Saturating Fit (NLS)") + xlab("Chlorophyll a (ug/L)") + ylab("Daily Fecundity"))
  
@@ -251,34 +276,34 @@ lines(xfit,yfit, col="blue")
 
 
 
-fit4 <- stan(file = "fec_lit_hyperparam.stan", 
+fit4 <- stan(file = "hyper.stan", 
             data = daph_fec_list_1, iter = 5000) 
 
 launch_shinystan(fit4)
 
 
-t <- rstan::extract(fit4,permuted = FALSE)
-fit_sum <- summary(fit4)
-print(names(fit_sum))
-fit_sum_param4 <- fit_sum$summary[c(1:4),] ##8.03, 11.35
+t4 <- rstan::extract(fit4,permuted = FALSE)
+fit_sum_hyper <- summary(fit4)
+print(names(fit_sum_hyper))
+fit_sum_param_hyper <- fit_sum_hyper$summary[c(1:4),] ##8.03, 11.35
 
 
 
-a_pred <- rbind(t[,1,1],t[,2,1], t[,3,1], t[,4,1]) ## all rows, all chains alpha?
-b_pred <- rbind(t[,1,2], t[,2,2], t[,3,2], t[,4,2])
+a_hyper <- rbind(t4[,1,1],t4[,2,1], t4[,3,1], t4[,4,1]) ## all rows, all chains alpha?
+b_hyper <- rbind(t4[,1,2], t4[,2,2], t4[,3,2], t4[,4,2])
 
-newdat <- data.frame(chl = seq(1,100))
+newdat_hyper <- data.frame(chl = seq(1,100))
 
-pred_out <- apply(newdat,1,sat_fun,a=a_pred,b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+pred_out_hyper <- apply(newdat_hyper,1,sat_fun,a=a_hyper,b=b_hyper)
+pred_sum_hyper <- apply(pred_out_hyper, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower <- data.frame(chl = seq(1,100), daily_fec = pred_sum[1,])
-upper <- data.frame(chl = seq(1,100), daily_fec = pred_sum[3,])
-med <- data.frame(chl = seq(1,100), daily_fec = pred_sum[2,])
+lower_hyper <- data.frame(chl = seq(1,100), daily_fec = pred_sum_hyper[1,])
+upper_hyper <- data.frame(chl = seq(1,100), daily_fec = pred_sum_hyper[3,])
+med_hyper <- data.frame(chl = seq(1,100), daily_fec = pred_sum_hyper[2,])
 
 (stan_hyper_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
-  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
-  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  geom_line(data = lower_hyper, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_hyper, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_hyper, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Daily Fecundity") + ggtitle("Stan: Hyper Priors"))
 
 
@@ -326,39 +351,50 @@ fit_lit <- stan(file = "lit_mixed.stan",
 launch_shinystan(fit_lit)
 
 
-t <- rstan::extract(fit_lit,permuted = FALSE)
-fit_sum <- summary(fit_lit)
-fit_sum_param <- fit_sum$summary[c(1:4),]
+t5 <- rstan::extract(fit_lit,permuted = FALSE)
+fit_sum_lit <- summary(fit_lit)
+fit_sum_param_lit <- fit_sum_lit$summary[c(1:4),]
 
 
 
-a_pred <- rbind(t[,1,2], t[,2,2], t[,3,2], t[,4,2]) ## all rows, all chains alpha?
-b_pred <- rbind(t[,1,4], t[,2,4], t[,3,4], t[,4,4])
+a_lit<- rbind(t5[,1,2], t5[,2,2], t5[,3,2], t5[,4,2]) ## all rows, all chains alpha?
+b_lit <- rbind(t5[,1,4], t5[,2,4], t5[,3,4], t5[,4,4])
 
-newdat <- data.frame(chl_lit = seq(100000,1141832222, 10000000))
+newdat_lit <- data.frame(chl_lit = seq(100000,1141832222, 10000000))
 
-pred_out <- apply(newdat,1,sat_fun,a=exp(a_pred),b=exp(b_pred))
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+pred_out_lit <- apply(newdat_lit,1,sat_fun,a=exp(a_lit),b=exp(b_lit))
 
-lower <- data.frame(chl_lit = seq(100000,1141832222, 10000000), daily_fec_lit = pred_sum[1,])
-upper <- data.frame(chl_lit = seq(100000,1141832222, 10000000), daily_fec_lit = pred_sum[3,])
-med <- data.frame(chl_lit = seq(100000,1141832222, 10000000), daily_fec_lit = pred_sum[2,])
+pred_sum_lit <- apply(pred_out_lit, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower_lit <- data.frame(chl_lit = seq(100000,1141832222, 10000000), daily_fec_lit = pred_sum_lit[1,])
+upper_lit <- data.frame(chl_lit = seq(100000,1141832222, 10000000), daily_fec_lit = pred_sum_lit[3,])
+med_lit <- data.frame(chl_lit = seq(100000,1141832222, 10000000), daily_fec_lit = pred_sum_lit[2,])
 
 fec_lit1$chl_lit <- fec_lit1$cell
 fec_lit1$daily_fec_lit <- fec_lit1$daily_fec
 stan_lit_g <- ggplot(fec_lit1, aes(chl_lit, daily_fec_lit)) + geom_point(alpha = 0.6, size = 2 ) +
-  geom_line(data = lower, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
-  geom_line(data = med, linetype = "solid", lwd =1.25) + xlab("Cell count") +
+  geom_line(data = lower_lit, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_lit, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_lit, linetype = "solid", lwd =1.25) + xlab("Cell count") +
   ylab("Daily Fecundity") + ggtitle("Stan:Literature Only- Mixed")
 
 
- 
+## all estimates
+fecundity_est <- list(
+  "mixed_model" = fit_sum_param_mix,
+  "wide_prior"=fit_sum_param_wide,
+  "constrain_a" = fit_sum_param_cona,
+  "nls" = pred_sum_nls,
+  "hyper" = pred_sum_hyper,
+  "lit" = fit_sum_param_lit
+)
 
 ## final graphic
-grid.arrange(stan_lit_sat_g,stan_wide_g,stan_hyper_g,nls_fec_g,nls_lit_g, #stan_lit,g)
+grid.arrange(nls_fec_g,stan_lit_g,stan_lit_sat_g,stan_wide_g,stan_hyper_g,stan_con_g, nrow=3)
 
 
-
+##2/14/2020 -- clear my study isn't being weighted appropriately (see let only vs heirarchical predictions,
+## bascially the same-- likely because for alpha_bar pull from distribution of 6 alphas one of which is my study and then
+## indiv ones per each study-- which isn't what I want- because it is over weighting essentially single points)
 
 
 

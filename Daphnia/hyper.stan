@@ -4,24 +4,23 @@ data {
   real daily_fec[N]; //fecundity
 } 
 parameters {
-  real<lower=0> alpha; 
-  real<lower=0> beta; 
+  real alpha; 
+  real beta; 
   real<lower=0> tau;
 } 
 transformed parameters {
 real sigma; 
   real m[N];
   for (i in 1:N) 
-    m[i] = alpha * (chl[i]) / (chl[i] + beta) ;
+    m[i] = alpha * chl[i] / (chl[i] + beta) ;
   sigma = 1 / sqrt(tau); 
 }
 model {
   // priors
-  alpha ~ normal(0,100); 
-  beta ~ normal(0,100);
+  alpha ~ normal(0.0, 1000); 
+  beta ~ normal(0.0, 1000);
   tau ~ cauchy(0,2);
-  m ~ normal(0,100);
-  daily_fec ~ normal(m, sigma);   
+  m ~ lognormal(1.4,0.6);  daily_fec ~ normal(m, sigma);   
 }
 
 

@@ -18,20 +18,20 @@ parameters {
   vector[L+1] eps_slope;
   
   //for imputation
-  real<lower=0> shape;
-  real<lower=0> scale;
+  real meanlog;
+  real<lower=0> sdlog;
   
   //missing
-  vector[miss] imp_sd;
+  vector<lower = 0>[miss] imp_sd;
   
 } 
 
 transformed parameters {
    // Recombine data
-    matrix[L,3] Data; // 1: feeding, 2: chl, 3: sd
-    Data[,2] = lit_chl;
-    Data[,3] = sd_lit; Data[sd_index,3] = imp_sd;
-    Data[,1] = diff_lit;
+   
+   vector<lower = 0>[L] all_sd;
+    all_sd = sd_lit;
+    all_sd[sd_index] = imp_sd;
     
 }
 
@@ -44,18 +44,16 @@ model {
   
   real slope[L+1];
   for(i in 1:(L+1)){
-      slope[i] = (slope_bar) + sigma_slope*eps_slope[i];
+      slope[i] = exp(slope_bar) + exp(sigma_slope)*eps_slope[i];
   }
  
-  for(i in 1:L){
-        Data[i,3] ~ gamma(shape,(scale));
-    }
+   all_sd ~ lognormal(meanlog, sdlog);
     
  sigma ~ cauchy(0,2);
- slope_bar ~ normal(0,10);
- sigma_slope ~ cauchy(0,3);
- shape ~ normal(0,10);
- scale ~ normal(0,10); 
+ slope_bar ~ lognormal(1,0.5);
+ sigma_slope ~ lognormal(0,0.5);
+ meanlog ~ lognormal(-1,0.5);
+ sdlog ~ lognormal(-2,0.5); 
  
  for (i in 1:(L+1)){
   eps_slope[i] ~ normal(0,1);
@@ -70,7 +68,7 @@ model {
 
  for(i in 1:L){
    fr_lit[i] = slope[i+1]*lit_chl[i];
-   diff_lit[i] ~ normal(fr_lit[i], sd_lit[i]); 
+   diff_lit[i] ~ normal(fr_lit[i], exp(all_sd[i])); 
  }
 
 }

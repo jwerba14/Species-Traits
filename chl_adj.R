@@ -5,11 +5,19 @@ chl_adj <- function(chl){
   ((chl-0.0301)/9) * 10^8 
 }
 
+chl_adj2 <- function(chl){
+  chl*10^8
+}
+
+
 cell_adj <- function(cell){
   ((9*cell)/10^8)+0.0301
   
 }
 
+cell_adj2 <- function(cell){
+  (9*cell)/10^8
+}
 ## make own equations based on Dust and Shindala 1970
 #chl_dat <- read.csv("chla_conversion.csv")
 #names(chl_dat)[1] <- "chla"

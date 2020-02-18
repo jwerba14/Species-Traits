@@ -1,4 +1,44 @@
 ### ammonium excretion 
+source("../transfer_functions.R")
+source("../chl_adj.R")
+source("../Graphing_Set_Up.R")
+library(tidyverse)
+library(nlmrt)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+library(shinystan)
+
+rdat <- read.csv("Daphnia_large_Feeding_Nov11.csv")
+dim(rdat)
+## get average change in controls by treatment
+
+
+cont <- rdat %>% 
+  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60)/24,Nh4_Time_Diff_day = (Nh4_Time_Diff/60)/24) %>%
+  filter(control == 2) %>% 
+  mutate(chl_diff =(chl1-chl2)/Chl_Time_Diff_day, nh4_diff= (nh42-nh41)/Nh4_Time_Diff_day) %>% # subtract 1 from 2 for change over time
+  group_by(Treatment) %>%
+  summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
+
+dim(cont)
+## add mean control avg back to main dataframe
+dat <- left_join(rdat,cont)
+dim(dat)
+## account for controls
+
+dat <- dat %>%
+  filter(control == 1) %>%
+  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60)/24,Nh4_Time_Diff_day = (Nh4_Time_Diff/60)/24) %>%
+  mutate(chl_diff = (chl1-chl2)/Chl_Time_Diff_day, nh4_diff = (nh41-nh42)/Nh4_Time_Diff_day) %>%
+  mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)
+dim(dat)
+
+dat1 <- dat %>% filter(control == 1) %>% filter(!is.na(chl_diff_cc)) %>% ## 1 entry is NA
+  dplyr::select(Rep, Treatment,chl1,nh41, chl_diff_cc,nh4_diff_cc, Num_Daphnia)
+dim(dat1)
+
+
 ggplot(dat1, aes(nh41,nh4_diff_cc)) + geom_point()+geom_smooth(method = "lm")
 ggplot(dat1, aes(chl_diff_cc,nh4_diff_cc)) + geom_point()+ geom_smooth(method = "lm")
 
@@ -23,7 +63,7 @@ points(seq(5,22,0.1), newpred)
 
 newdata1 = data.frame(chl_diff_cc = seq(0,15,0.1))
 newpred5 <- predict(mod_lm, newdata = newdata1)
-plot(seq(0,10,0.1), newpred5)
+plot(seq(0,15,0.1), newpred5)
 plot(dat1$chl_diff_cc,dat1$nh4_diff_cc)
 points(seq(0,15,0.1), newpred5)
 
@@ -109,9 +149,27 @@ pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
 pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
 with(dat1, plot(chl_diff_cc, nh4_diff_cc))
-lines(seq(0,20), pred_sum[1,])
-lines(seq(0,20), pred_sum[2,])
-lines(seq(0,20), pred_sum[3,])
+lines(seq(0,100), pred_sum[1,])
+lines(seq(0,100), pred_sum[2,])
+lines(seq(0,100), pred_sum[3,])
 
 saveRDS(fit, file = "adult_exc_new.RDS")
 fit2 <- readRDS("adult_exc_new.RDS")
+
+## Need to go back through units and check which model is correct before moving onto mixed model 
+## and lit only model
+
+
+
+## literature
+
+
+
+
+## mixed model
+
+
+
+## total models: ls,wideprior, lit only, mixed model, hyperparam
+
+
