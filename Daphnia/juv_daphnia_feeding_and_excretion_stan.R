@@ -1,19 +1,21 @@
 ## juvenile daphnia feeding and excretion
 source("../transfer_functions.R")
+source("../Graphing_Set_Up.R")
 library(tidyverse)
-rdatj <- read.csv("Small_Daph_Feeding.csv")
 
+rdatj <- read.csv("Small_Daph_Feeding.csv")
+dim(rdatj)
 
 cont <- rdatj %>% 
   filter(Control.Y.N == "Y") %>% 
   mutate(chl_diff =((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff= ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%  
   group_by(Treatment) %>%
   summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
-
+dim(cont)
 
 ## add mean control avg back to main dataframe
 dat <- left_join(rdatj,cont)
-
+dim(dat)
 ## account for controls
 
 dat <- dat %>%
@@ -24,19 +26,27 @@ dat1 <- dat %>% filter(Control.Y.N == "N") %>% filter(!is.na(chl_diff_cc)) %>%
   filter(!is.na(nh4_diff_cc)) %>% filter(nh4_diff_cc > -5) %>% ## remove one weird measurement
   select(Rep.., Treatment,Chl.1,Nh4.1, chl_diff_cc,nh4_diff_cc, Num_Daphnia)
 
-ggplot(dat1, aes(Chl.1,chl_diff_cc)) + geom_point()
+#ggplot(dat1, aes(Chl.1,chl_diff_cc)) + geom_point()
 
 mod_lm <- lm(data = dat1, chl_diff_cc ~ -1+Chl.1)
 
 
 #newpred <- sat_fun(k= seq(1,100,1), a=960892 ,b =1339121459)
 
-newdata = data.frame(Chl.1 = seq(1,20,0.1))
-newpred1 <- predict(mod_lm, newdata = newdata )
-#plot(seq(1,100,1), newpred)
-plot(seq(1,20,0.1),newpred1)
-points(dat1$Chl.1,dat1$chl_diff_cc)
+newdata = data.frame(Chl.1 = seq(1,25,0.1))
+newpred1 <- as.data.frame(predict(mod_lm, newdata = newdata, interval = "confidence"))
+newdata$chl_diff_cc <- newpred1$fit
+newdata$lwr <- newpred1$lwr
+newdata$upr <- newpred1$upr
 
+j_feed_g <- ggplot(data = dat1, aes(Chl.1, chl_diff_cc)) + geom_point() +
+  geom_line(data = newdata) + 
+  geom_ribbon(data = newdata, aes(ymin = lwr, ymax= upr),alpha = 0.3) +
+  xlab("Chlorphyll a (ug/L)") + 
+  ylab(str_wrap("Change in Chlorophyll a/Juvenile Daphnia/Day", width = 25)) +
+  ggtitle("LS: Linear Fit")
+
+print(j_feed_g)
 
 ## fit in stan
 library(rstan)
@@ -69,10 +79,6 @@ newdat <- data.frame(chl1 = seq(0,25))
 pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
 pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-with(dat1, plot(Chl.1, chl_diff_cc))
-lines(seq(0,25), pred_sum[1,])
-lines(seq(0,25), pred_sum[2,])
-lines(seq(0,25), pred_sum[3,])
 
 
 ## ammonium excretion

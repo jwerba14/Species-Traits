@@ -72,27 +72,33 @@ daph_fec_list <- list(
   "chl_lit" = fec_lit1$cell
 )
 
-daph_fec_list <- list(
-  "N" = 64,
-  "chl" = daph_fec_adj$chl,
-  "daily_fec" = daph_fec_adj$daily_fec,
-  "L" = 5,
-  "daily_fec_lit" = fec_lit1$daily_fec,
-  "sd_lit" = fec_lit1$sd_repro,
-  "chl_lit" = fec_lit1$chl
-)
+#daph_fec_list <- list(
+#  "N" = 64,
+ # "chl" = daph_fec_adj$chl,
+  #"daily_fec" = daph_fec_adj$daily_fec,
+  #"L" = 5,
+#  "daily_fec_lit" = fec_lit1$daily_fec,
+ # "sd_lit" = fec_lit1$sd_repro,
+  #"chl_lit" = fec_lit1$chl
+#)
 
 ##
 
 
-fit_chl <- stan(file = "fec_prior.stan", 
-             data = daph_fec_list, chains = 4,
-             control = list(adapt_delta = 0.99, max_treedepth = 17)) 
+#fit_chl <- stan(file = "fec_prior.stan", 
+ #            data = daph_fec_list, chains = 4,
+  #           control = list(adapt_delta = 0.99, max_treedepth = 17)) 
 
+if(!file.exists("RDS_Files/fec.fit.mixed.RDS")){
 
 fit2 <- stan(file = "fec_prior.stan", 
              data = daph_fec_list, chains = 4,
              control = list(adapt_delta = 0.99, max_treedepth = 17)) 
+
+saveRDS(fit2, file ="RDS_Files/fec.fit.mixed.RDS" )
+} else {
+  fit2 <- readRDS("RDS_Files/fec.fit.mixed.RDS")
+}
 
 +##working finally!
 
@@ -102,7 +108,7 @@ launch_shinystan(fit2)
 
 t1 <- rstan::extract(fit2,permuted = FALSE)
 fit_sum_mix <- summary(fit2)
-print(fit_sum_mix$summary)
+print(fit_sum_mix$summary[c(1:5),])
 fit_sum_param_mix <- fit_sum_mix$summary[c(1:5),]
 
 a_mix <- rbind(t1[,1,2],t1[,2,2], t1[,3,2], t1[,4,2]) ## all rows, all chains log_alpha
@@ -110,7 +116,7 @@ b_mix <- rbind(t1[,1,4], t1[,2,4], t1[,3,4], t1[,4,4]) ## all rows, all chains l
 
 newdat_mix <- data.frame(cell = seq(26000000,1141832222, 10000000))
 
-pred_out_mix <- apply(newdat_mix,1,sat_fun,a=exp(a_mix),b=exp(b_mix))
+pred_out_mix <- apply(newdat_mix,1,sat_fun,a=(a_mix),b=(b_mix))
 pred_sum_mix <- apply(pred_out_mix, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
 lower_mixed <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_mix[1,])
@@ -140,9 +146,18 @@ daph_fec_list_1 <- list(
   )
 
 ##
-fit_wide <- stan(file = "fec_stan.stan", 
-            data = daph_fec_list_1,
-            control = list(adapt_delta = 0.99))
+
+if(!file.exists("RDS_Files/fec.fit.wide.RDS")){
+  
+  fit_wide <- stan(file = "fec_stan.stan", 
+                   data = daph_fec_list_1,
+                   control = list(adapt_delta = 0.99))
+  
+  saveRDS(fit_wide, file ="RDS_Files/fec.fit.wide.RDS" )
+} else {
+  fit_wide <- readRDS("RDS_Files/fec.fit.wide.RDS")
+}
+
 
 launch_shinystan(fit_wide)
 
@@ -197,10 +212,17 @@ daph_fec_list2 <- list(
   "chl_lit" = fec_lit2$cell
 )
 
+if(!file.exists("RDS_Files/fec.fit.constraineda.RDS")){
+  
+  fit3 <- stan(file = "fec_a_constrained1.stan", 
+               data = daph_fec_list2,chains = 4,
+               control = list(adapt_delta = 0.99, max_treedepth = 13) )
+  
+  saveRDS(fit3, file ="RDS_Files/fec.fit.constraineda.RDS" )
+} else {
+  fit3 <- readRDS("RDS_Files/fec.fit.constraineda.RDS")
+}
 
-fit3 <- stan(file = "fec_a_constrained1.stan", 
-            data = daph_fec_list2,chains = 4,
-            control = list(adapt_delta = 0.99, max_treedepth = 13) )
           
 ## no divergent transitions! I have never been happier in my whole life.
 launch_shinystan(fit3)
@@ -274,10 +296,17 @@ xfit <- seq(0,100)
 yfit <- rnorm(xfit,d$estimate[1], d$sd[1] )
 lines(xfit,yfit, col="blue")
 
+if(!file.exists("RDS_Files/fec.fit.hyper.RDS")){
+  
+  fit4 <- stan(file = "hyper.stan", 
+               data = daph_fec_list_1, iter = 5000) 
+  
+  saveRDS(fit4, file ="RDS_Files/fec.fit.hyper.RDS" )
+} else {
+  fit4<- readRDS("RDS_Files/fec.fit.hyper.RDS")
+}
 
 
-fit4 <- stan(file = "hyper.stan", 
-            data = daph_fec_list_1, iter = 5000) 
 
 launch_shinystan(fit4)
 
@@ -341,11 +370,17 @@ daph_fec_list_lit1 <- list(
   "sd_lit" = fec_lit1$sd_repro
 )
 
+if(!file.exists("RDS_Files/fec.fit.lit.RDS")){
+  fit_lit <- stan(file = "lit_mixed.stan", 
+                  data = daph_fec_list_lit1,
+                  control = list(adapt_delta = 0.99, max_treedepth =13))
+   
+  
+  saveRDS(fit_lit, file ="RDS_Files/fec.fit.lit.RDS" )
+} else {
+  fit_lit<- readRDS("RDS_Files/fec.fit.lit.RDS")
+}
 
-
-fit_lit <- stan(file = "lit_mixed.stan", 
-                data = daph_fec_list_lit1,
-                control = list(adapt_delta = 0.99, max_treedepth =13))
 
 
 launch_shinystan(fit_lit)

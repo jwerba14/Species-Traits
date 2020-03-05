@@ -157,6 +157,7 @@ saveRDS(fit, file = "adult_exc_new.RDS")
 fit2 <- readRDS("adult_exc_new.RDS")
 
 ## Need to go back through units and check which model is correct before moving onto mixed model 
+#mg N/ daphnia*day
 ## and lit only model
 
 

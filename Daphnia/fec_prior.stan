@@ -9,9 +9,9 @@ data {
 } 
 parameters {
   real<lower=0> tau;
-  real log_alpha_bar;
+  real<lower=0> alpha_bar;
   real<lower=0> sigma_alpha;
-  real log_beta_bar;
+  real<lower=0> beta_bar;
   real<lower=0> sigma_beta;
   vector[L+1] eps_alpha;
   vector[L+1] eps_beta;
@@ -20,8 +20,8 @@ transformed parameters {
   real alpha[L+1];
   real beta[L+1];
   for(i in 1:L+1){
-      alpha[i] = exp(log_alpha_bar) + sigma_alpha*eps_alpha[i];
-      beta[i] = exp(log_beta_bar) + sigma_beta*eps_beta[i];
+      alpha[i] = (alpha_bar) + sigma_alpha*eps_alpha[i];
+      beta[i] = (beta_bar) + sigma_beta*eps_beta[i];
   }
   
 }
@@ -31,18 +31,15 @@ model {
   // priors
   real m[N]; // daily fecundity
   real q[L]; // ?? BMB: maybe call this m_lit?
-  
-  // BMB: these are probably too broad!
- // alpha ~ normal(0.0, 1000); 
-  //beta ~ normal(0.0, 1000);
+
   // especially tau: works for this example but try (half-)t or (half-)Cauchy
   //  prior on sigma
   tau ~ cauchy(0,3); // BMB: OK, but could be improved
  
   // sigma ~ cauchy(0,3)    // BMB: ?
-  log_alpha_bar ~ lognormal(0, 1);
+  alpha_bar ~ normal(0,10);
   sigma_alpha ~  cauchy(0,3);
-  log_beta_bar ~ normal(0,1); //should be correlated with alpha? 
+  beta_bar ~ normal(0,10); //should be correlated with alpha? 
   sigma_beta ~ cauchy(0,3);
   
   for (i in 1:L+1){
@@ -76,15 +73,7 @@ model {
   // https://mc-stan.org/docs/2_21/functions-reference/cauchy-distribution.html
   // https://mc-stan.org/users/documentation/case-studies/divergences_and_bias.html
 
-//generated quantities{  // not a necessity but is giving predictions and error -- posterior on mean and predictions
-  //real Y_mean[4]; 
-  //real Y_pred[4]; 
-  //for(i in 1:4){
-    // Posterior parameter distribution of the mean
-  //  Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
-    //Y_mean[i] = alpha * chl[i] / (chl[i] + beta);
-    // Posterior predictive distribution random number generator from normal
-    //Y_pred[i] = normal_rng(Y_mean[i], sigma);   
+
 
 
 
