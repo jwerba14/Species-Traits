@@ -14,7 +14,7 @@ parameters {
   //real<lower = 0> sigma;
   // real<lower = 0> sigma_slope; 
   // vector[L] eps_slope;
-  
+   
   // for imputation
   // real meanlog;    
   // real<lower = 0> sdlog;

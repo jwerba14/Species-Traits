@@ -1,6 +1,10 @@
 ## fit exponential death with stan 
 library(tidyverse)
 library(gridExtra)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+library(shinystan)
 source("../transfer_functions.R")
 daph <- read.csv("daphnia_lifetime.csv")
 dat <- read.csv("survival_literature.csv")
@@ -33,21 +37,21 @@ fdat <- left_join(daph_surv_curves,ll)
 nrow(fdat)
 
 
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-library(shinystan)
+
 daph_death_list <- list(
   "N" = 74,
   "days" = daph_surv_curves$day,
   "survival" = daph_surv_curves$frac_surv
 )
 
-
+if(!file.exists("RDS_Files/fit.death.wide.rds")) {
 fit <- stan(file = "adult_death.stan", 
             data = daph_death_list) #,
               
-saveRDS(fit, file = "adult_death.rds")
+saveRDS(fit, file = "RDS_Files/fit.death.wide.rds")
+} else {
+  fit <- readRDS("RDS_Files/fit.death.wide.rds")
+}
 
  launch_shinystan(fit)
 ## for ODE 1/beta is the rate- beta is the number of days until 1/e are lost
@@ -143,9 +147,15 @@ daph_death_list <- list(
   "survival" = daph_surv_curves$frac_surv
 )
 
+if(!file.exists("RDS_Files/death.fit.inform.RDS")){
+  fit_inf <- stan(file = "death_informedprior.stan", 
+                  data = daph_death_list)
+  saveRDS(fit_inf, file = "RDS_Files/death.fit.inform.RDS")
+}else {
+  fit_inf <- readRDS("RDS_Files/death.fit.inform.RDS")
+}
 
-fit_inf <- stan(file = "death_informedprior.stan", 
-            data = daph_death_list)
+
 
 launch_shinystan(fit_inf)
 

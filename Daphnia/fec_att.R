@@ -178,7 +178,7 @@ b_wide <- rbind(t2[,1,2], t2[,2,2], t2[,3,2], t2[,4,2])
 
 newdat_wide <- data.frame(cell = seq(26000000,1141832222, 10000000))
 
-newdat_wide <- data.frame(chl = seq(0,100))
+#newdat_wide <- data.frame(chl = seq(0,100))
 
 pred_out_wide <- apply(newdat_wide,1,sat_fun,a=a_wide,b=b_wide)
 pred_sum_wide <- apply(pred_out_wide, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
@@ -187,9 +187,9 @@ lower_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = 
 upper_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[3,])
 med_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[2,])
 
-lower_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[1,])
-upper_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[3,])
-med_wide <- data.frame(chl = seq(0,100), daily_fec = pred_sum_wide[2,])
+#lower_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[1,])
+#upper_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[3,])
+#med_wide <- data.frame(chl = seq(0,100), daily_fec = pred_sum_wide[2,])
 
 stan_wide_g <- ggplot(daph_fec_adj, aes(cell, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
