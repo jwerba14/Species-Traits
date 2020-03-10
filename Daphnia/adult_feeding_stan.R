@@ -63,7 +63,7 @@ newdat1 = data.frame(chl1 = newdata$chl1,
 feed_nls_sat <- ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
   geom_line(data = newdat1) + 
   geom_ribbon(data = newdat1, aes(ymin = lwr, ymax= upr)) +
-  xlab("Chlorphyll a (ug/L)") + 
+  xlab("Chlorophyll a (ug/L)") + 
   ylab("Change in Chlorophyll a/Daphnia/Day") +
   ggtitle("NLS:Saturating Curve")
 
@@ -74,7 +74,7 @@ newpred1$chl1 <- seq(1,100)
 feed_ls_g <- ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
   geom_line(data = newpred1) +
   geom_ribbon(data = newpred1, aes(ymin=lwr, ymax=upr),alpha = 0.3)+
-  xlab("Chlorphyll a (ug/L") + 
+  xlab("Chlorophyll a (ug/L") + 
   ylab("Change in Chlorophyll a/Daphnia/Day") +
   ggtitle("LS")
 
@@ -226,11 +226,15 @@ stan_mix_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, siz
 ## literature only
 ## some neff samples too low-- i think over estimating things-- not exactly sure if imputation is actually working
 library(fitdistrplus)
-sd <- feed_lit1 %>% dplyr::select(sd_feed) %>% filter(sd_feed > 100)
+sd <- feed_lit1 %>% dplyr::select(sd_feed) %>% filter(sd_feed < 100)
 
 fitdist(sd$sd, "lnorm")
 
 fit_lit <- stan(file = "lit_imputation.stan",  
+                data = daph_imp_list, verbose = F, chains = 4, iter = 5000,thin = 2,
+                control = list(adapt_delta = 0.99, max_treedepth=13))
+
+bmb_lit <- stan(file = "bmb_imp.stan",
                 data = daph_imp_list, verbose = F, chains = 4, iter = 5000,thin = 2,
                 control = list(adapt_delta = 0.99, max_treedepth=13))
 
