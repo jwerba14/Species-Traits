@@ -14,11 +14,7 @@ parameters {
   real<lower = 0> sigma_slope; 
   vector<lower=0>[L] eps_slope;
   
-  
-  
 } 
-
-
 
 model {
 

@@ -139,18 +139,25 @@ med_mixed <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = p
 ##fit with wide priors (not incorporating literature data)
 daph_fec_adj$cell2 <- chl_adj2(daph_fec_adj$chl)
 
-daph_fec_list_1 <- list(
+#daph_fec_list_1 <- list(
+#  "N" = 64,
+#  "chl" = daph_fec_adj$cell2,
+#  "daily_fec" = daph_fec_adj$daily_fec
+#  )
+
+daph_fec_list_1a <- list(
   "N" = 64,
-  "chl" = daph_fec_adj$cell2,
+  "chl" = daph_fec_adj$chl,
   "daily_fec" = daph_fec_adj$daily_fec
-  )
+)
+
 
 ##
 
 if(!file.exists("RDS_Files/fec.fit.wide.RDS")){
   
-  fit_wide <- stan(file = "fec_stan.stan", 
-                   data = daph_fec_list_1,
+  fit_wide <- stan(file = "fec_wide.stan", 
+                   data = daph_fec_list_1a,
                    control = list(adapt_delta = 0.99))
   
   saveRDS(fit_wide, file ="RDS_Files/fec.fit.wide.RDS" )
@@ -176,27 +183,29 @@ ftscell_p2 <- ftscell$summary[c(1:4),]
 a_wide <- rbind(t2[,1,1],t2[,2,1], t2[,3,1], t2[,4,1]) ## all rows, all chains alpha?
 b_wide <- rbind(t2[,1,2], t2[,2,2], t2[,3,2], t2[,4,2])
 
-newdat_wide <- data.frame(cell = seq(26000000,1141832222, 10000000))
+#newdat_wide <- data.frame(cell = seq(26000000,1141832222, 10000000))
 
-#newdat_wide <- data.frame(chl = seq(0,100))
+newdat_wide <- data.frame(chl = seq(0,100))
 
 pred_out_wide <- apply(newdat_wide,1,sat_fun,a=a_wide,b=b_wide)
 pred_sum_wide <- apply(pred_out_wide, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[1,])
-upper_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[3,])
-med_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[2,])
+#lower_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[1,])
+#upper_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[3,])
+#med_wide <- data.frame(cell = seq(26000000,1141832222, 10000000), daily_fec = pred_sum_wide[2,])
 
-#lower_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[1,])
-#upper_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[3,])
-#med_wide <- data.frame(chl = seq(0,100), daily_fec = pred_sum_wide[2,])
+lower_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[1,])
+upper_wide <- data.frame( chl = seq(0,100), daily_fec = pred_sum_wide[3,])
+med_wide <- data.frame(chl = seq(0,100), daily_fec = pred_sum_wide[2,])
 
-stan_wide_g <- ggplot(daph_fec_adj, aes(cell, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+stan_wide_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Algal Cell Count") +
   ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
-  
-ggplot(data= daph_fec_adj, aes(cell, chl)) + geom_point() #+ scale_x_log10()
+ 
+print(stan_wide_g)
+ 
+#ggplot(data= daph_fec_adj, aes(cell, chl)) + geom_point() #+ scale_x_log10()
 ## fit with literature only as constraining upper limit of curve 
 
 fec_lit2 <- fec_lit %>% filter(daphnia_reproduction > 4) %>% mutate(cell = 1000000000)
@@ -293,13 +302,13 @@ d <- fitdist(lit$daphnia_reproduction, "lnorm", weights = lit$Replicates)
 set.seed(100)
 h <- hist(lit$daphnia_reproduction) 
 xfit <- seq(0,100)
-yfit <- rnorm(xfit,d$estimate[1], d$sd[1] )
+yfit <- rlnorm(xfit,d$estimate[1], d$estimate[2] )
 lines(xfit,yfit, col="blue")
 
 if(!file.exists("RDS_Files/fec.fit.hyper.RDS")){
   
   fit4 <- stan(file = "hyper.stan", 
-               data = daph_fec_list_1, iter = 5000) 
+               data = daph_fec_list_1, iter = 5000, control = list(adapt_delta=0.9)) 
   
   saveRDS(fit4, file ="RDS_Files/fec.fit.hyper.RDS" )
 } else {
@@ -321,14 +330,14 @@ fit_sum_param_hyper <- fit_sum_hyper$summary[c(1:4),] ##8.03, 11.35
 a_hyper <- rbind(t4[,1,1],t4[,2,1], t4[,3,1], t4[,4,1]) ## all rows, all chains alpha?
 b_hyper <- rbind(t4[,1,2], t4[,2,2], t4[,3,2], t4[,4,2])
 
-newdat_hyper <- data.frame(chl = seq(1,100))
+newdat_hyper <- data.frame(chl = seq(1,100, by = 0.5))
 
 pred_out_hyper <- apply(newdat_hyper,1,sat_fun,a=a_hyper,b=b_hyper)
 pred_sum_hyper <- apply(pred_out_hyper, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower_hyper <- data.frame(chl = seq(1,100), daily_fec = pred_sum_hyper[1,])
-upper_hyper <- data.frame(chl = seq(1,100), daily_fec = pred_sum_hyper[3,])
-med_hyper <- data.frame(chl = seq(1,100), daily_fec = pred_sum_hyper[2,])
+lower_hyper <- data.frame(chl = seq(1,100, by = 0.5), daily_fec = pred_sum_hyper[1,])
+upper_hyper <- data.frame(chl = seq(1,100, by = 0.5), daily_fec = pred_sum_hyper[3,])
+med_hyper <- data.frame(chl = seq(1,100, by = 0.5), daily_fec = pred_sum_hyper[2,])
 
 (stan_hyper_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower_hyper, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_hyper, linetype = "dotdash", lwd = 1.25)+

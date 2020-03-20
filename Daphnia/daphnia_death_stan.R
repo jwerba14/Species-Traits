@@ -6,6 +6,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 library(shinystan)
 source("../transfer_functions.R")
+source("../Graphing_Set_Up.R")
 daph <- read.csv("daphnia_lifetime.csv")
 dat <- read.csv("survival_literature.csv")
 
@@ -79,15 +80,7 @@ wide_g <- ggplot(daph_surv_curves, aes(day, frac_surv)) + geom_point(alpha = 0.6
   geom_line(data = lower, linetype = "dotdash", lwd = 1.25) +
   geom_line(data = upper, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med, linetype = "solid", lwd =1.25) + 
-  xlab("Day") + ylab("Proportion Surviving")+ ggtitle("Wide Priors")+
-  theme_bw() + theme(axis.text.x = element_text(size = 30),
-                     axis.text.y = element_text(size = 32),
-                     axis.title.x = element_text(size = 30),
-                     axis.title.y = element_text(size = 32),
-                     strip.text = element_text(size = 0),
-                     panel.grid.major = element_blank(),
-                     panel.grid.minor = element_blank(),
-                     strip.background = element_blank()) 
+  xlab("Day") + ylab(str_wrap("Proportion Surviving", width = 10))+ ggtitle("Wide Priors") 
 
 
 print(wide_g)
@@ -113,15 +106,10 @@ dd1 <- dd %>% pivot_longer(c(average,weighted_sd,weighted_replicate), names_to =
 
 lit_g <- ggplot(daph_surv_curves, aes(day, frac_surv)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = dd1, aes(color=type, linetype=type), size = 3)+
-  xlab("Day") + ylab("Proportion Surviving")+ ggtitle("Literature Only") +
-  theme_bw() + theme(axis.text.x = element_text(size = 30),
-                     axis.text.y = element_text(size = 32),
-                     axis.title.x = element_text(size = 30),
-                     axis.title.y = element_text(size = 32),
-                     strip.text = element_text(size = 0),
-                     panel.grid.major = element_blank(),
-                     panel.grid.minor = element_blank(),
-                     strip.background = element_blank()) 
+  xlab("Day") + ylab(str_wrap("Proportion Surviving", width =10))+ ggtitle("Literature Only: NLS") +
+                    theme(legend.position = c(0.15,0.25),
+                     legend.direction = "vertical",
+                     legend.background = element_blank()) 
 
 print(lit_g)
 
@@ -189,18 +177,12 @@ inf_g <- ggplot(daph_surv_curves, aes(day, frac_surv)) + geom_point(alpha = 0.6,
   geom_line(data = lower_inf, linetype = "dotdash", lwd = 1.25) +
   geom_line(data = upper_inf, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_inf, linetype = "solid", lwd =1.25) + 
-  xlab("Day") + ylab("Proportion Surviving")+ ggtitle("Informed Prior") +
-  theme_bw() + theme(axis.text.x = element_text(size = 30),
-                     axis.text.y = element_text(size = 32),
-                     axis.title.x = element_text(size = 30),
-                     axis.title.y = element_text(size = 32),
-                     strip.text = element_text(size = 0),
-                     panel.grid.major = element_blank(),
-                     panel.grid.minor = element_blank(),
-                     strip.background = element_blank()) 
+  xlab("Day") + ylab(str_wrap("Proportion Surviving", width = 10))+ ggtitle("Informed Prior") 
 
 print(inf_g)
 
 
 
 grid.arrange(lit_g, wide_g, inf_g)
+
+

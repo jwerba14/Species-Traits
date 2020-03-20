@@ -1,6 +1,6 @@
 library(tidyverse)
 library(ggplot2)
-library(bbmle)
+library(bbmle) ## not available for r 3.6.2
 nitrate <- read.csv("NO3_Air.csv")
 nitrate <- nitrate %>% drop_na()
 
@@ -20,20 +20,22 @@ n1 <- with(nitrate, lm(NO3~ Day))
 
 #for parameter cammonium
 ammonium <- read.csv("Nh4_Air.csv")
-
+dim(ammonium)
 #remove replicates that spilled (e.g NH4 == NA)
 
 ammonium <- ammonium %>% drop_na()
+
 #same early morning machine problem
 ammonium <- ammonium %>%
   filter(Rep != 1 & Rep != 15)
 
-
+dim(ammonium)
 
 m <- with(ammonium, lm(NH4 ~ Day*(Treat)))
 
 ammonium2 <- ammonium %>%
   filter(!(Treat==4 & Day==4 & Rep==52))
+dim(ammonium2)
 
 ammonium3 <- ammonium2 %>%
   group_by(Treat,Day) %>%
@@ -41,8 +43,9 @@ ammonium3 <- ammonium2 %>%
   summarize(start_nh4 = mean(NH4))
 
 ammonium4 <- left_join(ammonium2,ammonium3,by = "Treat")
-
+dim(ammonium4)
 ### fit on log scale because need proportional change for diff eq. 
+
 m2 <- with(ammonium4, lm(log(NH4) ~ Day.x+as.factor(Treat)))
 
 (g2 <- ggplot(ammonium2, aes(Day,NH4)) + geom_point(aes(color=as.factor(Treat))))

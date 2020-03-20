@@ -1,4 +1,10 @@
 library(tidyverse)
+library(lme4)
+library(brms)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+source("../Graphing_Set_Up.R")
 
 ammonium <- read.csv("Nh4_Air.csv")
 #remove replicates that spilled (e.g NH4 == NA)
@@ -22,7 +28,7 @@ amm  <- ammonium %>%
 
 with(amm, plot(Day, diff))
 
-library(lme4)
+
 
 ## exploration of weights' size and intercept vs slope, would prefer just intercept for ODE 
 lm(data = amm[amm$diff < 2 ,], diff ~ 1, weights = weights_scaled) 
@@ -32,18 +38,38 @@ lmer(data = amm,weights = lag(NH4), diff ~ lag(center_NH4) + (1+lag(center_NH4)|
 lmer(data = amm[amm$diff < 2 ,], diff ~ lag(center_NH4)+(1+lag(center_NH4)|Rep), weights = weights_scaled)
 
 
-mod <- lm(data = amm, diff ~ lag(center_NH4), weights = weights_scaled) ## looked at cook's distance and found 1 rep day past 0.5 and 2 past 1
+mod <- lm(data = amm, diff ~ lag(center_NH4), weights = weights_scaled) 
+## looked at cook's distance and found 1 rep day past 0.5 and 2 past 1
 lmer(data = amm[-c(30,108,113),], diff ~ lag(center_NH4)+(1+lag(center_NH4)|Rep), weights = weights_scaled)
 
-lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep), weights = weights_scaled) ## this seems like the model i want- intercept for constant prop loss, bc diff is already prop
+amm_mod1 <- lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep), weights = weights_scaled) ## this seems like the model i want- intercept for constant prop loss, bc diff is already prop
+ ## hmm singular fit.... getting 0 for variance Rep
+amm_mod2 <- lmer(data = amm[-c(30,108,113),], diff ~ 1+(1|Rep))
+##hmmm
 
+amm2 <- amm %>% group_by(Rep) %>% count()
+min(amm2$n)
+amm3 <- left_join(amm, amm2)
 
+amm3 <- amm3 %>% filter(n >= 5)
+## remove outliers
+amm4 <- amm3 %>% filter(Rep != 30 & Rep != 108 & Rep != 113)
+amm_mod3 <- lmer(data = amm4, diff ~ 1+(1|Rep), weights = weights_scaled) ## fixed singular fit
+
+am1s <- summary(amm_mod3)
+#std error not ci 
+dat_nls_g <- ggplot(amm4, aes(lag(NH4), diff)) + geom_point() + 
+  geom_hline(yintercept = am1s$coefficients[1]) + 
+  geom_hline(yintercept = am1s$coefficients[1]-am1s$coefficients[2],linetype = "dotdash")+
+  geom_hline(yintercept = am1s$coefficients[1]+am1s$coefficients[2], linetype = "dotdash")+
+  ggtitle("NLS:Lab Data Only")
+print(dat_nls_g)
 
 ggplot(data = amm, aes(lag(NH4), (diff))) + geom_point(aes(color= as.factor(Rep))) + geom_smooth(method = "lm") 
+amm5 <- amm4 %>% filter(!is.na(diff))
 
-library(brms)
- prs <- prior(lognormal(-1.79,1.87), class='Intercept')
-ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data = amm[-c(30,108,113),], family = gaussian(),
+prs <- prior(lognormal(-1.79,1.87), class='Intercept')
+ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data =amm5, family = gaussian(),
           control = list(adapt_delta = 0.95), prior=prs)
 stancode(ff)
 ff1 <- summary(ff)
@@ -68,25 +94,14 @@ lines(seq(0,25), rep(quantile(samplesb[,1], c(0.975)),26))
 
 
 
-
-
-
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-
-
-amm <-amm[-c(30,108,113),]
-amm <- amm %>% filter(!is.na(diff))
-
 amm1 <- list(
-  "N" = nrow(amm),
-  "Y" = amm$diff,
-  "weights" = amm$weights_scaled,
-  "N_1" = length(unique(amm$Rep)),
+  "N" = nrow(amm5),
+  "Y" = amm5$diff,
+  "weights" = amm5$weights_scaled,
+  "N_1" = length(unique(amm5$Rep)),
   "M_1" = 1,
-  "J_1" = amm$Rep,
-  "Z_1_1" = rep(1,nrow(amm)),
+  "J_1" = amm5$Rep,
+  "Z_1_1" = rep(1,nrow(amm5)),
   "prior_only" = 0
 )
 

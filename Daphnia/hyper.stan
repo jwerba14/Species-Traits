@@ -5,7 +5,7 @@ data {
 } 
 parameters {
   real alpha; 
-  real beta; 
+  real<lower=0> beta; 
   real<lower=0> tau;
 } 
 transformed parameters {
@@ -17,10 +17,11 @@ real sigma;
 }
 model {
   // priors
-  alpha ~ normal(0.0, 1000); 
-  beta ~ normal(0.0, 1000);
+  alpha ~ normal(0,100); 
+  beta ~ normal(0,100);
   tau ~ cauchy(0,2);
-  m ~ lognormal(1.4,0.6);  daily_fec ~ normal(m, sigma);   
+  m ~ lognormal(1.4,0.6); 
+  daily_fec ~ normal(m, sigma);   
 }
 
 

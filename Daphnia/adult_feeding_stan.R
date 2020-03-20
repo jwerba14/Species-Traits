@@ -2,6 +2,7 @@ source("../transfer_functions.R")
 source("../chl_adj.R")
 source("../Graphing_Set_Up.R")
 library(tidyverse)
+library(gridExtra)
 library(nlmrt)
 library(fitdistrplus)
 library(rstan)
@@ -64,23 +65,26 @@ feed_nls_sat <- ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
   geom_line(data = newdat1) + 
   geom_ribbon(data = newdat1, aes(ymin = lwr, ymax= upr)) +
   xlab("Chlorophyll a (ug/L)") + 
-  ylab("Change in Chlorophyll a/Daphnia/Day") +
+  ylab("Change in Chl a/Daphnia/Day") +
   ggtitle("NLS:Saturating Curve")
 
 ## straight line
-newpred1 <- data.frame(predict(mod_lm, newdata = newdata, interval="confidence" ))
+lm_pred <- summary(mod_lm2)
+newpred1 <- data.frame(predict(mod_lm2, newdata = newdata, interval="confidence" ))
 newpred1$chl_diff_cc <- newpred1$fit
 newpred1$chl1 <- seq(1,100)
 feed_ls_g <- ggplot(data = dat1, aes(chl1, chl_diff_cc)) + geom_point() +
   geom_line(data = newpred1) +
   geom_ribbon(data = newpred1, aes(ymin=lwr, ymax=upr),alpha = 0.3)+
-  xlab("Chlorophyll a (ug/L") + 
-  ylab("Change in Chlorophyll a/Daphnia/Day") +
+  xlab("Chlorophyll a (ug/L) ") + 
+  ylab("") +
   ggtitle("LS")
 
+print(feed_ls_g)
 
 ## linear line exactly the same as saturating, looks like good fit, range of chl1 close to final experiment -- get rid of intercept still good
-## so keep linear ie type I
+## so keep linear ie type I - nope-- not doable with literature values need to make saturating, which makes more sense
+## biologically anyway....
 
 ## fit linear in Stan with wide priors
 
@@ -126,7 +130,9 @@ stan_wide_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, si
   geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) +
   geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
-  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Wide Priors")
+  ylab(" ") + ggtitle("Stan: Wide Priors")
+
+print(stan_wide_g)
 
 ## fit in stan with literature
 ### data from literature
@@ -191,11 +197,46 @@ daph_imp_list1 <- list(
   sd_index = index_sd 
 )
 
-##### this doesn't work
-fit_mixed <- stan(file = "adult_feeding.stan", 
-                  data = daph_grow_list, verbose = F, chains = 1, iter = 5000,
-                  control = list(adapt_delta = 0.99,
-                                 max_treedepth = 15))
+
+## i think cleanest thing to do is drop all studies that don't report sds 
+
+feed_lit2 <- feed_lit1 %>% filter(sd != 100)
+
+
+
+
+#list_mixed <- list(
+  #N = as.numeric(nrow(dat1)),
+ # L = as.numeric(nrow(feed_lit2)),
+  #chl = dat1$cells,
+ # diff = dat1$cell_diff,
+ # lit_chl = as.numeric(feed_lit2$algal_conc_cellperml),
+#  diff_lit = as.numeric(feed_lit2$point_est_cell_indiv_day),
+ # sd_lit = (feed_lit2$sd)
+#)
+
+
+
+list_mixed <- list(
+  N = as.numeric(nrow(dat1)),
+  L = as.numeric(nrow(feed_lit2)),
+  chl = dat1$chl1,
+  diff = dat1$chl_diff_cc,
+  lit_chl = as.numeric(feed_lit2$chl),
+  diff_lit = as.numeric(feed_lit2$diff),
+  sd_lit = (feed_lit2$sd_feed)
+)
+
+if(!file.exists("RDS_Files/feed.fit.mix.RDS")){
+  
+  fit_mixed <- stan(file = "adult_feeding.stan", 
+                    data = list_mixed, chains = 4, init = 1,
+                    control = list(adapt_delta = 0.99,
+                                   max_treedepth = 15))
+  saveRDS(fit_mixed, file = "RDS_Files/feed.fit.mix.RDS")
+} else {
+  fit_mixed <- readRDS("RDS_Files/feed.fit.mix.RDS")
+}
 
 launch_shinystan(fit_mixed)
 
@@ -210,35 +251,118 @@ newdat_mix <- data.frame(chl1 = seq(0,100))
 pred_out_mix <- apply(newdat_mix,1,lin2,m= m_pred_mix)
 pred_sum_mix <- apply(pred_out_mix, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower_mix <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_mix[1,])
-upper_mix <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_mix[3,])
-med_mix <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_mix[2,])
+lower_mix <- data.frame(chl1 = seq(0,100), chl_diff_cc = pred_sum_mix[1,])
+upper_mix <- data.frame(chl1 = seq(0,100), chl_diff_cc = pred_sum_mix[3,])
+med_mix <- data.frame(chl1 = seq(0,100), chl_diff_cc= pred_sum_mix[2,])
 
 stan_mix_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_point(data = feed_lit1, aes(chl,diff), color = "blue") +
   geom_line(data = lower_mix, linetype = "dotdash", lwd = 1.25) +
   geom_line(data = upper_mix, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_mix, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Mixed model")
 
+print(stan_mix_g)
+
+## hyperparameter stan
+#feed_lit[is.na(feed_lit$replicates)] <- 1
+#feed_lit<-droplevels(feed_lit)
+#d <- fitdist(feed_lit$point_est_cell_indiv_day, "lnorm", weights = as.numeric(as.character(feed_lit$replicates)))
+#d1 <- fitdist(feed_lit$point_est_cell_indiv_day, "norm")
+## check the weights warning...are the weights doing anything??
+#set.seed(100)
+#h <- hist(feed_lit$point_est_cell_indiv_day) 
+#xfit <- seq(0,1000000000,500)
+#yfit <- rlnorm(xfit,(d$estimate[1]), (d$estimate[2]) )
+#lines(xfit,yfit, col="blue")
+
+#yfit <- rnorm(xfit, d1$estimate[1], d1$estimate[2])
+#ggplot(data = feed_lit, aes(x=point_est_cell_indiv_day)) + geom_histogram(aes(y=..density..),bins = 10)+ 
+  #geom_density(data = data.frame(point_est_cell_indiv_day=yfit))
+
+###hmmmmmmmmmmmmmm this is confusing... why doesnt this work?
+
+# model with both lit and my data with imputation (no varying slope for literature)
+list_mv <- list(
+  N = as.numeric(nrow(dat1)),
+  L = as.numeric(nrow(feed_lit1)),
+  chl = dat1$chl1,
+  diff = dat1$chl_diff_cc,
+  lit_chl = as.numeric(feed_lit1$chl),
+  diff_lit = as.numeric(feed_lit1$diff),
+  sd_lit = feed_lit1$sd_feed,
+  sd_index = index_sd,
+  miss = missing_n
+)
+
+
+
+if(!file.exists("RDS_Files/feed.fit.mimp.RDS")){
+  
+  
+  fit_mVS <- stan(file = "feed.mix.vs.stan", 
+                  data = list_mv)
+  
+  saveRDS(fit_mVS, file = "RDS_Files/feed.fit.mimp.RDS")
+} else {
+  fit_mVS <- readRDS("RDS_Files/feed.fit.mimp.RDS")
+}
+
+
+
+launch_shinystan(fit_mVS)
+
+
+
+fit_sum_mvs <- summary(fit_mVS)
+(fit_sum_param_mixed_mvs <- fit_sum_mvs$summary[c(1:4),])
+t_mvs <- rstan::extract(fit_mVS,permuted = FALSE)
+m_pred_mvs <- rbind(t_mvs[,1,1],t_mvs[,2,1],t_mvs[,3,1],t_mvs[,4,1]) 
+
+
+newdat_mvs <- data.frame(chl1 = seq(0,100))
+
+pred_out_mvs <- apply(newdat_mvs,1,lin2,m= m_pred_mvs)
+pred_sum_mvs <- apply(pred_out_mvs, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower_mvs <- data.frame(chl1 = seq(0,100), chl_diff_cc = pred_sum_mvs[1,])
+upper_mvs <- data.frame(chl1 = seq(0,100), chl_diff_cc = pred_sum_mvs[3,])
+med_mvs <- data.frame(chl1 = seq(0,100), chl_diff_cc= pred_sum_mvs[2,])
+
+stan_mix_imp <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_point(data = feed_lit1, aes(chl,diff), color = "blue") +
+  geom_line(data = lower_mvs, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_mvs, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_mvs, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab(" ") + ggtitle("Stan: Imputation Mixed")
+
+print(stan_mix_imp)
+
+
+
 
 
 
 ## literature only
-## some neff samples too low-- i think over estimating things-- not exactly sure if imputation is actually working
 library(fitdistrplus)
+## get prior on sds 
 sd <- feed_lit1 %>% dplyr::select(sd_feed) %>% filter(sd_feed < 100)
 
 fitdist(sd$sd, "lnorm")
 
-fit_lit <- stan(file = "lit_imputation.stan",  
-                data = daph_imp_list, verbose = F, chains = 4, iter = 5000,thin = 2,
-                control = list(adapt_delta = 0.99, max_treedepth=13))
+if(!file.exists("RDS_Files/feed.fit.lit.imp.RDS")){
+  
+  fit_lit <- stan(file = "bmb_imp.stan",
+                  data = daph_imp_list, verbose = F, chains = 4, iter = 5000,thin = 2,
+                  control = list(adapt_delta = 0.99, max_treedepth=13))
+  saveRDS(fit_lit, file = "RDS_Files/feed.fit.lit.imp.RDS")
+} else {
+  fit_lit <- readRDS("RDS_Files/feed.fit.lit.imp.RDS")
+}
 
-bmb_lit <- stan(file = "bmb_imp.stan",
-                data = daph_imp_list, verbose = F, chains = 4, iter = 5000,thin = 2,
-                control = list(adapt_delta = 0.99, max_treedepth=13))
 
 launch_shinystan(fit_lit)
+
 
 fit_sum_lit <- summary(fit_lit)
 (fit_sum_param_lit <- fit_sum_lit$summary[c(1:4),])
@@ -246,72 +370,115 @@ t_lit <- rstan::extract(fit_lit,permuted = FALSE)
 m_pred_lit <- rbind(t_lit[,1,1],t_lit[,2,1],t_lit[,3,1],t_lit[,4,1]) 
 
 
-newdat_lit <- data.frame(chl1 = seq(0,100))
+newdat_lit <- data.frame(chl = seq(0,1.3, by = 0.002))
 
 pred_out_lit <- apply(newdat_lit,1,lin2,m= m_pred_lit)
 pred_sum_lit <- apply(pred_out_lit, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-lower_lit <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_lit[1,])
-upper_lit <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_lit[3,])
-med_lit <- data.frame(chl1 = seq(1,100), chl_diff_cc = pred_sum_lit[2,])
+lower_lit <- data.frame(chl = seq(0,1.3, by = 0.002), diff = pred_sum_lit[1,])
+upper_lit <- data.frame(chl = seq(0,1.3, by = 0.002), diff = pred_sum_lit[3,])
+med_lit <- data.frame(chl = seq(0,1.3, by = 0.002), diff = pred_sum_lit[2,])
 
-lit_g <- ggplot(feed_lit1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+lit_g <- ggplot(feed_lit1, aes(chl, diff)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower_lit, linetype = "dotdash", lwd = 1.25) +
   geom_line(data = upper_lit, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_lit, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
-  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Literature Only")
+  ylab(" ") + ggtitle("Stan: Literature Only- Imputed")
+
+
+
+print(lit_g)
+
+
+## literature only varying slope no imputation-- so uses many fewer studies (only studies with reported sds)
+
+
+lit_list_sd <- list(
+  L = as.numeric(nrow(feed_lit2)),
+  lit_chl = as.numeric(feed_lit2$chl),
+  diff_lit = as.numeric(feed_lit2$diff),
+  sd_lit = feed_lit2$sd_feed
+ 
+)
+
+
+
+if(!file.exists("RDS_Files/feed.fit.lit.vs.RDS")){
+  
+  lit_vslope <- stan(file = "lit_varyslope.stan", data = lit_list_sd)
+  
+  saveRDS(lit_vslope, file = "RDS_Files/feed.fit.lit.vs.RDS")
+} else {
+  lit_vslope <- readRDS("RDS_Files/feed.fit.lit.vs.RDS")
+}  
 
 
 
 
 
-feed_lit$cells <- feed_lit$algal_conc_cellperml
-feed_lit$cell_diff <- feed_lit$point_est_cell_indiv_day
-
-ggplot(data = dat1, aes(cells,cell_diff)) + geom_point() +
-  geom_point(data = feed_lit, color = "blue", shape=4) + scale_x_log10()
+launch_shinystan(lit_vslope)
 
 
 
-## hyperparameter stan
-feed_lit[is.na(feed_lit$replicates)] <- 1
-feed_lit<-droplevels(feed_lit)
-d <- fitdist(feed_lit$point_est_cell_indiv_day, "lnorm", weights = as.numeric(as.character(feed_lit$replicates)))
-d1 <- fitdist(feed_lit$point_est_cell_indiv_day, "norm")
-## check the weights warning...are the weights doing anything??
-set.seed(100)
-h <- hist(feed_lit$point_est_cell_indiv_day) 
-xfit <- seq(0,1000000000,500)
-yfit <- rlnorm(xfit,(d$estimate[1]), (d$estimate[2]) )
-lines(xfit,yfit, col="blue")
+fit_sum_lit_s <- summary(lit_vslope)
+(fit_sum_param_lit_s <- fit_sum_lit_s$summary[c(1:2),])
+t_lit_s <- rstan::extract(lit_vslope,permuted = FALSE)
+m_pred_lit_s <- rbind(t_lit_s[,1,1],t_lit_s[,2,1],t_lit_s[,3,1],t_lit_s[,4,1]) 
 
-yfit <- rnorm(xfit, d1$estimate[1], d1$estimate[2])
-ggplot(data = feed_lit, aes(x=point_est_cell_indiv_day)) + geom_histogram(aes(y=..density..),bins = 10)+ 
-  geom_density(data = data.frame(point_est_cell_indiv_day=yfit))
 
-###hmmmmmmmmmmmmmm this is confusing... why doesnt this work?
+newdat_lit_s <- data.frame(chl = seq(0,1.3, by = 0.002))
 
+pred_out_lit_s <- apply(newdat_lit_s,1,lin2,m= m_pred_lit_s)
+pred_sum_lit_s <- apply(pred_out_lit_s, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower_lit_s <- data.frame(chl = seq(0,1.3, by = 0.002), diff = pred_sum_lit_s[1,])
+upper_lit_s <- data.frame(chl = seq(0,1.3, by = 0.002), diff = pred_sum_lit_s[3,])
+med_lit_s <- data.frame(chl = seq(0,1.3, by = 0.002), diff = pred_sum_lit_s[2,])
+
+lit_g_s <- ggplot(feed_lit2, aes(chl, diff)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_lit_s, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_lit_s, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_lit_s, linetype = "solid", lwd =1.25) + xlab("Chl a (ug/L)") +
+  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Literature Only- Vary Slopes")
+
+print(lit_g_s)
 
 ## parameter just from literature values
 ## two real outlier for food concentration- drop
-feed_lit1 <- feed_lit %>% filter(algal_conc_cellperml < 1000000)
-feed_lit1$replicates <- as.numeric(as.character(feed_lit1$replicates))
-lit_feed_mod <- lm(point_est_cell_indiv_day ~ -1+algal_conc_cellperml, data = feed_lit1, weights = 1/replicates)
-newdat <- data.frame(
-  algal_conc_cellperml = seq(min(feed_lit1$algal_conc_cellperml), max(feed_lit1$algal_conc_cellperml), length =1000),
-  point_est_cell_indiv_day =0,
-  upr =0,
-  lwr = 0
+## don't feel like  i actually need this
+#feed_lit1 <- feed_lit %>% filter(algal_conc_cellperml < 1000000)
+#feed_lit1$replicates <- as.numeric(as.character(feed_lit1$replicates))
+#lit_feed_mod <- lm(point_est_cell_indiv_day ~ -1+algal_conc_cellperml, data = feed_lit1, weights = 1/replicates)
+#newdat <- data.frame(
+  #algal_conc_cellperml = seq(min(feed_lit1$algal_conc_cellperml), max(feed_lit1$algal_conc_cellperml), length =1000),
+  #point_est_cell_indiv_day =0,
+  #upr =0,
+  #lwr = 0
+#)
+#pred <- as.data.frame(predict(lit_feed_mod, newdata = newdat, interval = "confidence"))
+
+#newdat$point_est_cell_indiv_day <- pred$fit
+#newdat$upr <- pred$upr
+#newdat$lwr <- pred$lwr
+
+#(lit_g <- ggplot(feed_lit1, aes(algal_conc_cellperml, point_est_cell_indiv_day)) + geom_point()+
+    #geom_line(data = newdat) + geom_ribbon(data = newdat, aes(ymin=lwr,ymax=upr), alpha = 0.3))
+
+
+
+## Dataframe with all param values  ## doesn't include NLS bc not using that in ODE
+feeding_est <- list(
+  "LS"=lm_pred,
+  "wide" = fit_sum_wide,
+  "vary slope mixed" = fit_sum_mixed,
+  "impute mixed" = fit_sum_mvs,
+  "lit imp" = fit_sum_lit,
+  "lit vary slope" = fit_sum_lit_s
 )
-pred <- as.data.frame(predict(lit_feed_mod, newdata = newdat, interval = "confidence"))
-
-newdat$point_est_cell_indiv_day <- pred$fit
-newdat$upr <- pred$upr
-newdat$lwr <- pred$lwr
-
-(lit_g <- ggplot(feed_lit1, aes(algal_conc_cellperml, point_est_cell_indiv_day)) + geom_point()+
-    geom_line(data = newdat) + geom_ribbon(data = newdat, aes(ymin=lwr,ymax=upr), alpha = 0.3))
 
 
 
-## models: ls, wideprior, mixed, lit only, hyper param?
+## grid with all graphs 
+grid.arrange(feed_nls_sat, feed_ls_g, stan_wide_g, stan_mix_g, stan_mix_imp, lit_g, lit_g_s)
+
+## models: ls, wideprior, mixed, lit only-imp, lit-only-s,  hyper param?

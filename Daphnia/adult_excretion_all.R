@@ -9,6 +9,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 library(shinystan)
 
+##  == mg N/ Daphnia *day
+
 rdat <- read.csv("Daphnia_large_Feeding_Nov11.csv")
 dim(rdat)
 ## get average change in controls by treatment
