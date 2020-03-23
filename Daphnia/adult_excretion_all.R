@@ -80,7 +80,7 @@ plot(seq(0,110,1), newpred6)
 plot(dat1$chl1,dat1$nh4_diff_cc)
 points(seq(0,110,1), newpred6)
 
-## i think has to be 1/a_feed_m to get correct units....
+## i think has to be 1/a_feed_m to get correct units....uh no-
 a_feed_m1 <- 1/a_feed_m
 newmod <- nls(data = dat1, nh4_diff_cc ~ a_feed_m1*chl1*m, start = list(m=1))
 newdata2 = data.frame(chl1 = seq(0,110,1))
