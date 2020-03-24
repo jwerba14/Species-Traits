@@ -288,7 +288,7 @@ stan_mix_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, siz
   geom_line(data = lower_mix, linetype = "dotdash", lwd = 1.25) +
   geom_line(data = upper_mix, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_mix, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
-  ylab("Chl a change/ Daphnia*Day") + ggtitle("Stan: Mixed model")
+  ylab("Chl a change/ Daphnia*hour") + ggtitle("Stan: Mixed model")
 
 print(stan_mix_g)
 
@@ -351,6 +351,7 @@ m_pred_mvs <- rbind(t_mvs[,1,1],t_mvs[,2,1],t_mvs[,3,1],t_mvs[,4,1])
 newdat_mvs <- data.frame(chl1 = seq(0,100))
 
 pred_out_mvs <- apply(newdat_mvs,1,lin2,m= m_pred_mvs)
+
 pred_sum_mvs <- apply(pred_out_mvs, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
 lower_mvs <- data.frame(chl1 = seq(0,100), chl_diff_cc = pred_sum_mvs[1,])
