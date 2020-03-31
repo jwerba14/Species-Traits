@@ -254,17 +254,20 @@ list_mixed <- list(
   title = feed_lit2$Title,
   M = as.numeric(length(unique(feed_lit2$Title)))
 )
-
+{}
 if(!file.exists("RDS_Files/feed.fit.mix.RDS")){
   
-  fit_mixed <- stan(file = "adult_feeding.stan", 
-                    data = list_mixed, chains = 4, 
-                    control = list(adapt_delta = 0.99,
-                                   max_treedepth = 19))
+  fit_mixed <- stan(file = "adult_feeding.stan", init = list(
+    list(sigma = 0.08, sigma_slope = 0.25, slope_bar = 0.32), 
+    list(sigma = 0.12, sigma_slope = 0.21, slope_bar = 0.28),
+    list(sigma = 0.06, sigma_slope = 0.18, slope_bar = 0.35),
+    list(sigma = 0.16, sigma_slope = 0.1, slope_bar = 0.23)),
+                    data = list_mixed, chains = 4, control = list(adapt_delta = 0.99,
+                                   max_treedepth = 22))
   saveRDS(fit_mixed, file = "RDS_Files/feed.fit.mix.RDS")
 } else {
   fit_mixed <- readRDS("RDS_Files/feed.fit.mix.RDS")
-}
+} 
 
 launch_shinystan(fit_mixed)
 

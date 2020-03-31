@@ -79,6 +79,10 @@ lin2 <- function(m,c){
   m*c
 }
 
+lin3 <- function(m,t,c){
+  m*t*c
+}
+
 
 ## exponential
 

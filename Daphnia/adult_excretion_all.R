@@ -9,15 +9,16 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 library(shinystan)
 
+lit <- read.csv("excretion_lit.csv")
 ##  == mg N/ Daphnia *day
 
 rdat <- read.csv("Daphnia_large_Feeding_Nov11.csv")
 dim(rdat)
 ## get average change in controls by treatment
 
-
+## per hour
 cont <- rdat %>% 
-  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60)/24,Nh4_Time_Diff_day = (Nh4_Time_Diff/60)/24) %>%
+  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60),Nh4_Time_Diff_day = (Nh4_Time_Diff/60)) %>%
   filter(control == 2) %>% 
   mutate(chl_diff =(chl1-chl2)/Chl_Time_Diff_day, nh4_diff= (nh42-nh41)/Nh4_Time_Diff_day) %>% # subtract 1 from 2 for change over time
   group_by(Treatment) %>%
@@ -31,7 +32,7 @@ dim(dat)
 
 dat <- dat %>%
   filter(control == 1) %>%
-  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60)/24,Nh4_Time_Diff_day = (Nh4_Time_Diff/60)/24) %>%
+  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60),Nh4_Time_Diff_day = (Nh4_Time_Diff/60)) %>%
   mutate(chl_diff = (chl1-chl2)/Chl_Time_Diff_day, nh4_diff = (nh41-nh42)/Nh4_Time_Diff_day) %>%
   mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)
 dim(dat)
@@ -44,14 +45,15 @@ dim(dat1)
 ggplot(dat1, aes(nh41,nh4_diff_cc)) + geom_point()+geom_smooth(method = "lm")
 ggplot(dat1, aes(chl_diff_cc,nh4_diff_cc)) + geom_point()+ geom_smooth(method = "lm")
 
-lm(data = dat1, nh4_diff_cc ~1/chl_diff_cc)
 
+lm(data = dat1, nh4_diff_cc ~-1+chl_diff_cc)
+## hmm but how would this work in the ODE? Thats confusing...
 
 
 mod_nh4 <- lm(data = dat1, nh4_diff_cc ~ nh41)
 mod_int_only <- lm(data = dat1, nh4_diff_cc ~1)
 mod_sat <- nlxb(data = dat1, nh4_diff_cc ~ (nh41*a)/(nh41+b), start = list(a=1,b=1))
-mod_lm <- lm(data = dat1, nh4_diff_cc ~1/chl_diff_cc)
+mod_lm <- lm(data = dat1, nh4_diff_cc ~-1+chl_diff_cc)
 
 newpred <- sat_fun(k= seq(5,22,.1), a=1667 ,b =9905303)
 
@@ -63,100 +65,62 @@ points(dat1$nh41,dat1$nh4_diff_cc)
 points(seq(5,22,0.1), newpred3)
 points(seq(5,22,0.1), newpred)
 
-newdata1 = data.frame(chl_diff_cc = seq(0,15,0.1))
-newpred5 <- predict(mod_lm, newdata = newdata1)
-plot(seq(0,15,0.1), newpred5)
-plot(dat1$chl_diff_cc,dat1$nh4_diff_cc)
-points(seq(0,15,0.1), newpred5)
-
-## ok so actually I think that excretion has to be a function of the ingestion parameter a_feed_m
-
-a_feed_m = fit_sum_param[1,6]
-
-newmod <- nls(data = dat1, nh4_diff_cc ~ a_feed_m*chl1*m, start = list(m=1))
-newdata2 = data.frame(chl1 = seq(0,110,1))
-newpred6 <- predict(newmod, newdata = newdata2)
-plot(seq(0,110,1), newpred6)
-plot(dat1$chl1,dat1$nh4_diff_cc)
-points(seq(0,110,1), newpred6)
-
-## i think has to be 1/a_feed_m to get correct units....uh no-
-a_feed_m1 <- 1/a_feed_m
-newmod <- nls(data = dat1, nh4_diff_cc ~ a_feed_m1*chl1*m, start = list(m=1))
-newdata2 = data.frame(chl1 = seq(0,110,1))
-newpred6 <- predict(newmod, newdata = newdata2)
-#plot(seq(0,110,1), newpred6)
-plot(dat1$chl1,dat1$nh4_diff_cc)
-points(seq(0,110,1), newpred6)
+newdata1 = data.frame(chl_diff_cc = seq(-0.02,0.75,0.001))
+newpred5 <- data.frame(predict(mod_lm, newdata = newdata1, interval = "confidence"))
+newdata1$nh4_diff_cc <- newpred5$fit
+newdata1$upr <- newpred5$upr
+newdata1$lwr <- newpred5$lwr
+ls_g <- ggplot(dat1, aes(chl_diff_cc, nh4_diff_cc)) + geom_point() + geom_line(data = newdata1) +
+  geom_ribbon(data = newdata1, aes(ymin=lwr, ymax=upr),alpha = 0.3) + ggtitle("LS") +
+  xlab("Chl (ug/L) uptake") + ylab("Excretion N (mg/N)")
+print(ls_g)
 
 
 ### fit in stan
 
 daph_excretion_list <- list(
   "N" = nrow(dat1),
-  "nh4" = dat1$nh41,
-  "diff" = dat1$nh4_diff_cc
-)
-
-
-fit <- stan(file = "adult_excretion.stan", 
-            data = daph_excretion_list)
-
-launch_shinystan(fit)
-
-fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-
-t <- rstan::extract(fit,permuted = FALSE)
-m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
-b_pred <- rbind(t[,1,2],t[,2,2],t[,3,2],t[,4,2]) 
-
-newdat <- data.frame(nh41 = seq(0,20))
-
-pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
-
-with(dat1, plot(nh41, nh4_diff_cc))
-lines(seq(0,20), pred_sum[1,])
-lines(seq(0,20), pred_sum[2,])
-lines(seq(0,20), pred_sum[3,])
-
-saveRDS(fit, file = "adult_exc.RDS")
-fit2 <- readRDS("adult_exc.RDS")
-
-
-
-daph_excretion_list <- list(
-  "N" = nrow(dat1),
   "chl" = dat1$chl_diff_cc,
   "diff" = dat1$nh4_diff_cc
 )
+if(!file.exists("RDS_Files/exc.fit.wide.RDS")){
+  
+  fit <- stan(file = "adult_excretion.stan", 
+              data = daph_excretion_list) 
+  saveRDS(fit, file = "RDS_Files/exc.fit.wide.RDS")
+} else {
+  fit <- readRDS("RDS_Files/exc.fit.wide.RDS")
+}
 
 
-fit <- stan(file = "adult_excretion_update.stan", 
-            data = daph_excretion_list)
 
 launch_shinystan(fit)
 
 fit_sum <- summary(fit)
 (fit_sum_param <- fit_sum$summary[c(1:4),])
-
 t <- rstan::extract(fit,permuted = FALSE)
 m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
-b_pred <- rbind(t[,1,2],t[,2,2],t[,3,2],t[,4,2]) 
 
-newdat <- data.frame(chl1 = seq(0,100))
 
-pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+newdat <- data.frame(chl_diff_cc = seq(0,0.75,0.01))
 
-with(dat1, plot(chl_diff_cc, nh4_diff_cc))
-lines(seq(0,100), pred_sum[1,])
-lines(seq(0,100), pred_sum[2,])
-lines(seq(0,100), pred_sum[3,])
+pred_out_wide <- apply(newdat,1,lin2,m=m_pred)
+pred_sum_wide <- apply(pred_out_wide, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-saveRDS(fit, file = "adult_exc_new.RDS")
-fit2 <- readRDS("adult_exc_new.RDS")
+lower_wide <- data.frame(chl_diff_cc = seq(0,0.75,0.01), nh4_diff_cc = pred_sum_wide[1,])
+upper_wide <- data.frame(chl_diff_cc = seq(0,0.75,0.01), nh4_diff_cc = pred_sum_wide[3,])
+med_wide <- data.frame(chl_diff_cc = seq(0,0.75,0.01), nh4_diff_cc = pred_sum_wide[2,])
+
+stan_wide_ex <- ggplot(dat1, aes(chl_diff_cc, nh4_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Excretion N (mg/N) ") + ggtitle("Stan: Wide Priors")
+
+print(stan_wide_ex)
+
+
+
 
 ## Need to go back through units and check which model is correct before moving onto mixed model 
 #mg N/ daphnia*day
