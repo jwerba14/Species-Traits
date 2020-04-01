@@ -33,9 +33,9 @@ model {
   }
  
     
- sigma ~ student_t(6,0,1.5);  //changed degrees of freedom from 7 to 5-- didnt work worked at 6
+ sigma ~ student_t(6,0,1);  //changed degrees of freedom from 7 to 5-- didnt work worked at 6-- worked for one chain but not when trying to do 4...so tightened again
  slope_bar ~ normal(0,10); 
- sigma_slope ~ student_t(6,0,1.5); //changed sd to 2 from 1
+ sigma_slope ~ student_t(6,0,1); //changed sd to 2 from 1
  er_sigma ~ cauchy(0,3);
  er_sigma ~ cauchy(0,3);
 
