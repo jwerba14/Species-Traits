@@ -1,0 +1,24 @@
+"","Title","Author","nitrification","nit_day","units","sd"
+"1","Global sensitivity analysis in the development of first principal-based eutrophication models","Estrada and Diaz 2010",0.09,0.09,"day^-1",NA
+"2","The development of a multi-species algal ecodynamic model for urban surface water systems and its application","Jia et al 2010",0.09,0.09,"day^-1",NA
+"3","Intensification of pond aquaculture and high rate photosynthetic systems","Brune et al 2003",0.013,NA,"mg N/mg Volitile Solids day",NA
+"4","Quantification of the nitrogen cycle in a prairie stream","Dodds et al 2000",0.2,NA,"mg per meter2 per day",NA
+"5","The influence of ammonium, nitrate, and dissolved oxygen concentrations on uptake, nitrification, and denitrification rates associated with prairie stream substrata","Kemps and Dodds",0.96,NA,"",NA
+"6","Potential nitrification and denitrification on different surfaces in a constructed treatment wetland","Bastviken et al 2003",2.9,2.9,"mg N per g per dry weight day",NA
+"7","Effect of influent COD/N ratio on biological nitrogen removal (BNR) from high-strength ammonium industrial wastewater","Carrera et al 2004",0.029,0.029,"g NH4-N g per VSS per day",0.004
+"8","Effect of influent COD/N ratio on biological nitrogen removal (BNR) from high-strength ammonium industrial wastewater","Carrera et al 2005",0.047,0.047,"g NH4-N g per VSS per day",0.013
+"9","Effect of influent COD/N ratio on biological nitrogen removal (BNR) from high-strength ammonium industrial wastewater","Carrera et al 2006",0.064,0.064,"g NH4-N g per VSS per day",0.018
+"10","Effect of influent COD/N ratio on biological nitrogen removal (BNR) from high-strength ammonium industrial wastewater","Carrera et al 2007",0.14,0.14,"g NH4-N g per VSS per day",0.02
+"11","Effect of influent COD/N ratio on biological nitrogen removal (BNR) from high-strength ammonium industrial wastewater","Carrera et al 2008",0.085,0.085,"g NH4-N g per VSS per day",0.013
+"12","Effect of influent COD/N ratio on biological nitrogen removal (BNR) from high-strength ammonium industrial wastewater","Carrera et al 2009",0.032,0.032,"g NH4-N g per VSS per day",0.007
+"13","Adverse effects of ammonia on nitrification process: the case of chinese shallow freshwater lakes","Chen et al 2010",0.18,0.18,"mgN per liter day",NA
+"14","Adverse effects of ammonia on nitrification process: the case of chinese shallow freshwater lakes","Chen et al 2011",0.05,0.05,"mgN per liter day",NA
+"15","Adverse effects of ammonia on nitrification process: the case of chinese shallow freshwater lakes","Chen et al 2012",0.007,0.007,"mgN per liter day",NA
+"16","Adverse effects of ammonia on nitrification process: the case of chinese shallow freshwater lakes","Chen et al 2013",0.004,0.004,"mgN per liter day",NA
+"17","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2015",55.41,0.949431344,"nmol Nox per gram per hour",2.49
+"18","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2016",8.29,0.142046306,"nmol Nox per gram per hour",1.01
+"19","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2017",11.38,0.194992396,"nmol Nox per gram per hour",0.66
+"20","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2018",118.74,2.03456917,"nmol Nox per gram per hour",24.86
+"21","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2019",146,2.50165992,"nmol Nox per gram per hour",70.97
+"22","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2020",47.97,0.821949496,"nmol Nox per gram per hour",2.6
+"23","Benthic ammonia oxidizers differ in community structure and biogeochemical potential across a riverine delta","Damashek et al 2021",20.33,0.348347577,"nmol Nox per gram per hour",2.2
