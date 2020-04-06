@@ -1,18 +1,12 @@
 ##Top level script for Fecundity
-library(tidyverse)
-library(nlstools)
-library(gridExtra)
-library(fitdistrplus)
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-library(shinystan)
 
-## read in needed functions and graphing set up
-source("../../transfer_functions.R")
-source("../../chl_adj.R")
-source("../../Graphing_Set_Up.R")
+## set working directory
 
+setwd("~/GitHub/Species-Traits/Daphnia/Fecundity")
+
+## set up- loads packages and functions
+
+#source("../set_up.R")
 
 ### read in data and clean data
 
@@ -45,7 +39,7 @@ source("fecundity.hyperparameter.R")
 
 ## stitch together graphs
 
-grid.arrange(nls_fec_g,stan_lit_g,stan_lit_sat_g,stan_wide_g,stan_hyper_g,stan_con_g, nrow=3)
+print(grid.arrange(nls_fec_g,stan_lit_g,stan_lit_sat_g,stan_wide_g,stan_hyper_g,stan_con_g, nrow=3))
 
 ## stitch together parameters
 

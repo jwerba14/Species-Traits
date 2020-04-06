@@ -1,4 +1,6 @@
 ## top level death parameters
+setwd("~/GitHub/Species-Traits/Daphnia/Death")
+
 
 ## fit exponential death with stan 
 library(tidyverse)

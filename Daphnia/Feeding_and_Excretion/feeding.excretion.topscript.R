@@ -1,4 +1,8 @@
 ## feeding and excretion top level script
+
+## 
+setwd("~/GitHub/Species-Traits/Daphnia/Feeding_and_Excretion")
+
 source("../../transfer_functions.R")
 source("../../chl_adj.R")
 source("../../Graphing_Set_Up.R")
