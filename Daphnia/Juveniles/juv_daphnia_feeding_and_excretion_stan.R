@@ -8,7 +8,7 @@ dim(rdatj)
 
 cont <- rdatj %>% 
   filter(Control.Y.N == "Y") %>% 
-  mutate(chl_diff =((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff= ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%  
+  mutate(chl_diff =((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff= ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%   ##1440 is to convert by per min to per day
   group_by(Treatment) %>%
   summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
 dim(cont)
