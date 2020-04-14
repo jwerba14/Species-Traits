@@ -30,14 +30,14 @@ param <- read.csv(here("RDS_compiled/parameters_no_cerio.csv"))
 parameters <- c(
   alpha = 0.2339,    #mg N/(ug chl*day)
   kappa = 0.639,  # 0.2153469,    #mg N
-  e =  12,               #ug chl/mgN
+  epsilon =  12,               #ug chl/mgN
   death1 = 2.4,         # 1/day
   fa = median(param$a_feed_m),       # ug chl/(daphniaA*day)
   fj = median(param$j_feed_m),       # ug chl/(daphniaj*day)
   rho = 0.0785709,                    # mg N/ chl
   camm = 1- median(param$amm_param_b),     # 1/day
-  xa = median(param$a_exc_m),       # mg N/ (daphniaA*day) 
-  xj= median(param$j_exc_m),        # mg N/ (daphniaJ*day) 
+  xa = median(param$a_exc_m),       # mg N/ (daphniaA*day) ##mmm no bc fit with chl double check param
+  xj= median(param$j_exc_m),        # mg N/ (daphniaJ*day) ##mmm no bc fit with chl double check param
   g1 =median(param$growth_a),        # daphniaD/(daphniaJ*day)
   g2=median(param$growth_b),         # ug chl
   #g1 = 1/4.8,
@@ -72,12 +72,12 @@ full_equations <-function(t, state, parameters) {
       
       
     #daphnia adults are added from growth by juveniles and are lost from death
-    ddaph_a <- - daph_a*death3 +(g1*algae)/(g2+algae)  #+daph_j*g1
+    ddaph_a <- - daph_a*death3 +(g1*algae)/(g2+algae)  #+daph_j*g1 ## wrong...should be growth * daphj?
     
     
     
     # algae is added from growth based on uptake of ammonium 
-    dalgae <- (alpha*ammonium)/(kappa+ammonium)*algae*e - death1*algae- daph_a*fa - daph_j*fj
+    dalgae <- (alpha*ammonium)/(kappa+ammonium)*algae*epsilon - death1*algae- daph_a*fa - daph_j*fj
       
     
     

@@ -1,10 +1,10 @@
 devtools::install_github("parksw3/boms")
 library(rstan)
-library(tidyr)
-library(dplyr)
-library(boms)
+library(tidyverse)
+#library(boms)
+library(brms)
 
-dat_nit_27 <- read.csv("JoData.csv")
+dat <- read.csv("../Data/Algae_Nutrient.csv")
 
 dat_nit_27_mod <- dat %>%
   filter(treat == 27) %>%
@@ -12,7 +12,7 @@ dat_nit_27_mod <- dat %>%
 	gather(key, value, -date1, -rep) %>%
 	mutate(
 		delta=as.numeric(factor(key))-1
-	)
+	)  ## put both state variables in the same row but added column (delta to delineate 1 or 0)
 
 jo_model <- make_model(
 	grad = list(
@@ -31,26 +31,28 @@ jo_model <- make_model(
 	family="gaussian"
 ) 
 
-jo_boms_code <- make_stancode_boms(
-	jo_model,
-	effect=list(
-		alpha ~ 1,
-		beta ~ 1,
-		omega ~ 1,
-		gamma ~ 1, 
-		death1 ~ 1,
-		death2 ~ 1,
-		sigma ~ -1 + key
-	),
-	prior=list(
-		alpha ~ exponential(0.1),
-		beta ~ exponential(0.1),
-		omega ~ exponential(0.1),
-		gamma ~ exponential(0.1),
-		death1 ~ exponential(0.1),
-		death2 ~ exponential(0.1)
-	)
-)
+#jo_boms_code <- make_stancode_boms(
+	#jo_model,
+#	effect=list(
+		#alpha ~ 1,
+	#	beta ~ 1,
+#		omega ~ 1,
+	#	gamma ~ 1, 
+	#	death1 ~ 1,
+	#	death2 ~ 1,
+	#	sigma ~ -1 + key
+#	),
+#	prior=list(
+#		alpha ~ exponential(0.1),
+	#	beta ~ exponential(0.1),
+	#	omega ~ exponential(0.1),
+	#	gamma ~ exponential(0.1),
+	#	death1 ~ exponential(0.1),
+	#	death2 ~ exponential(0.1)
+#	)
+#)
+
+jmod <-rstan::stan_model(file = "boms2.stan") 
 
 jo_boms_data <- make_standata_boms(
 	jo_model,
@@ -72,11 +74,13 @@ jo_boms_data <- make_standata_boms(
 		death2 ~ exponential(0.1)
 	)
 )
+
+
 jo_boms_data[[1]] <- NULL
 
 sm <- rstan::stan_model(file = "boms2.stan")
 
-samp <- rstan::sampling(sm, data = jo_boms_data, chains = 1, iter = 2000, refresh = 1)
+samp <- rstan::sampling(sm, data = jo_boms_data, chains = 1, iter = 2000, refresh = 1) ## hmm extremely slow...like not worth running slow
 
 library(bayesplot)
 plot(samp)

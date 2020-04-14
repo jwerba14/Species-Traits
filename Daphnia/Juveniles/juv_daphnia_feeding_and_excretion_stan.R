@@ -1,14 +1,29 @@
 ## juvenile daphnia feeding and excretion
-source("../transfer_functions.R")
-source("../Graphing_Set_Up.R")
+source("../../transfer_functions.R")
+source("../../Graphing_Set_Up.R")
 library(tidyverse)
+library(nlmrt)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+library(shinystan)
+library(gridExtra)
+
+### hmm some problems with cc change-- need to double check
 
 rdatj <- read.csv("Small_Daph_Feeding.csv")
+ ## missing data for treatments 6 and 7, if I can get back into lab can find missing data...for now drop
+
+names(rdatj)[names(rdatj)=="Rep.."] <- "Rep"
+
+rdatj <- rdatj %>% 
+  filter(!is.na(Chl_Time_Diff)) 
 dim(rdatj)
 
 cont <- rdatj %>% 
+  mutate(chl_time_diff_h = Chl_Time_Diff/60, nh4_time_diff_h = Nh4_Time_Dif/60 ) %>%
   filter(Control.Y.N == "Y") %>% 
-  mutate(chl_diff =((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff= ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%   ##1440 is to convert by per min to per day
+  mutate(chl_diff =((Chl.1-Chl.2)/chl_time_diff_h), nh4_diff= ((Nh4.1-Nh4.2)/nh4_time_diff_h)) %>% ## change per hour
   group_by(Treatment) %>%
   summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
 dim(cont)
@@ -16,15 +31,20 @@ dim(cont)
 ## add mean control avg back to main dataframe
 dat <- left_join(rdatj,cont)
 dim(dat)
-## account for controls
+
+## need to add in diff from control bc if positive algae grew so indiv actually ate more if neg indiv ate less???
 
 dat <- dat %>%
-  mutate(chl_diff = ((Chl.1-Chl.2)/Chl_Time_Diff)*1440, nh4_diff = ((Nh4.2-Nh4.1)/Nh4_Time_Dif)*1440) %>%
-  mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)  ## need to add in diff from control bc if positive algae grew so indiv actually ate more if neg indiv ate less
+  filter(Control.Y.N == "N") %>%
+  mutate(chl_time_diff_h = (Chl_Time_Diff/60),nh4_time_diff_h = (Nh4_Time_Dif/60)) %>%
+  mutate(chl_diff = (Chl.1-Chl.2)/chl_time_diff_h, nh4_diff = (Nh4.1-Nh4.2)/nh4_time_diff_h) %>%
+  mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)
+dim(dat)
 
-dat1 <- dat %>% filter(Control.Y.N == "N") %>% filter(!is.na(chl_diff_cc)) %>% 
-  filter(!is.na(nh4_diff_cc)) %>% filter(nh4_diff_cc > -5) %>% ## remove one weird measurement
-  select(Rep.., Treatment,Chl.1,Nh4.1, chl_diff_cc,nh4_diff_cc, Num_Daphnia)
+
+
+dat1 <- dat %>%  filter(nh4_diff_cc > -5) %>% ## remove one weird measurement
+  dplyr::select(Rep, Treatment,Chl.1,Nh4.1, chl_diff_cc,nh4_diff_cc, Num_Daphnia)
 
 #ggplot(dat1, aes(Chl.1,chl_diff_cc)) + geom_point()
 
@@ -48,143 +68,102 @@ j_feed_g <- ggplot(data = dat1, aes(Chl.1, chl_diff_cc)) + geom_point() +
 
 print(j_feed_g)
 
-## fit in stan
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-
-
-
-daph_grow_list <- list(
-  "N" = nrow(dat1),
-  "chl" = dat1$Chl.1,
-  "diff" = dat1$chl_diff_cc
-)
-fit <- stan(file = "adult_feeding.stan", 
-            data = daph_grow_list)
-
-library(shinystan)
-launch_shinystan(fit)
-saveRDS(fit, file = "juv_feeding.RDS")
-
-fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-
-t <- rstan::extract(fit,permuted = FALSE)
-m_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
-b_pred <- rbind(t[,1,2],t[,2,2],t[,3,2],t[,4,2]) 
-
-newdat <- data.frame(chl1 = seq(0,25))
-
-pred_out <- apply(newdat,1,lin,m= m_pred, b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
-
-
 
 ## ammonium excretion
 
-lm(data=dat1[dat1$nh4_diff_cc < 0 ,], nh4_diff_cc/chl_diff_cc ~ 1)
+#lm(data=dat1[dat1$nh4_diff_cc < 0 ,], nh4_diff_cc/chl_diff_cc ~ 1)
 
 
-ggplot(dat1, aes(Nh4.1,nh4_diff_cc/Chl.1)) + geom_point()+geom_smooth(method = "lm")
-mod_nh4 <- lm(data = dat1, nh4_diff_cc ~ Nh4.1)
-mod_int_only <- lm(data = dat1, nh4_diff_cc ~1)
-pred <- predict(mod_int_only)
-with(dat1, plot(Nh4.1,nh4_diff_cc))
-lines(pred)
+#ggplot(dat1, aes(Nh4.1,nh4_diff_cc/Chl.1)) + geom_point()+geom_smooth(method = "lm")
+#mod_nh4 <- lm(data = dat1, nh4_diff_cc ~ Nh4.1)
+#mod_int_only <- lm(data = dat1, nh4_diff_cc ~1)
+#pred <- predict(mod_int_only)
+#with(dat1, plot(Nh4.1,nh4_diff_cc))
+#lines(pred)
 
-library(nlmrt)
-mod_sat <- nlxb(data = dat1, nh4_diff_cc ~ (Nh4.1*a)/(Nh4.1+b), start = list(a=1,b=1))
+
+#mod_sat <- nlxb(data = dat1, nh4_diff_cc ~ (Nh4.1*a)/(Nh4.1+b), start = list(a=1,b=1))
 
 ##newpred <- sat_fun(k= seq(5,25,.1), a= -0.00161455 ,b =15.609)
 
 
-newdata = data.frame(Nh4.1 = seq(5,25,0.1))
-newpred2 <- predict(mod_nh4, newdata = newdata)
-newpred3 <- predict(mod_int_only, newdata = newdata)
-plot(dat1$Nh4.1,dat1$nh4_diff_cc)
-points(seq(5,25,0.1), newpred2)
+#newdata = data.frame(Nh4.1 = seq(5,25,0.1))
+#newpred2 <- predict(mod_nh4, newdata = newdata)
+#newpred3 <- predict(mod_int_only, newdata = newdata)
+#plot(dat1$Nh4.1,dat1$nh4_diff_cc)
+#points(seq(5,25,0.1), newpred2)
 
-points(seq(5,25,0.1), newpred3)
-points(seq(5,25,0.1), newpred)
+#points(seq(5,25,0.1), newpred3)
+#points(seq(5,25,0.1), newpred)
 
-### fit in stan
+## fit in stan
+daph_feex_listj <- 
+  list(
+    N = nrow(dat1),
+    chl = dat1$Chl.1,
+    diff_chl = dat1$chl_diff_cc,
+    diff_nh4 = dat1$nh4_diff_cc
+  )
 
-daph_excretion_list <- list(
-  "N" = nrow(dat1),
-  ##"nh4" = dat1$Nh4.1,
-  "diff" = dat1$nh4_diff_cc
+
+## same as adult model, should I force excretion to be about 0?? 
+##we really can't estimate it unfortunately-- could add in machine error (~2mg, and force above 0)?
+
+if(!file.exists("../RDS_Files/feed_Exc.fit.j.RDS")){
+  
+  fit_j <- stan(file = "feed_exc_j.stan",  
+                data = daph_feex_listj, verbose = F, chains = 4)  
+  saveRDS(fit_j, file = "../RDS_Files/feed_Exc.fit.j.RDS")
+} else {
+  fit_j <- readRDS("../RDS_Files/feed_Exc.fit.j.RDS")
+}
+
+## launch_shinystan(fit_j)
+t_j <- rstan::extract(fit_j,permuted = FALSE)
+fit_sum_fej <- summary(fit_j)
+fit_sum_param_fej <- fit_sum_fej$summary[c(1:4),]
+
+slope_feeding_j <- rbind(t_j[,1,1],t_j[,2,1], t_j[,3,1], t_j[,4,1]) ## all rows, all chains 
+
+
+newdat_fej<- data.frame(Chl.1 = seq(1,35))
+
+pred_feed_fej <- apply(newdat_fej,1,lin2,m=slope_feeding_j)
+pred_feed_sum_fej <- apply(pred_feed_fej, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+
+lower_fej <- data.frame(Chl.1 = seq(1,35), chl_diff_cc = pred_feed_sum_fej[1,])
+
+upper_fej <- data.frame(Chl.1 = seq(1,35), chl_diff_cc = pred_feed_sum_fej[3,])
+med_fej <- data.frame(Chl.1 = seq(1,35), chl_diff_cc = pred_feed_sum_fej[2,])
+
+stan_fej_g <- ggplot(dat1, aes(Chl.1, chl_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_fej, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_fej, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_fej, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Chl (ug/L) per Daphnia*hr ") + ggtitle("A. Juvenile Feeding Fit with Excretion ")
+
+#print(stan_fej_g)
+
+## graph excretion
+slope_exc_j <- rbind(t_j[,1,3],t_j[,2,3], t_j[,3,3], t_j[,4,3])
+
+newdat_1 <- data.frame(Chl.1 = seq(1,50)
 )
 
+pred_exc_j <- apply(newdat_1,1,lin3, m=slope_exc_j, t=slope_feeding_j )
+pred_exc_sum_j <- apply(pred_exc_j, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
-fit <- stan(file = "intercept_only_excretion.stan", 
-            data = daph_excretion_list, chains = 4, control = list(adapt_delta=0.9), iter = 5000 )
+lower_wide_jx <- data.frame(Chl.1 = seq(1,50), nh4_diff_cc = pred_exc_sum_j[1,], chl_diff_cc = seq(0.01,.28,0.0055))
+upper_wide_jx <- data.frame(Chl.1 = seq(1,50), nh4_diff_cc = pred_exc_sum_j[3,], chl_diff_cc =  seq(0.01,.28,0.0055))
+med_wide_jx <- data.frame(Chl.1 = seq(1,50), nh4_diff_cc = pred_exc_sum_j[2,], chl_diff_cc =  seq(0.01,.28,0.0055))
 
-launch_shinystan(fit)
+stan_wideexj_g <- ggplot(dat1, aes(chl_diff_cc, nh4_diff_cc)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_wide_jx, linetype = "dotdash", lwd = 1.25) +
+  geom_line(data = upper_wide_jx, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_wide_jx, linetype = "solid", lwd =1.25) + xlab("Change in Chlorophyll a (ug/L)/ Daphnia*hr") +
+  ylab("Nh4 (mg/L) perDaphnia*hr ") + ggtitle("B. Juvenile Excretion Wide Priors")
 
-saveRDS(fit, file = "juv_exec.RDS")
-
-fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-
-t <- rstan::extract(fit,permuted = FALSE)
-b_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
- 
-
-newdat <- data.frame(Nh4.1 = seq(0,25))
-
-pred_out <- apply(newdat,1,lin, b=b_pred)
-pred_sum <- apply(pred_out, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
+#print(stan_wideexj_g)
 
 
-with(dat1, plot(Nh4.1, nh4_diff_cc))
-lines(seq(0,25), rep(median(b_pred[,1]), 26))
-lines(seq(0,25), rep(quantile(b_pred[,1],c(0.025)),26))
-lines(seq(0,25), rep(quantile(b_pred[,1],c(0.975)),26))
-
-
-
-daph_excretion_list <- list(
-  "N" = nrow(dat1),
-  ##"nh4" = dat1$Nh4.1,
-  "diff" = dat1$nh4_diff_cc
-)
-
-
-fit <- stan(file = "intercept_only_excretion.stan", 
-            data = daph_excretion_list, chains = 4, control = list(adapt_delta=0.9), iter = 5000 )
-
-launch_shinystan(fit)
-
-saveRDS(fit, file = "juv_exec.RDS")
-
-
-## excretion update
-dat2 <- dat1 %>% filter(Treatment > 4)
-
-daph_excretion_list <- list(
-  "N" = nrow(dat2),
-  "chl" = dat2$chl_diff_cc,
-  "diff" = dat2$nh4_diff_cc
-)
-
-
-fit <- stan(file = "adult_excretion_update.stan", 
-            data = daph_excretion_list, chains = 4, control = list(adapt_delta=0.9), iter = 5000 )
-
-launch_shinystan(fit)
-fit_sum <- summary(fit)
-(fit_sum_param <- fit_sum$summary[c(1:4),])
-
-t <- rstan::extract(fit,permuted = FALSE)
-b_pred <- rbind(t[,1,1],t[,2,1],t[,3,1],t[,4,1]) 
-
-
-saveRDS(fit, file = "juv_exec_update.RDS")
-
-with(dat2, plot(chl_diff_cc, nh4_diff_cc))
-lines(seq(0,25), rep(median(b_pred[,1]), 26))
-lines(seq(0,25), rep(quantile(b_pred[,1],c(0.025)),26))
-lines(seq(0,25), rep(quantile(b_pred[,1],c(0.975)),26))
-
-
+grid.arrange(stan_fej_g, stan_wideexj_g)
