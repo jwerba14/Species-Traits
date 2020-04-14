@@ -37,10 +37,15 @@ ode_list <- list(
 
 
 ode_apr10 <- stan_model(file = "nitalg.ode.apr10.stan", model_name = "ode_apr10", verbose = T)
-estimates <- sampling(object = ode_apr10,
-                      data = ode_list, chains = 4,
-                      control = list(adapt_delta = 0.95,
-                                          max_treedepth = 15))
+
+checktime <- system.time({
+  estimates <- sampling(object = ode_apr10,
+                        data = ode_list, chains = 4,
+                        control = list(adapt_delta = 0.99,
+                                       max_treedepth = 15))
+  
+})
+
 
 ## 2 divergent transitions in all 4 chains bc not final model at not at adapt_delta = 0.95 not going to worry about
 ## it for now
