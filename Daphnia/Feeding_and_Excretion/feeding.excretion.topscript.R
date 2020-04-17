@@ -52,11 +52,11 @@ stan_wideex_g
 
 ## compile parameters
 feed_exc_est <- list(
-  "mixed_model_vs" = fit_sum_mixed,
-  "wide_prior"=fit_sum_wide,
-  "lit_imp" = fit_sum_lit,
-  "lit_vs" = fit_sum_lit_s,
-  "mixed_imp" = fit_sum_mimp
+  "mixed_model_vs" = fit_sum_param_mixed,
+  "wide_prior"=fit_sum_param_wide,
+  "lit_imp" = fit_sum_param_lit,
+  "lit_vs" = fit_sum_param_lit_s,
+  "mixed_imp" = fit_sum_param_mimp
 )
 
 

@@ -21,8 +21,8 @@
 ## treat 14 - daphnia, cerio and snail disturb 2,16,20,43,48,53,65,109,124, 134
 library(tidyverse)
 
-dat <- read.csv("Master_Data.csv")
-pop <- read.csv("Counts.csv")
+dat <- read.csv("../Master_Data/Master_Data.csv")
+pop <- read.csv("../Master_Data/Counts.csv")
 
 dat <- dat %>% filter(TankNum != "NA")
 dat$treatment <- 0

@@ -1,12 +1,13 @@
 library(tidyverse)
 library(lme4)
 library(brms)
+library(fitdistrplus)
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 source("../Graphing_Set_Up.R")
 
-ammonium <- read.csv("Nh4_Air.csv")
+ammonium <- read.csv("Data/Nh4_Air.csv")
 #remove replicates that spilled (e.g NH4 == NA)
 
 ammonium <- ammonium %>% drop_na()
@@ -60,42 +61,19 @@ amm_mod3 <- lmer(data = amm4, diff ~ 1+(1|Rep), weights = weights_scaled) ## fix
 
 am1s <- summary(amm_mod3)
 
-#std error not ci 
-dat_nls_g <- ggplot(amm4, aes(lag(NH4), diff)) + geom_point() + 
-  geom_hline(yintercept = am1s$coefficients[1]) + 
-  geom_hline(yintercept = am1s$coefficients[1]-am1s$coefficients[2],linetype = "dotdash")+
-  geom_hline(yintercept = am1s$coefficients[1]+am1s$coefficients[2], linetype = "dotdash")+
+pp <- data.frame(confint(amm_mod3))
+
+# ci 
+dat_nls_g <- ggplot(amm4, aes(lag(NH4), diff)) + geom_point(aes(color =as.factor(Treat))) + 
+  geom_hline(yintercept = am1s$coefficients[1] ) + 
+  geom_hline(yintercept = pp$X2.5..[3],linetype = "dotdash")+
+  geom_hline(yintercept = pp$X97.5..[3], linetype = "dotdash")+
   ggtitle("NLS:Lab Data Only")
-print(dat_nls_g)
 
-ggplot(data = amm, aes(lag(NH4), (diff))) + geom_point(aes(color= as.factor(Rep))) + geom_smooth(method = "lm") 
+print(dat_nls_g)  ## it is dropping the reps of day 1 I assume...so no diff/lag
+
+
 amm5 <- amm4 %>% filter(!is.na(diff))
-
-
-## bayesian model
-
-prs <- prior(lognormal(-1.79,1.87), class='Intercept')  # where did these priors come from??? 
-ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data =amm5, family = gaussian(),
-          control = list(adapt_delta = 0.95), prior=prs)
-stancode(ff)
-ff1 <- summary(ff)
-launch_shinystan(ff)
-
-saveRDS(ff, file = "ammonium.RDS")
-
-samples <- posterior_samples(ff)
-
-samplesb <- samples %>% select(b_Intercept)
-mean(samplesb[,1])
-samples_sigma <- samples %>% select(sigma)
-mean(samples_sigma[,1])
-
-
-with(amm[-c(30,108,113),], plot(NH4, diff))
-lines(seq(0,25), rep(median(samplesb[,1]),26))
-lines(seq(0,25), rep(quantile(samplesb[,1], c(0.025)),26))
-lines(seq(0,25), rep(quantile(samplesb[,1], c(0.975)),26))
-
 
 
 
@@ -104,14 +82,63 @@ lines(seq(0,25), rep(quantile(samplesb[,1], c(0.975)),26))
 #lit <- read.csv("../literature_extraction.csv")
 
 #litamm <- lit %>% 
-  #filter(!is.na(nitrification)) %>%
+#filter(!is.na(nitrification)) %>%
 # dplyr::select(Title, Authors, nitrification,convert_mg_N_day, units.6,sd.2 )
 
 #names(litamm) <- c("Title", "Author", "nitrification", "nit_day", "units", "sd")
 
 #write.csv(litamm, file = "lit_amm.csv")
 
-lita <- read.csv("lit_amm.csv")
+lita <- read.csv("Data/lit_amm.csv")
+lit <- lita %>% filter(!is.na(nit_day))
 
-ggplot(lita, aes())
+dd <- fitdist(lit$nit_day, distr = "lnorm")
+
+
+
+## bayesian model
+
+
+
+if(!file.exists("RDS/ammonium.RDS")){
+  
+  prs <- prior(lognormal(-1.971344,1.764047), class='Intercept')  # priors from literature
+  ff <- brm(diff|weights(weights_scaled) ~ 1+ (1|Rep), data =amm5, family = gaussian(),
+            control = list(adapt_delta = 0.95), prior=prs)
+  
+  saveRDS(ff, file ="RDS/ammonium.RDS" )
+} else {
+  ff<- readRDS("RDS/ammonium.RDS")
+}
+
+
+
+#stancode(ff)
+
+ff1 <- summary(ff)
+launch_shinystan(ff)
+
+
+samples <- posterior_samples(ff)
+
+samplesb <- samples %>% dplyr::select(b_Intercept)
+
+samplesbs <- samplesb %>%
+  summarize(med = median(b_Intercept), lwr = quantile(b_Intercept, 0.025), upp = quantile(b_Intercept,0.975))
+
+
+
+ammpl <- ggplot(amm4, aes(lag(NH4), diff)) +  geom_point(aes(color =as.factor(Treat))) + 
+  geom_hline( yintercept = samplesbs$med) + 
+  geom_hline( yintercept = samplesbs$lwr, linetype = "dotdash")+
+  geom_hline( yintercept = samplesbs$upp, linetype = "dotdash")+
+  ggtitle("Stan: Priors built from literature")
+
+
+print(ammpl)
+
+
+
+
+
 

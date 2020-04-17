@@ -8,7 +8,7 @@ functions {
         )
         {
             real dydt[2];
-            dydt[1] = -(y[2] * y[1]* p[1] / (p[2]+y[1])) + p[3]*p[4]*y[2] - p[6]*y[1];
+            dydt[1] = -(y[2] * y[1]* p[1] / (p[2]+y[1])) + p[3]*p[4]*y[2] - .028*y[1];
             dydt[2] = (y[2] * y[1]* p[1] / (p[2]+y[1]))*p[5] - p[4]*y[2];
             return dydt;
         }
@@ -30,7 +30,7 @@ transformed data {
 parameters {
     real<lower=0> y0[2]; // init
     vector<lower=0>[2] sigma;
-    real<lower=0> p[6];
+    real<lower=0> p[5];
 }
 
 
@@ -43,12 +43,11 @@ transformed parameters {
 
 model {
     sigma ~ normal(0, 1);
-    p[1] ~ lognormal(0,1);
-    p[2] ~ lognormal(0,1);
-    p[3] ~ lognormal(0,1);
-    p[4] ~ lognormal(0,1);
-    p[5] ~ lognormal(0,1);
-    p[6] ~ lognormal(0,1);
+    p[1] ~ lognormal(0,0.5);
+    p[2] ~ lognormal(0,0.5);
+    p[3] ~ lognormal(0,0.5);
+    p[4] ~ lognormal(0,0.5);
+    p[5] ~ lognormal(0,0.5);
     y0[1] ~ normal(0, 10);
     y0[2] ~ normal(0, 10);
     for (t in 1:N)

@@ -1,17 +1,5 @@
 ## growth rate
 
-library(tidyverse)
-library(gridExtra)
-
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-library(shinystan)
-
-
-source("../../transfer_functions.R")
-source("../../Graphing_Set_Up.R")
-
 daph <- read.csv("daphnia_lifetime.csv")
 
 ## remove initial daphnia that came from the lab population (not raised in the food conditions of interest)
@@ -116,4 +104,4 @@ growth_g <- ggplot(daph_growth_curves, aes(day, adults)) + geom_point(alpha = 0.
                      strip.background = element_blank()) 
 
 
-grid.arrange(growth_g, grg)
+

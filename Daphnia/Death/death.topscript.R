@@ -36,7 +36,7 @@ grid.arrange(lit_g, wide_g, inf_g)
 
 ##combine parameters
 death_est <- list(
-  "lit only" = dd,
+  "lit only" = pp, ## for now only unweighted...
   "wide_prior"=fit_sum_param_d,
   "informed" = fit_sum_param_inf
 )

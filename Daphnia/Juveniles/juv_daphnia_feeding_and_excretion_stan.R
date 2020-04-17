@@ -2,12 +2,6 @@
 source("../../transfer_functions.R")
 source("../../Graphing_Set_Up.R")
 library(tidyverse)
-library(nlmrt)
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-library(shinystan)
-library(gridExtra)
 
 ### hmm some problems with cc change-- need to double check
 
@@ -90,11 +84,7 @@ print(j_feed_g)
 #newdata = data.frame(Nh4.1 = seq(5,25,0.1))
 #newpred2 <- predict(mod_nh4, newdata = newdata)
 #newpred3 <- predict(mod_int_only, newdata = newdata)
-#plot(dat1$Nh4.1,dat1$nh4_diff_cc)
-#points(seq(5,25,0.1), newpred2)
 
-#points(seq(5,25,0.1), newpred3)
-#points(seq(5,25,0.1), newpred)
 
 ## fit in stan
 daph_feex_listj <- 
@@ -166,4 +156,4 @@ stan_wideexj_g <- ggplot(dat1, aes(chl_diff_cc, nh4_diff_cc)) + geom_point(alpha
 #print(stan_wideexj_g)
 
 
-grid.arrange(stan_fej_g, stan_wideexj_g)
+

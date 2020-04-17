@@ -23,3 +23,9 @@ lit_g <- ggplot(daph_surv_curves, aes(day, frac_surv)) + geom_point(alpha = 0.6,
   theme(legend.position = c(0.15,0.25),
         legend.direction = "vertical",
         legend.background = element_blank()) 
+
+
+
+## for now only unweighted
+pp<-quantile(dat$daphnia_survival, c(0.025,0.50,0.975))
+
