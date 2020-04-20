@@ -1,8 +1,8 @@
 ## read in Daphnia parameters
 ## this script needs to be broken up
 library(gridExtra)
+library(deSolve)
 source("../Graphing_Set_Up.R")
-
 daph <- read.csv("../Daphnia/daphnia_params.csv")
 
 ## graph param estimates comparing 3 methods
@@ -11,14 +11,7 @@ daph <- read.csv("../Daphnia/daphnia_params.csv")
 ## read in algal/nit parameters... clean version doesn't exisit yet
 ## these are still running so for now use old fits without error 
 
-alg_param <- list(
-a = 0.2339,   
-k = 0.639,  
-f =  12,               
-l = 0.078,
-c = .028,
-death1 = 1/26,
-death3 =24.4)
+alg_param <- read.csv("../Nitrogen_Algae/algal_parameters.csv")
 
 ## full ode
 source("full_ode.R")
@@ -29,6 +22,8 @@ state <- c(
   daph_a = 20,
   algae  = 20
 )
+
+daph <- read.csv("../Daphnia/daphnia_params.csv")
 
 ## run with params from our lab data only
 daph_med <- daph %>% filter(method == "dat_only") %>% filter(quant == "median") %>% dplyr::select(param, value)

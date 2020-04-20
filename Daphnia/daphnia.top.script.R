@@ -23,7 +23,7 @@ source("Feeding_and_Excretion/feeding.excretion.topscript.R")
 
 # Juevenile growth rate, feeding and excretion
 setwd("~/GitHub/Species-Traits/Daphnia")
-source("Juvenile/juveniles.topscript.R")
+source("Juveniles/juveniles.topscript.R")
 
 
 
@@ -48,15 +48,15 @@ param_daphnia_dat_only <- data.frame(
  death2_median = death_est$wide_prior[1,6], 
  death2_lwr =death_est$wide_prior[1,4],
  death2_upr = death_est$wide_prior[1,8],
- hj_median =fit_sum_param_fej[1,6],
- hj_lwr =fit_sum_param_fej[1,4],
- hj_upr = fit_sum_param_fej[1,8],
+ hj_median =fit_sum_param_fej0[1,6],
+ hj_lwr =fit_sum_param_fej0[1,4],
+ hj_upr = fit_sum_param_fej0[1,8],
  g_median = fit_sum_paramg[1,6] ,
  g_lwr = fit_sum_paramg[1,4],
  g_upr = fit_sum_paramg[1,8], 
- xj_median = fit_sum_param_fej[3,6],
- xj_lwr = fit_sum_param_fej[3,4],
- xj_upr = fit_sum_param_fej[3,8]
+ xj_median = fit_sum_param_fej0[3,6],
+ xj_lwr = fit_sum_param_fej0[3,4],
+ xj_upr = fit_sum_param_fej0[3,8]
  
 )
 
@@ -83,15 +83,15 @@ param_daphnia_lit_only <- data.frame(
   death2_median = pp[2], 
   death2_lwr =pp[1],
   death2_upr = pp[3],
-  hj_median =fit_sum_param_fej[1,6],
-  hj_lwr =fit_sum_param_fej[1,4],
-  hj_upr = fit_sum_param_fej[1,8],
+  hj_median =fit_sum_param_fej0[1,6],
+  hj_lwr =fit_sum_param_fej0[1,4],
+  hj_upr = fit_sum_param_fej0[1,8],
   g_median = fit_sum_paramg[1,6] ,
   g_lwr = fit_sum_paramg[1,4],
   g_upr = fit_sum_paramg[1,8], 
-  xj_median = fit_sum_param_fej[3,6],
-  xj_lwr = fit_sum_param_fej[3,4],
-  xj_upr = fit_sum_param_fej[3,8]
+  xj_median = fit_sum_param_fej0[3,6],
+  xj_lwr = fit_sum_param_fej0[3,4],
+  xj_upr = fit_sum_param_fej0[3,8]
 
 )
 
@@ -124,9 +124,9 @@ param_daphnia_mixed <- data.frame(
   g_median = fit_sum_paramg[1,6] ,
   g_lwr = fit_sum_paramg[1,4],
   g_upr = fit_sum_paramg[1,8], 
-  xj_median = fit_sum_param_fej[3,6],
-  xj_lwr = fit_sum_param_fej[3,4],
-  xj_upr = fit_sum_param_fej[3,8]
+  xj_median = fit_sum_param_fej0[3,6],
+  xj_lwr = fit_sum_param_fej0[3,4],
+  xj_upr = fit_sum_param_fej0[3,8]
 )
 
 

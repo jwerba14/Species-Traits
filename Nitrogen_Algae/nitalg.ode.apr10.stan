@@ -2,7 +2,7 @@ functions {
     real[] myodes(
         real t, //time
         real[] y,  //state y[1] = ammonium y[2] = chlorophyll
-        real[] p, //parameters  // p[1]=alpha;  p[2] = kappa p[3] = r p[4]=death p[6]= ammloss p[5] = e  //lets remove p6 for now
+        real[] p, //parameters  // p[1]=a;  p[2] = k p[3] = l p[4]=death1  p[5] = f 
         real[] x_r, //data real
         int[] x_i // data integer
         )

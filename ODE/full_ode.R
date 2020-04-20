@@ -14,7 +14,7 @@ full_ODE <-function(t, state, parameters) {
     
     
     #daphnia adults are added from growth by juveniles and are lost from death
-    ddaph_a <- -daph_a*1/death2 + daph_j*g 
+    ddaph_a <- -daph_a*(1/death2) + daph_j*(1/g) 
     
     
     

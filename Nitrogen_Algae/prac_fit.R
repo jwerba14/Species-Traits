@@ -29,10 +29,10 @@ dat_27a <- d2 %>%
 ode_apr10 <- stan_model(file = "nitalg.ode.apr10.stan", model_name = "ode_apr10", verbose = T)
 d2$treat1 <- as.numeric(as.factor(d2$treat))
 
-for (i in 2:length(unique(d2$treat1))){
-  newdat <- d2 %>% filter(treat1 == i)
+for (i in 6:length(unique(d2$treat1))){
+  newdat <- d2 %>% filter(treat1 == 4)
   for (j in 1:length(unique(newdat$rep))){
-    dat_paste <- newdat %>% filter(rep == j)
+    dat_paste <- newdat %>% filter(rep == 5)
  
   test_div <- 1
   ode_list <- list(
@@ -70,10 +70,6 @@ for (i in 2:length(unique(d2$treat1))){
   Sys.sleep(2400)
   }
 }
-
-
-
-
 
 checktime <- system.time({
   estimates <- sampling(object = ode_apr10,

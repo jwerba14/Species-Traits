@@ -24,4 +24,5 @@ source("juv_daphnia_feeding_and_excretion_stan.R")
 
 
 ## feeding/ excretion graph
-grid.arrange(stan_fej_g, stan_wideexj_g)
+grid.arrange(stan_fej_g1, stan_wideexj_g1)
+
