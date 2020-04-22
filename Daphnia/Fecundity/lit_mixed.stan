@@ -17,8 +17,8 @@ transformed parameters {
   real alpha[L];
   real beta[L];
   for(i in 1:L){
-      alpha[i] = exp(log_alpha_bar) + sigma_alpha*eps_alpha[i];
-      beta[i] = exp(log_beta_bar) + sigma_beta*eps_beta[i];
+      alpha[i] = (log_alpha_bar) + sigma_alpha*eps_alpha[i];
+      beta[i] = (log_beta_bar) + sigma_beta*eps_beta[i];
   }
   
 }
@@ -38,7 +38,7 @@ model {
   // sigma ~ cauchy(0,3)    // BMB: ?
   log_alpha_bar ~ lognormal(0, 1);
   sigma_alpha ~  cauchy(0,3);
-  log_beta_bar ~ normal(0,1); //should be correlated with alpha? 
+  log_beta_bar ~ lognormal(0,1); //should be correlated with alpha? 
   sigma_beta ~ cauchy(0,3);
   
   for (i in 1:L){
