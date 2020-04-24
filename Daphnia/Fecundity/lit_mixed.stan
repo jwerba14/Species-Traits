@@ -28,23 +28,18 @@ model {
   // priors
   real q[L]; // ?? BMB: maybe call this m_lit?
   
-  // BMB: these are probably too broad!
- // alpha ~ normal(0.0, 1000); 
-  //beta ~ normal(0.0, 1000);
-  // especially tau: works for this example but try (half-)t or (half-)Cauchy
-  //  prior on sigma
-  tau ~ cauchy(0,3); // BMB: OK, but could be improved
+
+  tau ~ cauchy(0,2); // BMB: OK, but could be improved
  
-  // sigma ~ cauchy(0,3)    // BMB: ?
-  log_alpha_bar ~ lognormal(0, 1);
-  sigma_alpha ~  cauchy(0,3);
-  log_beta_bar ~ lognormal(0,1); //should be correlated with alpha? 
-  sigma_beta ~ cauchy(0,3);
+  log_alpha_bar ~ normal(0, 10);
+  sigma_alpha ~  cauchy(0,2);
+  log_beta_bar ~ normal(0,10); //should be correlated with alpha? 
+  sigma_beta ~ cauchy(0,2);
   
   for (i in 1:L){
   eps_alpha[i] ~ normal(0,1);
   eps_beta[i] ~ normal(0,1);
-    // alpha[i] ~ normal(alpha_bar,sigma_alpha); // random effect, alpha random draw from distribution with mean alpha_bar, sd sigma_alpha
+    
   }
   
   for (i in 1:L) {

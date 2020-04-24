@@ -9,7 +9,7 @@ daph_fec_list_lit1 <- list(
 
 if(!file.exists("../RDS_Files/fec.fit.lit.RDS")){
   fit_lit <- stan(file = "lit_mixed.stan", 
-                  data = daph_fec_list_lit1,
+                  data = daph_fec_list_lit1,iter = 4400,
                   control = list(adapt_delta = 0.99, max_treedepth =13))
   
   

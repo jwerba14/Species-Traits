@@ -4,6 +4,10 @@
 
 setwd("~/GitHub/Species-Traits/Daphnia/Fecundity")
 
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+library(shinystan)
 ## set up- loads packages and functions
 
 #source("../set_up.R")

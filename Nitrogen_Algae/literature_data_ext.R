@@ -1,6 +1,7 @@
 ## get literature values for algae parameters
 
 library(tidyverse)
+library(fitdistrplus)
 
 litd <- read.csv("~/GitHub/Species-Traits/Master_Data/literature_extraction.csv", header=TRUE)
 
@@ -26,9 +27,15 @@ max_lit <- max_lit %>% filter(max_ammonium_uptake != "NA")
 length(unique(max_lit$Title)) ##5
 
 ## number of data points
-nrow(max_lit) ## 5
+nrow(max_lit) ## 5 -- bu
 
-## but only 4 can be made into correct units-- and one of those is >10x larger than the others?? 
+## but only 4 can be made into correct units-- and one of those is >10x larger than the others likely bc per hour and very unclear if
+## multiplying by 24 is a reasonable way to convert to per day-- likely not ??
+
+max_lit <- max_lit %>% filter(max_uptake_mg_day != "NA")
+
+fitdist(max_lit$max_uptake_mg_day, "lnorm")  ##2.935, 1.295
+
 
 ## half saturation (k)
 half_lit <- litalg %>% dplyr::select(Authors, Title,half_sat_amm,units.3, half_sat_mg_N_L,
@@ -44,6 +51,7 @@ nrow(half_lit) ## 10
 
 ## all 10 can be put into correct units but range is huge (0.002-31.5)
 
+fitdist(half_lit$half_sat_mg_N_L, "lnorm")  ## 0.2665, 2.923
 
 ## N converstion efficiency (f)
 
@@ -55,7 +63,10 @@ N_con_lit <- N_con_lit %>% filter(N_conversion.efficiency != "NA")
 length(unique(N_con_lit$Title)) ##1
 
 ## number of data points
-nrow(N_con_lit) ## 1
+nrow(N_con_lit) ## 11
+
+## set prior 
+fitdist(N_con_lit$N_conversion.efficiency, "lnorm") ## 2.701, 1.236
 
 
 ## death (death1)
@@ -63,12 +74,20 @@ a_death_lit <- litalg %>% dplyr::select(Authors, Title, death_rate,units_death, 
                                        X95_conf_death, sd_death, range_death)
 a_death_lit <- a_death_lit %>% filter(death_rate != "NA")
 
+
+
+
 ##number of studies
 length(unique(a_death_lit$Title)) ##7
 
 ## number of data points
-nrow(a_death_lit) ## 29
+nrow(a_death_lit) ## 29 -- but only 6 in day
 
+a_death_lit <- a_death_lit %>% filter(algal_death_per_day != "NA")
+
+
+
+fitdist(a_death_lit$algal_death_per_day, "lnorm") ## -3.4681, 1.680
 
 ## growth rate (whole of mm equation)
 growth_lit <- litalg %>% dplyr::select(Authors, Title,growth_rate, units.5, sd.1, range.1, time_period.days.,units.6,

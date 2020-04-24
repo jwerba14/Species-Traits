@@ -1,3 +1,7 @@
+source("../../transfer_functions.R")
+source("../../chl_adj.R")
+library(tidyverse)
+
 daph <- read.csv("daphnia_lifetime.csv")
 daph <- daph %>% 
   filter(adult_only=="N")

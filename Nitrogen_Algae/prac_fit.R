@@ -23,8 +23,46 @@ dat_27a <- d2 %>%
   filter(rep == 3)
 
 #t_obs <- dat_27 %>% filter(date1 > 1)
+amm_chl_prior <- stan_model(file = "amm_chl_prior.stan", model_name = "amm_chl_prior", verbose = T)
+ode_list <- list(
+  N = nrow(dat_27),
+  T = length(seq(1,11)),
+  y = dat_27[c(8,5)],
+  t0 = 0,
+  t_obs= dat_27$date1
+)
 
-## this is to fit just one treatment, one rep
+
+
+estimates <- sampling(object = amm_chl_prior, init = list(
+                      list(p = c(rlnorm(1, 2.9, 1.3),
+                         rlnorm(1, 0.3, 2.9),
+                         rlnorm(1, 0, 0.05),
+                        rlnorm(1,0.03,1.7),
+                         rlnorm(1,2.7, 1.2))
+                         , y0 =c(6, 10))
+                          ),
+                     data = ode_list, chains = 1,
+                     control = list(adapt_delta = 0.99,
+                                    max_treedepth = 15))
+
+
+##p[1]=a;  p[2] = k p[3] = l p[4]=death1  p[5] = f 
+
+estimates <- sampling(object = amm_chl_prior,init = list(
+  list(p = c( 0.7
+       ,  1.4
+       ,  0.7
+       ,  0.8
+       ,  0.6)
+       , y0 = c(10
+       , 10 ))),
+  data = ode_list, chains = 1,iter = 4400,
+  control = list(adapt_delta = 0.99,
+                 max_treedepth = 15))
+
+
+ ## this is to fit just one treatment, one rep
 
 ode_apr10 <- stan_model(file = "nitalg.ode.apr10.stan", model_name = "ode_apr10", verbose = T)
 d2$treat1 <- as.numeric(as.factor(d2$treat))
@@ -105,4 +143,4 @@ estimates2 <- sampling(object = ode_multi,
                       control = list(adapt_delta = 0.95,
                                      max_treedepth = 15))
  
-                  
+tt <- readRDS("amm_chl_prior.RDS")

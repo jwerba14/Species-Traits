@@ -31,7 +31,7 @@ if(!file.exists("../RDS_Files/fec.fit.constraineda.RDS")){
 t3 <- rstan::extract(fit3,permuted = FALSE)
 fit_sum_cona <- summary(fit3)
 #print(names(fit_sum_cona))
-fit_sum_param_cona <- fit_sum_cona$summary[c(1:4),]
+fit_sum_param_cona <- fit_sum_cona$summary[c(1:5),]
 
 
 
