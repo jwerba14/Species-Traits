@@ -16,7 +16,7 @@ lit <- fec_lit %>%
 
 daph_fec_list_1 <- list(
   "N" = 64,
-  "chl" = daph_fec_adj$cell2,
+  "chl" = daph_fec_adj$chl,
   "daily_fec" = daph_fec_adj$daily_fec
   )
 

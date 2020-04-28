@@ -55,7 +55,7 @@ med_wide <- data.frame(chl = seq(0,100), daily_fec = pred_sum_wide[2,])
 
 stan_wide_g <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
   geom_line(data = lower_wide, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_wide, linetype = "dotdash", lwd = 1.25)+
-  geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Algal Cell Count") +
+  geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Daily Fecundity") + ggtitle("Stan: Wide Priors")
 
 

@@ -43,7 +43,7 @@ source("fecundity.hyperparameter.R")
 
 ## stitch together graphs
 
-print(grid.arrange(nls_fec_g,stan_lit_g,stan_lit_sat_g,stan_wide_g,stan_hyper_g,stan_con_g, nrow=3))
+print(grid.arrange(nls_fec_g,stan_lit_g1,stan_lit_sat_g2,stan_wide_g,stan_hyper_g,stan_con_g1, nrow=3))
 
 ## stitch together parameters
 

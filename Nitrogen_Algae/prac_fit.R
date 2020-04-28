@@ -5,7 +5,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 d1 <- read.csv("Data/Nh4_Air.csv")
-d2 <- read.csv("Data/Algae_Nutrient.csv")
+d2 <- read.csv("Data/Algae_Nutrient.csv ")
 
 ammonium <- d1 %>% drop_na()
 
@@ -32,34 +32,87 @@ ode_list <- list(
   t_obs= dat_27$date1
 )
 
+d2$treat1 <- as.numeric(as.factor(d2$treat))
+
+for (i in 1:length(unique(d2$treat1))){
+  newdat <- d2 %>% filter(treat1 == i)
+  for (j in 1:length(unique(newdat$rep))){
+    dat_paste <- newdat %>% filter(rep == j)
+    
+    test_div <- 1
+    ode_list <- list(
+      N = nrow(dat_paste),
+      T = length(seq(1,11)),
+      y = dat_paste[, c(8,5)],
+      t0 = 0,
+      t_obs= dat_paste$date1
+    )
+    
+    while (test_div > 0) {    
+      estimates <- sampling(object = amm_chl_prior,
+                            data = ode_list, chains = 4,iter = 4400,init = list(
+                              list(p = c( 0.7
+                                          ,  1.4
+                                          ,  0.7
+                                          ,  0.8
+                                          ,  0.6)
+                                   , y0 = c(10
+                                            ,10 )),
+                              list(p = c( 0.7
+                                          ,  1.4
+                                          ,  0.7
+                                          ,  0.8
+                                          ,  0.6)
+                                   , y0 = c(10
+                                            ,10 )),
+                              list(p = c( 0.7
+                                       ,  1.4
+                                       ,  0.7
+                                       ,  0.8
+                                       ,  0.6)
+                                       , y0 = c(10
+                                            ,10 )),
+                              list(p = c( 0.7
+                                          ,  1.4
+                                          ,  0.7
+                                          ,  0.8
+                                          ,  0.6)
+                                   , y0 = c(10
+                                            ,10 ))
+                              ),
+                            control = list(adapt_delta = 0.99,
+                                           max_treedepth = 15))
+      
+      test_div1 <- try(sum(attr(estimates@sim$samples[[4]], "sampler_params")$divergent__[2200:4400]), silent = TRUE)
+      test_div2 <- try(sum(attr(estimates@sim$samples[[3]], "sampler_params")$divergent__[2200:4400]), silent = TRUE)
+      test_div3 <- try(sum(attr(estimates@sim$samples[[2]], "sampler_params")$divergent__[2200:4400]), silent = TRUE)
+      test_div4 <- try(sum(attr(estimates@sim$samples[[1]], "sampler_params")$divergent__[2200:4400]), silent = TRUE) 
+      
+      test_div <- sum(
+        ifelse(is.numeric(test_div1),test_div1,0)
+        , ifelse(is.numeric(test_div2),test_div2,0)
+        , ifelse(is.numeric(test_div3),test_div3,0)
+        , ifelse(is.numeric(test_div4),test_div4,0))
+      
+    }
+    
+    tempname <- paste(paste("nitalgprior",i,j, sep = "_"),".RDS", sep = "")
+    
+    saveRDS(estimates, file = tempname)
+    print(i)
+    print(j)
+    Sys.sleep(2400)
+  }
+}
 
 
-estimates <- sampling(object = amm_chl_prior, init = list(
-                      list(p = c(rlnorm(1, 2.9, 1.3),
-                         rlnorm(1, 0.3, 2.9),
-                         rlnorm(1, 0, 0.05),
-                        rlnorm(1,0.03,1.7),
-                         rlnorm(1,2.7, 1.2))
-                         , y0 =c(6, 10))
-                          ),
-                     data = ode_list, chains = 1,
-                     control = list(adapt_delta = 0.99,
-                                    max_treedepth = 15))
-
-
-##p[1]=a;  p[2] = k p[3] = l p[4]=death1  p[5] = f 
-
-estimates <- sampling(object = amm_chl_prior,init = list(
-  list(p = c( 0.7
-       ,  1.4
-       ,  0.7
-       ,  0.8
-       ,  0.6)
-       , y0 = c(10
-       , 10 ))),
+estimates <- sampling(object = amm_chl_prior,
   data = ode_list, chains = 1,iter = 4400,
   control = list(adapt_delta = 0.99,
                  max_treedepth = 15))
+
+
+
 
 
  ## this is to fit just one treatment, one rep
@@ -68,9 +121,9 @@ ode_apr10 <- stan_model(file = "nitalg.ode.apr10.stan", model_name = "ode_apr10"
 d2$treat1 <- as.numeric(as.factor(d2$treat))
 
 for (i in 6:length(unique(d2$treat1))){
-  newdat <- d2 %>% filter(treat1 == 4)
+  newdat <- d2 %>% filter(treat1 == i)
   for (j in 1:length(unique(newdat$rep))){
-    dat_paste <- newdat %>% filter(rep == 5)
+    dat_paste <- newdat %>% filter(rep == j)
  
   test_div <- 1
   ode_list <- list(

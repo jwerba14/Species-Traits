@@ -20,7 +20,7 @@ if(!file.exists("../RDS_Files/fec.fit.lit.RDS")){
 
 
 
-#launch_shinystan(fit_lit)
+launch_shinystan(fit_lit)
 
 
 ## graphing
@@ -28,7 +28,7 @@ if(!file.exists("../RDS_Files/fec.fit.lit.RDS")){
 t5 <- rstan::extract(fit_lit,permuted = FALSE)
 fit_sum_lit <- summary(fit_lit)
 fit_sum_param_lit <- fit_sum_lit$summary[c(1:4),]
-
+fit_sum_param_lit_chl <- fit_sum_param_lit %>% mutate()
 
 
 a_lit<- rbind(t5[,1,2], t5[,2,2], t5[,3,2], t5[,4,2]) ## all rows, all chains alpha?
@@ -36,7 +36,7 @@ b_lit <- rbind(t5[,1,4], t5[,2,4], t5[,3,4], t5[,4,4])
 
 newdat_lit <- data.frame(chl_lit = seq(100000,1141832222, 10000000))
 
-pred_out_lit <- apply(newdat_lit,1,sat_fun,a=exp(a_lit),b=exp(b_lit))
+pred_out_lit <- apply(newdat_lit,1,sat_fun,a=(a_lit),b=(b_lit))
 
 pred_sum_lit <- apply(pred_out_lit, 2, FUN = function (x) quantile(x, c(0.025,0.50,0.975)))
 
@@ -51,3 +51,13 @@ stan_lit_g <- ggplot(fec_lit1, aes(chl_lit, daily_fec_lit)) + geom_point(alpha =
   geom_line(data = med_lit, linetype = "solid", lwd =1.25) + xlab("Cell count") +
   ylab("Daily Fecundity") + ggtitle("Stan:Literature Only- Mixed")
 
+
+## graph on chl a scale
+lower_lit <- lower_lit %>% mutate(chl = cell_adj(chl_lit))
+upper_lit <- upper_lit %>% mutate(chl = cell_adj(chl_lit))
+med_lit <- med_lit %>% mutate(chl = cell_adj(chl_lit))
+
+stan_lit_g1 <- ggplot(fec_lit1, aes(chl, daily_fec_lit)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_lit, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_lit, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_lit, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Daily Fecundity") + ggtitle("Stan:Literature Only- Mixed")

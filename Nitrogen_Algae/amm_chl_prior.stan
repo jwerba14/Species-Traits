@@ -43,11 +43,11 @@ transformed parameters {
 
 model {
     sigma ~ normal(0, 1);
-    p[1] ~ lognormal(2.9, 1.3);
-    p[2] ~ lognormal(0.3, 2.9);
-    p[3] ~ lognormal(0,0.5);
-    p[4] ~ lognormal(-3.5, 1.7);
-    p[5] ~ lognormal(2.701, 1.236);
+    p[1] ~ lognormal(2.9, 1);
+    p[2] ~ lognormal(0.3, 1);
+    p[3] ~ lognormal(0,1);
+    p[4] ~ lognormal(-3.5, 1);
+    p[5] ~ lognormal(2.701, 1);
     y0[1] ~ normal(0, 10);
     y0[2] ~ normal(0, 10);
     for (t in 1:N)

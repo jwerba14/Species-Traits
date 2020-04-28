@@ -32,8 +32,23 @@ t3 <- rstan::extract(fit3,permuted = FALSE)
 fit_sum_cona <- summary(fit3)
 #print(names(fit_sum_cona))
 fit_sum_param_cona <- fit_sum_cona$summary[c(1:5),]
+fit_sum_param_cona_chl <- as.data.frame(fit_sum_param_cona) %>%
+                          dplyr::select(-n_eff, -Rhat) %>%
+                          mutate_each(cell_adj)
+fit_sum_param_cona_chl <- cbind(fit_sum_param_cona_chl, fit_sum_param_cona)
 
+## check to see if conversion makes sense
+fit_sum_param_cona <- as.data.frame(fit_sum_param_cona)
+chl = seq(0,111)
+cell = seq(26000000,1141832222, 10000000)
+nd <- data.frame(chl = chl,
+                 cell = cell,
+                 out = sat_fun(a= fit_sum_param_cona_chl$mean[2], b=fit_sum_param_cona_chl$mean[4], k=chl),
+                 out2 = sat_fun(a= fit_sum_param_cona$mean[2], b=fit_sum_param_cona$mean[4], k=cell)
+)
 
+ggplot(nd, aes(chl, out)) + geom_point()
+ggplot(nd, aes(cell,out2)) + geom_point()
 
 a_cona <- rbind(t3[,1,1],t3[,2,1], t3[,3,1], t3[,4,1]) ## all rows, all chains alpha?
 b_cona <- rbind(t3[,1,2], t3[,2,2], t3[,3,2], t3[,4,2])
@@ -53,3 +68,15 @@ stan_con_g <- ggplot(daph_fec_adj, aes(cell, daily_fec)) + geom_point(alpha = 0.
   ylab("Daily Fecundity") + ggtitle("Stan: Constrain a")
 
 ## makes me feel that priors are too tight
+
+
+## graph on chl scale
+lower_cona <- lower_cona %>% mutate(chl = cell_adj(cell))
+upper_cona <- upper_cona %>% mutate(chl = cell_adj(cell))
+med_cona <- med_cona %>% mutate(chl = cell_adj(cell))
+daph_fec_adj <- daph_fec_adj %>% mutate(chl = cell_adj(cell))
+
+stan_con_g1 <- ggplot(daph_fec_adj, aes(chl, daily_fec)) + geom_point(alpha = 0.6, size = 2 ) +
+  geom_line(data = lower_cona, linetype = "dotdash", lwd = 1.25) + geom_line(data = upper_cona, linetype = "dotdash", lwd = 1.25)+
+  geom_line(data = med_cona, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
+  ylab("Daily Fecundity") + ggtitle("Stan: Constrain a")
