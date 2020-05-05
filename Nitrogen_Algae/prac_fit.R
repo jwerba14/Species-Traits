@@ -24,9 +24,24 @@ dat_27a <- d2 %>%
 
 #t_obs <- dat_27 %>% filter(date1 > 1)
 amm_chl_prior <- stan_model(file = "amm_chl_prior.stan", model_name = "amm_chl_prior", verbose = T)
+
+
+  
+
+
+
+#sigma ~ normal(0, 1);
+#p[1] ~ lognormal(2.9, 1);
+#p[2] ~ lognormal(0.3, 1);
+#p[3] ~ lognormal(0,1);
+#p[4] ~ lognormal(-3.5, 1);
+#p[5] ~ lognormal(2.701, 1);
+#y0[1] ~ normal(0, 10);
+#y0[2] ~ normal(0, 10);
+
+
 ode_list <- list(
   N = nrow(dat_27),
-  T = length(seq(1,11)),
   y = dat_27[c(8,5)],
   t0 = 0,
   t_obs= dat_27$date1
