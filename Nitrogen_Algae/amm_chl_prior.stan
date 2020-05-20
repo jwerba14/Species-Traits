@@ -44,13 +44,13 @@ transformed parameters {
 
 model {
     sigma ~ normal(0, 1);
-    p[1] ~ lognormal(0, 0.5);
-    p[2] ~ lognormal(0, 0.5);
-    p[3] ~ lognormal(0, 0.5);
+    p[1] ~ lognormal(2, 0.5);
+    p[2] ~ lognormal(7, 0.5);
+    p[3] ~ lognormal(-2.3, 0.5);
     p[4] ~ lognormal(0, 0.5);
-    p[5] ~ lognormal(0, 0.5);
-    y0[1] ~ normal(0, 10);
-    y0[2] ~ normal(0, 10);
+    p[5] ~ lognormal(-1.5, 0.5);
+    y0[1] ~ normal(1000, 1);
+    y0[2] ~ normal(50, 1);
    
     if(run_estimation==1){
     

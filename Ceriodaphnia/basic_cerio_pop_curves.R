@@ -1,6 +1,9 @@
 # read in
 dat <- read.csv("cerio_pop.csv")
 
+library(tidyverse)
+library(lme4)
+
 if (FALSE) {
     trial <- nls(Population ~ Population * r*(1-1/(K*Population/Avg_Chl)), start = list(r=.1, K= 75), 
              data = dat)
@@ -16,9 +19,8 @@ if (FALSE) {
     m <- nls(feeding.rate.mean~(Chl_conc*h)/(1+Chl_conc*h*r), start = list(h=1,r=1), data = dat )
 }
 
-library(tidyverse)
-library(ggplot2)
-library(lme4)
+
+
 
 #average chlor by week
 # create week column

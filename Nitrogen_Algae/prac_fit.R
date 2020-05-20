@@ -4,6 +4,8 @@ library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
+## fitting in STAN
+
 d1 <- read.csv("Data/Nh4_Air.csv")
 d2 <- read.csv("Data/Algae_Nutrient.csv ")
 
@@ -22,6 +24,8 @@ dat_27a <- d2 %>%
   filter(treat == 27) %>%
   filter(rep == 3)
 
+d3 <- d2 %>% filter(treat == 0.5) %>% filter(rep == 4)
+
 #t_obs <- dat_27 %>% filter(date1 > 1)
 amm_chl_prior <- stan_model(file = "amm_chl_prior.stan", model_name = "amm_chl_prior", verbose = T)
 
@@ -39,15 +43,29 @@ amm_chl_prior <- stan_model(file = "amm_chl_prior.stan", model_name = "amm_chl_p
 #y0[1] ~ normal(0, 10);
 #y0[2] ~ normal(0, 10);
 
+dat_27 <- dat_27 %>% mutate(nh4 = nh4*1000)
 
 ode_list <- list(
   N = nrow(dat_27),
   y = dat_27[c(8,5)],
   t0 = 0,
-  t_obs= dat_27$date1
+  t_obs= dat_27$date1,
+  T = length(seq(1,11)),
+  run_estimation = 1
 )
 
-d2$treat1 <- as.numeric(as.factor(d2$treat))
+
+
+
+
+estimates <- sampling(object = amm_chl_prior,
+                      data = ode_list, chains = 2,iter = 4400,
+                      control = list(adapt_delta = 0.9,
+                                     max_treedepth = 12))
+
+
+
+ d2$treat1 <- as.numeric(as.factor(d2$treat))
 
 for (i in 1:length(unique(d2$treat1))){
   newdat <- d2 %>% filter(treat1 == i)

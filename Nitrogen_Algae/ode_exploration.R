@@ -6,7 +6,9 @@
 #p[5] ~ lognormal(2.701, 1);
 #y0[1] ~ normal(0, 10);
 #y0[2] ~ normal(0, 10);
+library(tidyverse)
 library(deSolve)
+d2 <- read.csv("Data/Algae_Nutrient.csv ")
 
 ## make dataframe with 1000 draws from each prior
 #parameters  // p[1]=a;  p[2] = k p[3] = l p[4]=death1  p[5] = f 
@@ -23,7 +25,7 @@ nit_ODE <-function(t, state, parameters) {
   with(as.list(c(state, parameters)),{
     
     
-    dammonium <- -(a*ammonium)/(k+ammonium)*algae + l*death1*algae  - 0.028*ammonium
+    dammonium <- -(a*ammonium)/(k+ammonium)*algae + l*death1*algae  #- 0.028*ammonium  ## see if works better without non-algal losses
     
 
     dalgae <- (a*ammonium)/(k+ammonium)*algae*f - death1*algae
@@ -72,18 +74,25 @@ plot(param_dat)
 #  gamma=9.698845e-02 
 
 
-param = list( a = 1.2
-   ,k = 15
-   ,l =  2
-   , death1 = 0.9
-   , f= 1)
+param = list( a = 0.3
+   ,k = 0.5
+   ,l =  .3
+   , death1 =1 
+   , f= 7)
+
 state = c(ammonium = 12000, algae =43)
+
 out <- ode(y = state, times = seq(0,11,0.1), func = nit_ODE, parms = param)
 out <- data.frame(out)
+
 names(out) <- c("date1", "nh4","chl")
+
 d2$treat1 <- as.numeric(as.factor(d2$treat))
 
+## select treatment (I guess not necessary for exploration)
 test1 <- d2 %>% filter(treat1 == 4) 
+
+## convert nh4 from mg/L to ug/L
 test1 <- test1 %>% mutate(nh4 =nh4*1000)
 
 ggplot(test1, aes(date1, chl)) + geom_point() + geom_line(data = out)
