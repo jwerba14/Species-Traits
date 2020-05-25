@@ -1,34 +1,20 @@
-#source(nh4_prac)
 source("../transfer_functions.R")
 source("../Graphing_Set_Up.R")
 library(nlstools)
 library(nlmrt)
 #library(boot)
 library(tidyverse)
+library(gridExtra)
 
 cerio <- read.csv("cerio_pop.csv")
 cerio["Population"][is.na(cerio["Population"])] <- 1
 
-#cerio1 <- cerio[cerio$Rep==1,]
 
-#mod <- nls(Population~logist(r=r,k=k,t=Day,a0=3.35),data = cerio1,start = list(r=1,k=50))
-#pp <-nlsBoot(mod)
-#mod_xb <- nlxb(Population ~  k/ (1+((k/3.35)-1)*exp(-r*Day)), data = cerio1, start =list(r=1,k=50) )
-#cerio2 <- cerio[cerio$Rep==12,]
-
-
-
-#mod2 <- nls(Population~logist(r=r,k=k,t=Day,a0=3.35),data = cerio2,start = list(r=.1,k=5))
-
-
-
-#cerio_25 <- cerio %>% filter(Treatment == 25)
-#mod3 <- nls(Population~logist(r=r,k=k,t=Day,a0=3.35),data = cerio_25,start = list(r=1,k=8))
 
 fit_nls <- function(subdat, par_names=c("r","k")) {
   
   nls_fit <- try(
-    nls(Population ~  k/ (1+((k/3.35)-1)*exp(-r*Day)),data=subdat,start = list(r=1,k=50)),
+    nls(Population ~  k/ (1+(((k-3.35)/3.35))*exp(-r*Day)),data=subdat,start = list(r=1,k=50)),
     silent = TRUE
   )
   
@@ -37,7 +23,7 @@ fit_nls <- function(subdat, par_names=c("r","k")) {
     start_r <- rlnorm(1, -2, 1)
     start_k <- rlnorm(1, 3, 3)
     nls_fit <- try(
-      nlxb(Population ~  k/ (1+((k/3.35)-1)*exp(-r*Day)),data=subdat,start = list(r=start_r,k=start_k)),
+      nlxb(Population ~  k/ (1+(((k-3.35)/3.35))*exp(-r*Day)),data=subdat,start = list(r=start_r,k=start_k)),
       silent = TRUE
     )
     
@@ -109,8 +95,19 @@ kg$Avg_Chl <- newdat$Avg_Chl
 
 
 
-## graph without weights
+## run with only reps that were able to estimate error ## drops almost half of data points...
+f4 <- f2 %>% filter(r_se != "NA") %>% filter( k_se != "NA")
+r_reg_1 <- lm(data = f4, r_est ~ -1 + Avg_Chl)
+k_reg_1 <- lm(data = f4, k_est ~ -1 + Avg_Chl)
 
+
+## with weights 
+r_reg_w <- lm(data = f4, r_est ~ -1 + Avg_Chl, weights = 1/r_se)
+k_reg_w <- lm(data = f4, k_est ~ -1 + Avg_Chl, weights = 1/k_se)
+
+
+
+## put in max se for missing??
 f3 <- f2
 # with error
 for(i in 1:nrow(f3)){
@@ -136,7 +133,11 @@ new_rK <- lm(data = f3
 
 ##graph with weights
 
-rgw <- data.frame(predict(new_reg, newdata = newdat, interval = c("confidence")))
+newdat1 <- data.frame(Avg_Chl = seq(0,60, by= 0.1),
+                     r_se = dnorm(601, mean(f3$r_se), sd(f3$r_se)),
+                     k_se = dnorm(601, mean(f3$r_se), sd(f3$r_se)))
+
+rgw <- data.frame(predict(new_reg, newdata = newdat1, interval = c("confidence")))
 names(rgw) <- c("r_est" ,"lwr" ,"upr")
 rgw$Avg_Chl <- newdat$Avg_Chl
 
@@ -153,4 +154,56 @@ kgw$Avg_Chl <- newdat$Avg_Chl
     geom_line(data = kgw) + geom_ribbon(data = kgw,aes(ymin = lwr, ymax = upr), alpha = 0.1))
 
 
+## ok so we can't tell what the slope is across chlorophyll so maybe more informative just to have box_whisker plot
+## by treatment so you can see range of r, k estimates which will likely be most useful for other ppl
 
+
+box_g <- ggplot(data = f2, aes(as.factor(Treatment), log(r_est))) + geom_boxplot() + 
+  xlab(" ") + 
+  ylab("r estimate")
+
+box_k <- ggplot(data = f2, aes(as.factor(Treatment), log(k_est))) + geom_boxplot()+ 
+  xlab("Chlorophyll (ug/L)") + 
+  ylab("k estimate")
+
+grid.arrange(box_g, box_k)
+
+
+## graph each treatment separately over time to just see the growth curves
+
+cerio1 <- cerio %>% group_by(as.factor(Treatment), Rep, Day) %>% summarize(pop = mean(Population))
+
+names(cerio1)[1] <- "Treatment"
+
+cerio3 <- cerio1 %>% filter(Treatment == 3)
+cerio10 <- cerio1 %>% filter(Treatment == 10)
+cerio25 <- cerio1 %>% filter(Treatment == 25)
+cerio75 <- cerio1 %>% filter(Treatment == 75)
+
+gg3 <- ggplot(cerio3, aes(Day, pop)) + geom_jitter(aes(color = as.factor(Rep)), size = 2)  + 
+  theme(legend.position = "NULL")+
+  ylab("Ceriodaphnia per 50mL") + xlab(" ") +
+  ggtitle("Low Food: Chlorophyll 3 ug/L")
+print(gg3)
+
+
+gg10 <- ggplot(cerio10, aes(Day, pop)) + geom_jitter(aes(color = as.factor(Rep)), size = 2)  + 
+  theme(legend.position = "NULL")+
+  ylab(" ") + xlab(" ")+
+  ggtitle("Mid Food: Chlorophyll 10 ug/L")
+print(gg10)
+
+
+gg25<- ggplot(cerio25, aes(Day, pop)) + geom_jitter(aes(color = as.factor(Rep)), size = 2)  + 
+  theme(legend.position = "NULL")+
+  ylab("Ceriodaphnia per 50mL") + 
+  ggtitle("Mid Food: Chlorophyll 22 ug/L")
+print(gg25)
+
+gg65 <- ggplot(cerio3, aes(Day, pop)) + geom_jitter(aes(color = as.factor(Rep)), size = 2)  + 
+  theme(legend.position = "NULL")+
+  ylab(" ") + 
+  ggtitle("High Food: Chlorophyll 65 ug/L")
+print(gg65)
+
+grid.arrange(gg3,gg10,gg25,gg65)
