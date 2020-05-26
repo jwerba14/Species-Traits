@@ -178,6 +178,7 @@ if (length(w)>1) warning("multiple max values")
 ##   qchisq(0.999,2)/2 = 6.9 log-likelihood units
 ##
 
+
 ## this is what the log-likelihood surface looks along the max slice!
 eg_slice <- (eg
     %>% group_by(a)
@@ -188,10 +189,21 @@ eg_slice <- (eg
 ggplot(eg_slice,aes(a,ll))+geom_line()+geom_point()
 ## maybe try a few of these values to see what the plots look like?
 
+## select best ll
+
+eg1 <- eg %>% filter(ll > -170) ##46
+
 ## graph with data 
-param = c(a=eg[which(eg$ll == max(eg$ll)),1][1],k=1500,l=0.1,death1=1.05, g= eg[which(eg$ll == max(eg$ll)),2 ][1]) ## unfortunately multiple equivalent likelihoods...
+param = c(a=eg1[46,1][1],k=1500,l=0.1,death1=1.05, g= eg1[46,2 ][1]) ## unfortunately multiple equivalent likelihoods...
 state = c(ammonium = 13000, algae = 40)
 out <- data.frame(ode(y = state, times = seq(0,11,0.1), func = nit_ODE, parms = param))
 names(out) <- c("date1", "ammonium","chl")
 ggplot(out, aes(date1, chl)) + geom_point(data = d2) + geom_line(data = out)
 ggplot(out, aes(date1, ammonium)) + geom_point(data=d2) + geom_line(data = out)
+
+
+
+
+
+
+

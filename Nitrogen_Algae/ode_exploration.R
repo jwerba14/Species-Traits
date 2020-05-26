@@ -74,13 +74,13 @@ plot(param_dat)
 #  gamma=9.698845e-02 
 
 
-param = list( a = 0.3
-   ,k = 0.5
-   ,l =  .3
-   , death1 =1 
-   , f= 7)
+param = list( a = 9.10701
+   ,k = 5528
+   ,l =  .001
+   , death1 =0.08105952
+   , f= 0.0001181192)
 
-state = c(ammonium = 12000, algae =43)
+state = c(ammonium = 13000, algae =43)
 
 out <- ode(y = state, times = seq(0,11,0.1), func = nit_ODE, parms = param)
 out <- data.frame(out)
