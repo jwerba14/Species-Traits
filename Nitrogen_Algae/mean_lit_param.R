@@ -1,3 +1,4 @@
+library(fitdistrplus)
 litdat <- read.csv("Data/literature_extraction.csv")
 
 ## growth rate
@@ -23,10 +24,14 @@ growth_rate <- growth_rate %>% filter(gr_day > 0) %>% filter(ammoium.conc != 0)
 g <- growth_rate$gr_day/growth_rate$amm_micro 
 mean(g) ##  0.0001181192 ## definitely not confident about this method
 
+fitdist(g, "lnorm") ## -12, 2.2
+
 ## death rate
 hist(litdat$death_rate_day)
 death_rate <- litdat %>% dplyr::select(death_rate_day) %>% filter(death_rate_day != "NA") ##death1
 mean(death_rate$death_rate_day) ## 0.08105952 
+
+fitdist(death_rate$death_rate_day, "lnorm")  ## -3.3, 1.6
 
 
 ## nitrogen removal rate
@@ -34,8 +39,13 @@ mean(death_rate$death_rate_day) ## 0.08105952
 nit_rem <- litdat %>% dplyr::select(nit_rem_mg_day) %>% filter(nit_rem_mg_day != "NA")  ##k??
 mean(nit_rem$nit_rem_mg_day) ##  5.528499 in mg in micrograms = 5528
 
+nit_rem$nr1 <- nit_rem$nit_rem_mg_day *1000
+fitdist(nit_rem$nr1, "lnorm")  ## 7.3, 1.7
 
 ## max NH4 uptake (not much data)
 hist(litdat$max_uptake_day)
 max_up <- litdat %>% dplyr::select(max_uptake_day, units.2) %>% filter(max_uptake_day !="NA") #a
 mean(max_up$max_uptake_day) ## 9.10701
+max_up$amm1 <- max_up$max_uptake_day * 1000
+
+fitdist(max_up$amm1, "lnorm") ## 8.6, 1.2

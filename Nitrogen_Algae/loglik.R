@@ -1,5 +1,5 @@
 library(tidyverse)
-library(deSolve)
+
 d2 <- read.csv("Data/Algae_Nutrient.csv ")
 
 d2$treat1 <- as.numeric(as.factor(d2$treat))

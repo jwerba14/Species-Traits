@@ -6,7 +6,7 @@ options(mc.cores = parallel::detectCores())
 
 
 d2 <- read.csv("Data/Algae_Nutrient.csv")
-
+d2$amm <- d2$nh4 * 1000
 
 #t_obs <- dat_27 %>% filter(date1 > 1)
 
@@ -26,7 +26,8 @@ for (i in 6:length(unique(d2$treat1))){
     T = length(seq(1,11)),
     y = dat_paste[, c(8,5)],
     t0 = 0,
-    t_obs= dat_paste$date1
+    t_obs= dat_paste$date1,
+    run_estimation = 1
   )
   
   while (test_div > 0) {    

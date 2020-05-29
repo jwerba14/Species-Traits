@@ -1,4 +1,7 @@
+library(pomp)
+library(tidyverse)
 library(viridisLite)
+library(deSolve)
 d2 <- read.csv("Data/Algae_Nutrient.csv")
 
 d2$treat1 <- as.numeric(as.factor(d2$treat))
@@ -49,68 +52,41 @@ loglik <- function (params, data) {
 ## params based on a set that gave a reasonable fit by eye (a = 7, g= 0.215)
 params <- c(a=9.10701,k=5528,l=NA,death1=0.08105952, g= NA, sigma=10) # is sigma = 1 weird? how to pick a sigma? Because im on such a large scale
 
-f <- function (eg) {
-  par <- params
-  par["l"] <- eg$l
-  par["g"] <- eg$g
-  loglik(par,d2)
+tt <- sobolDesign(lower = c(a =1, k= 1000, l = 0.01, death1 = 0.05, g = 0.01),
+                  upper = c(a =50, k= 9000, l = 1, death1 = 2, g = 1),
+                  500000)
+
+
+gg <- data.frame(a = numeric(length = nrow(tt)),
+                 k = numeric(length = nrow(tt)),
+                 l =numeric(length = nrow(tt)),
+                 death1 = numeric(length = nrow(tt)),
+                 g = numeric(length = nrow(tt)),
+                 loglik = numeric(length = nrow(tt)))
+system.time(
+for (i in 1:nrow(tt)){
+  params <- unlist(tt[i,])
+  gg[i, 1:5] <- params
+  gg[i,6] <- loglik(params,d2)
+  
 }
 
 
-## create hypercube 
-set.seed(100)
-
-
-library(pomp)
-tt <- sobolDesign(lower = c(a =1, k= 1000, l = 0.01, death1 = 0.05, g = 0.01),
-            upper = c(a =50, k= 9000, l = 1, death1 = 2, g = 1),
-            100)
-
-
-
-res <- plyr::alply(eg,1,f,.progress="text")
-eg$ll <- unlist(res)
-## for(i in 1:nrow(eg)){
-##  eg$ll[i] <- f(eg[i,])
-##}
-
-hist(eg$ll) 
-
-w <- which(eg$ll == max(eg$ll))
-if (length(w)>1) warning("multiple max values")
-(ggplot(eg, aes(a,g))
-  + geom_raster(aes(fill=max(ll)-ll))
-  + scale_fill_viridis_c(trans=scales::log10_trans())
-  + geom_contour(aes(z=max(ll)-ll),breaks=c(15,20,25),colour="red",lty=2)
-  + geom_point(data=eg[w,],colour="red")
 )
-## comments:
-## * after fixing sigma, I zoomed in a bunch (and changed scales etc.)
-## * log-likelihood differences of 15, 20, 25 (dashed lines) are very
-##   large; e.g. 99.9% likelihood region for a 2-parameter space is
-##   qchisq(0.999,2)/2 = 6.9 log-likelihood units
-##
+
+w <- which(gg$loglik == max(gg$loglik))
 
 
-## this is what the log-likelihood surface looks along the max slice!
-eg_slice <- (eg
-             %>% group_by(a)
-             %>% summarise(g=g[which.max(ll)],
-                           ll=max(ll))
-)
-## yikes! I had hoped this would be smooth
-ggplot(eg_slice,aes(a,ll))+geom_line()+geom_point()
-## maybe try a few of these values to see what the plots look like?
-
-## select best ll
-
-eg1 <- eg %>% filter(ll > -170) ##46
-
-## graph with data 
-param =  c(a=9107.01,k=5528,l=eg[9901,2],death1=0.08105952, g= eg[9901,1], sigma=10) ## unfortunately multiple equivalent likelihoods...
-
+param = c(a=gg[which(gg$loglik == max(gg$loglik)),1][1],k=gg[which(gg$loglik == max(gg$loglik)),2][1],
+          l=gg[which(gg$loglik == max(gg$loglik)),3][1],death1=gg[which(gg$loglik == max(gg$loglik)),4][1], 
+          g= gg[which(gg$loglik == max(gg$loglik)),5][1]) 
 state = c(ammonium = 13000, algae = 40)
 out <- data.frame(ode(y = state, times = seq(0,11,0.1), func = nit_ODE, parms = param))
 names(out) <- c("date1", "ammonium","chl")
 ggplot(out, aes(date1, chl)) + geom_point(data = d2) + geom_line(data = out)
 ggplot(out, aes(date1, ammonium)) + geom_point(data=d2) + geom_line(data = out)
+
+write.csv(gg, file = "Fits_4_1.csv")
+
+gg %>% filter(loglik > -170) %>% pairs() ## trade off between a and g quite strong, aloso g and death1
+
