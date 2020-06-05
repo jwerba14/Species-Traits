@@ -52,6 +52,44 @@ fecundity_est <- list(
   "wide_prior"=fit_sum_param_wide,
   "constrain_a" = fit_sum_param_cona,
   "nls" = pred_sum_nls,
-  "hyper" = pred_sum_hyper,
+  "hyper" = fit_sum_param_hyper,
   "lit" = fit_sum_param_lit
 )
+## full data frame
+
+## fecundity param dataframe
+
+fecundity <- data.frame( b1_median_wide  = fecundity_est$wide_prior[1,6],
+                         b1_lwr_wide =fecundity_est$wide_prior[1,4] ,
+                         b1_upr_wide =fecundity_est$wide_prior[1,8] ,  
+                         b2_median_wide  = fecundity_est$wide_prior[2,6],
+                         b2_lwr_wide =fecundity_est$wide_prior[2,4] ,
+                         b2_upr_wide =fecundity_est$wide_prior[2,8] ,
+                         b1_median_lit  = fecundity_est$lit[2,6],  ## check scale... 
+                         b1_lwr_lit =fecundity_est$lit[2,4] ,
+                         b1_upr_lit =fecundity_est$lit[2,8] ,  
+                         b2_median_lit  = fecundity_est$lit[4,6],
+                         b2_lwr_lit =fecundity_est$lit[4,4] ,
+                         b2_upr_lit =fecundity_est$lit[4,8] , 
+                         b1_median_mm  = fecundity_est$mixed_model[2,6],
+                         b1_lwr_mm =fecundity_est$mixed_model[2,4] ,
+                         b1_upr_mm =fecundity_est$mixed_model[2,8] ,  
+                         b2_median_mm  = fecundity_est$mixed_model[4,6],
+                         b2_lwr_mm =fecundity_est$mixed_model[4,4] ,
+                         b2_upr_mm =fecundity_est$mixed_model[4,8] , 
+                         b1_median_hyper =fecundity_est$hyper[1,6] ,
+                         b1_upr_hyper =fecundity_est$hyper[1,8],
+                         b1_lwr_hyper =fecundity_est$hyper[1,4],
+                         b2_median_hyper = fecundity_est$hyper[2,6],
+                         b2_lwr_hyper =fecundity_est$hyper[2,4],
+                         b2_upr_hyper =fecundity_est$hyper[2,8],  
+                         b1_median_conb1 =fecundity_est$constrain_a[2,6] ,
+                         b1_upr_conb1 =fecundity_est$constrain_a[2,8],
+                         b1_lwr_conb1 =fecundity_est$constrain_a[2,4],
+                         b2_median_conb1 = fecundity_est$constrain_a[4,6],
+                         b2_lwr_conb1 =fecundity_est$constrain_a[4,4],
+                         b2_upr_conb1 =fecundity_est$constrain_a[4,8])
+
+fecund <- fecundity %>% 
+  pivot_longer(cols= everything() , names_to = "param", values_to = "value") %>%
+  separate(col = param,into =c("param","quant", "method") ,sep = "_")

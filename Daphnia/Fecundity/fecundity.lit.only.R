@@ -20,7 +20,7 @@ if(!file.exists("../RDS_Files/fec.fit.lit.RDS")){
 
 
 
-launch_shinystan(fit_lit)
+#launch_shinystan(fit_lit)
 
 
 ## graphing
@@ -28,7 +28,7 @@ launch_shinystan(fit_lit)
 t5 <- rstan::extract(fit_lit,permuted = FALSE)
 fit_sum_lit <- summary(fit_lit)
 fit_sum_param_lit <- fit_sum_lit$summary[c(1:4),]
-fit_sum_param_lit_chl <- fit_sum_param_lit %>% mutate()
+
 
 
 a_lit<- rbind(t5[,1,2], t5[,2,2], t5[,3,2], t5[,4,2]) ## all rows, all chains alpha?

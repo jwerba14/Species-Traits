@@ -2,7 +2,7 @@ full_ODE <-function(t, state, parameters) {
   with(as.list(c(state, parameters)),{
     
     # ammonium is added from release by both juvenile and adult daphnia  and lost through algal update and nitritfication 
-    dammonium <- -(a*ammonium)/(k+ammonium)*algae + l*death1*algae - c*ammonium + daph_a*xa + daph_j*xj
+    dammonium <- -(a*ammonium)/(k+ammonium)*algae + l*death1*algae  + daph_a*xa + daph_j*xj
     
     
     
@@ -27,4 +27,5 @@ full_ODE <-function(t, state, parameters) {
     list(c(dammonium, ddaph_j,ddaph_a,dalgae))
   }) 
 }
+
 

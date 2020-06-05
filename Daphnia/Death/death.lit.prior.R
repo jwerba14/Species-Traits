@@ -52,3 +52,10 @@ inf_g <- ggplot(daph_surv_curves, aes(day, frac_surv)) + geom_point(alpha = 0.6,
   geom_line(data = upper_inf, linetype = "dotdash", lwd = 1.25)+
   geom_line(data = med_inf, linetype = "solid", lwd =1.25) + 
   xlab("Day") + ylab(str_wrap("Proportion Surviving", width = 10))+ ggtitle("Informed Prior") 
+
+## make parameter dataframe
+
+informed <- data.frame(param = rep("death2", 3),
+                               quant = c("median", "lwr", "upr"),
+                               method = rep("informed", 3),
+                               value = c(fit_sum_param_inf[1,6], fit_sum_param_inf[1,4],fit_sum_param_inf[1,8]))

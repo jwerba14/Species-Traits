@@ -45,3 +45,11 @@ wide_g <- ggplot(daph_surv_curves, aes(day, frac_surv)) + geom_point(alpha = 0.6
 
 
 print(wide_g)
+
+
+## pull our param
+wide <- data.frame(param = rep("death2", 3),
+                   quant = c("median", "lwr", "upr"),
+                   method = rep("wide", 3),
+                   value = c(fit_sum_param_d[1,6], fit_sum_param_d[1,4], fit_sum_param_d[1,8]))
+
