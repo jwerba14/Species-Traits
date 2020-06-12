@@ -1,11 +1,13 @@
+library(deSolve)
+library(pomp)
 ## functions and set up for fitting
 
 
 
 ## build matrix from which to sample
 
-tt <- sobolDesign(lower = c(a =1, k= 1000, l = 0.01, death1 = 0.05, g = 0.01),
-                  upper = c(a =50, k= 9000, l = 1, death1 = 2, g = 1),
+tt <- sobolDesign(lower = c(a =1, k= 1000, l = 0.01, death1 = 0.05, f = 0.01),
+                  upper = c(a =50, k= 9000, l = 1, death1 = 2, f = 1),
                   500000)
 
 ## ode to run
@@ -17,7 +19,7 @@ nit_ODE <-function(times, state, parameters) {
     dammonium <- -(a*ammonium)/(k+ammonium)*algae + l*death1*algae  #- 0.028*ammonium  ## see if works better without non-algal losses
     
     
-    dalgae <- (a*ammonium)/(k+ammonium)*algae*g - death1*algae
+    dalgae <- (a*ammonium)/(k+ammonium)*algae*f - death1*algae
     
     
     # return the rate of change

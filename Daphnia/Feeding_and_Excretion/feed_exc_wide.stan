@@ -7,9 +7,9 @@ data {
 }
 
 parameters {
-  real fr_slope;  // slope feeding rate
+  real<lower=0> fr_slope;  // slope feeding rate
   real<lower=0> fr_sigma;//  slope tau feeding rate
-  real er_slope; // slope excretion rate
+  real<lower=0> er_slope; // slope excretion rate
   real<lower=0> er_sigma; // slope tau excretion rate
 }
 

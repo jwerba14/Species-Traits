@@ -3,19 +3,19 @@ dim(rdat)
 ## get average change in controls by treatment
 
 
-cont <- rdat %>% 
-  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60)/24,Nh4_Time_Diff_day = (Nh4_Time_Diff/60)/24) %>%
-  filter(control == 2) %>% 
-  mutate(chl_diff =(chl1-chl2)/Chl_Time_Diff_day, nh4_diff= (nh42-nh41)/Nh4_Time_Diff_day) %>% # subtract 1 from 2 for change over time
-  group_by(Treatment) %>%
-  summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
+#cont <- rdat %>% 
+ # mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60),Nh4_Time_Diff_day = (Nh4_Time_Diff/60)) %>%
+ # filter(control == 2) %>% 
+ # mutate(chl_diff =(chl1-chl2)/Chl_Time_Diff_day, nh4_diff= (nh42-nh41)/Nh4_Time_Diff_day) %>% # subtract 1 from 2 for change over time
+ # group_by(Treatment) %>%
+  #summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T)) ## onr row in treatment 3 is all NAs..??
 
-dim(cont)
+#dim(cont)
 ## do per hour instead of per day to match literature
 cont <- rdat %>% 
-  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60),Nh4_Time_Diff_day = (Nh4_Time_Diff/60)) %>%
+  mutate(Chl_Time_Diff_hour = (Chl_Time_Diff/60),Nh4_Time_Diff_hour = (Nh4_Time_Diff/60)) %>%
   filter(control == 2) %>% 
-  mutate(chl_diff =(chl1-chl2)/Chl_Time_Diff_day, nh4_diff= (nh42-nh41)/Nh4_Time_Diff_day) %>% # subtract 1 from 2 for change over time
+  mutate(chl_diff =(chl1-chl2)/Chl_Time_Diff_hour, nh4_diff= (nh42-nh41)/Nh4_Time_Diff_hour) %>% # subtract 1 from 2 for change over time
   group_by(Treatment) %>%
   summarize(mean_chl = mean(chl_diff, na.rm = T), mean_nh4 = mean(nh4_diff,na.rm = T))
 
@@ -32,8 +32,8 @@ dim(dat)
 
 dat <- dat %>%
   filter(control == 1) %>%
-  mutate(Chl_Time_Diff_day = (Chl_Time_Diff/60),Nh4_Time_Diff_day = (Nh4_Time_Diff/60)) %>%
-  mutate(chl_diff = (chl1-chl2)/Chl_Time_Diff_day, nh4_diff = (nh41-nh42)/Nh4_Time_Diff_day) %>%
+  mutate(Chl_Time_Diff_hour= (Chl_Time_Diff/60),Nh4_Time_Diff_hour = (Nh4_Time_Diff/60)) %>%
+  mutate(chl_diff = (chl1-chl2)/Chl_Time_Diff_hour, nh4_diff = (nh41-nh42)/Nh4_Time_Diff_hour) %>%
   mutate(chl_diff_cc = (chl_diff-mean_chl)/Num_Daphnia, nh4_diff_cc = (nh4_diff-mean_nh4)/Num_Daphnia)
 
 

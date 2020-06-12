@@ -16,6 +16,50 @@ treat_27 <- readRDS("Fits_RDS/Treat_27_ll.RDS")
 treat_54 <- readRDS("Fits_RDS/Treat_54_ll.RDS")
 treat_108 <- readRDS("Fits_RDS/Treat_108_ll.RDS")
 
+## make dataframe of all best loglik params
+mm_0.5 <- treat_0.5 %>% group_by(a) %>% summarize(new_ll = sum(loglik))
+z = mm_0.5[mm_0.5$new_ll == max(mm_0.5$new_ll), ]
+param_ext_0.5 <- treat_0.5 %>% filter(a == z$a)
+param_ext_0.5$treatment <- 0.5
+
+mm3 <- treat_3 %>% group_by(a) %>% summarize(new_ll = sum(loglik))
+z = mm3[mm3$new_ll == max(mm3$new_ll), ]
+param_ext_3 <- treat_3 %>% filter(a == z$a)
+param_ext_3$treatment <- 3
+
+
+mm9 <- treat_9 %>% group_by(a) %>% summarize(new_ll = sum(loglik))
+z = mm9[mm9$new_ll == max(mm9$new_ll), ]
+param_ext_9 <- treat_9 %>% filter(a == z$a)
+param_ext_9$treatment <- 9
+
+
+mm27 <- treat_27 %>% group_by(a) %>% summarize(new_ll = sum(loglik))
+z = mm27[mm27$new_ll == max(mm27$new_ll), ]
+param_ext_27 <- treat_27 %>% filter(a == z$a)
+param_ext_27$treatment <- 27
+
+
+mm54 <- treat_54 %>% group_by(a) %>% summarize(new_ll = sum(loglik))
+z = mm54[mm54$new_ll == max(mm54$new_ll), ]
+param_ext_54 <- treat_54 %>% filter(a == z$a)
+param_ext_54$treatment <- 54
+
+
+mm108 <- treat_108 %>% group_by(a) %>% summarize(new_ll = sum(loglik))
+z = mm108[mm108$new_ll == max(mm108$new_ll), ]
+param_ext_108 <- treat_108 %>% filter(a == z$a)
+param_ext_108$treatment <- 108
+
+
+param_ll <- rbind(param_ext_0.5[1,],
+                  param_ext_3[1,],
+                  param_ext_9[1,],
+                  param_ext_27[1,],
+                  param_ext_54[1,],
+                  param_ext_108[1,])
+
+#write.csv(param_ll, file = "param_ll.csv")
 
 ## i guess take treatment 3 since actual experiment started at ~1.5
 #mm3 <- treat_3 %>% group_by(a) %>% summarize(new_ll = sum(loglik))

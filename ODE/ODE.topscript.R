@@ -4,17 +4,24 @@ library(gridExtra)
 library(deSolve)
 library(tidyverse)
 source("../Graphing_Set_Up.R")
+source("clean_data_full.R")
 
 daph <- read.csv("../Daphnia/daphnia_params.csv")
-alg_param <- read.csv("../Nitrogen_Algae/algal_parameters.csv")
+
+daph <- daph %>% dplyr::select(-X)
+
+
+alg_param <- read.csv("../Nitrogen_Algae/alg_nit_loglik.csv")
+alg_param <- alg_param %>% dplyr::select(-X)
 alg_param$method <- "dat_only"
+alg_param <- alg_param %>% filter(treatment == "9") %>% dplyr::select(-c(X, treatment))
 alg_param$quant <- "median"
 
 state = c(
-  ammonium = 10,
+  ammonium = 5000,
   daph_j = 0,
-  daph_a = 20,
-  algae  = 20
+  daph_a = 2,
+  algae  = 15
 )
 
 ## full ode
@@ -42,7 +49,9 @@ gg <- expand.grid(
 
 ## because b1 and b2 are estimated together only want rows where they are the same method
 
+
 gg2 <- gg %>% filter(b1 == b2)
+
 
 
 for (i in 1:nrow(gg2)){
@@ -58,7 +67,7 @@ pp <- parameters %>% filter(
 
 pp <- pp %>% pivot_wider(names_from = param, values_from = value)
 pp <- as.list(pp)
-death3 <- list(death3 = 0.02)
+death3 <- list(death3 = 0.25)
 pp <- c(pp, death3)
 
 
@@ -66,8 +75,12 @@ tt <- ode(
   func=full_ODE,
   y=state,   
   times=seq(1,40),
-  parms=pp
+  parms=pp,
+  method = "rk4",
+  hini=0.1,
+  maxstep = 100000
 ) 
+
  tt1 <- as.data.frame(tt)
  tt1$index <- i
   if (i == 1) {
@@ -78,28 +91,150 @@ tt <- ode(
  
 }
 
-tt.g1 <- tt.g %>% filter(time == 40)  ## 138 unique combinations run the whole way
 
-tt.f <- tt.g %>% filter(index %in% tt.g1$index)
+tt.g1 <- tt.g %>% filter(time == 40)  ## all unique combinations run the whole way
 
-ll <- data.frame(ll = 0,
-                 index = 0,
-                 rep = 0)
+tt.f <- tt.g %>% filter(index %in% tt.g1$index) %>% filter(!is.na(algae)) %>% droplevels() ##hmm only 7290 complete cases....
 
-## find loglik for each fit for the combinations that worked
-for(j in 1:length(unique(dd$Rep))){
-  dd1 <- dd %>% filter(Rep == j)
-  pop_fin2 <- pop_fin1 %>% filter(TankNum == j)
-for (i in 1:length(unique(tt.f$index))) {
-  tt.f1 <- tt.g %>% filter(index == i)
-  ll$ll[i,] <- loglik2(tt.f1)
-  ll$index[i,] <- i
-  ll$rep[i,] <- j
+
+
+## first for undisturbed, all states present
+dd_all_u <- dd %>% filter(treatment == 3)
+pop_all_u <- pop_fin1 %>% filter(treatment == 3)
+
+
+ll <- data.frame(ll = numeric(length = nrow(tt.g1)*length(unique(dd_all_u$TankNum))),
+                 index = numeric(length = nrow(tt.g1)*length(unique(dd_all_u$TankNum))),
+                 rep = numeric(length = nrow(tt.g1)*length(unique(dd_all_u$TankNum))))
+uni_vec <- as.vector(unique(tt.f$index))
+
+tank_vec <- as.vector(unique(dd_all_u$TankNum))
+
+## find loglik for each fit for each combination
+qq <- 1
+for (k in 1:nrow(ll)) {
+  
+for(j in 1:length(unique(tank_vec))){
+  
+  dd1 <- dd_all_u %>% filter(TankNum == tank_vec[j])
+  pop_fin2 <- pop_all_u %>% filter(TankNum == tank_vec[j])
+  
+for (i in 1:length(uni_vec)) {
+  
+  tt.f1 <- tt.f %>% filter(index == uni_vec[i])
+  ll$ll[qq] <- loglik2(tt.f1)
+  ll$index[qq] <- i
+  ll$rep[qq] <- j
+  qq <- qq + 1
+  }
+ }
 }
-}
+
+## add up loglik by index so that can find the best set of parameters
+
+#write.csv(ll, "loglik_full.csv")
+#ll <- read.csv("loglik_full.csv")
+
+ 
+
+
+ll2 <- ll %>% group_by(as.factor(index)) %>% summarise(sum_ll = sum(ll, na.rm = T))
+
+z <- which(ll2$sum_ll == max(ll2$sum_ll))
+
+gg.best <- data.frame(
+  param         = unlist(names(gg2[z, ]))
+, method_select = unlist(gg2[z, ])
+)
+
+best_parm <- parameters %>% # filter(
+#  param %in% names(gg2[z, ]),
+#) %>% 
+  group_by(param) %>%
+  left_join(., gg.best) %>% 
+  filter(method == method_select) %>%
+  filter(quant == "median") %>%
+  dplyr::select(param, value)
+
+best_parm <- best_parm %>% pivot_wider(names_from = param, values_from = value)
+best_parm <- as.list(best_parm)
+death3 <- list(death3 = .2)
+best_parm1 <- c(best_parm, death3) 
+
+best_parm1$ha[1] <- best_parm1$ha[1]
+best_parm1$l[1] <- 0.70791971
+best_parm1$f[1] <- 0.05
+
+out_best <- ode(
+  func=full_ODE,
+  y=state,   
+  times=seq(1,40),
+  parms=best_parm1,
+  method = "rk4",
+  hini=0.01,
+  maxstep = 10000
+) 
+
+out_best <-data.frame(out_best)
+
+names(out_best) <- c("times", "ammonium","Juv","Adult", "algae")
+
+best_g_amm <- ggplot(dd_all_u, aes(times, ammonium)) + geom_point() + geom_line(data = out_best)
+print(best_g_amm)
+
+
+best_g_alg <- ggplot(dd_all_u[dd_all_u$algae < 250, ], aes(times, algae)) + geom_point() + geom_line(data = out_best) ## removes two points that seem way out of range
+print(best_g_alg)
+
+best_g_daphA <- ggplot(pop_all_u, aes(times, Adult)) + geom_point() + geom_line(data = out_best) ## removes two points that seem way out of range
+print(best_g_daphA)
+
+best_g_daphJ <- ggplot(pop_all_u, aes(times, Juv)) + geom_point() + geom_line(data = out_best) ## removes two points that seem way out of range
+print(best_g_daphJ)
+
+#wide_only <- [ ,]
+#lit_only <- 
 
 
 
+## for algae only ## hmm loop isn't necessary necessary because only 1 set of algal params... only estimated in one way.
+state = c(
+  ammonium = 5500,
+  daph_j = 0,
+  daph_a = 0,
+  algae  = 15
+)
+
+
+
+out_alg <- ode(
+  func=full_ODE,
+  y=state,   
+  times=seq(1,40),
+  parms=best_parm1,
+  method = "rk4",
+  hini=0.1,
+  maxstep = 10000
+) 
+
+##algal only tanks
+dd_algae <- dd %>% filter(treatment == 1)
+
+out_alg <- data.frame(out_alg)
+names(out_alg)[1] <- "times"
+
+alg_g_amm <- ggplot(dd_algae, aes(times, ammonium)) + geom_point() + geom_line(data = out_alg)
+print(alg_g_amm)
+
+  
+alg_g_alg <- ggplot(dd_algae[dd_algae$algae < 600, ], aes(times, algae)) + geom_point() + geom_line(data = out_alg) ## removes two points that seem way out of range
+print(alg_g_alg)
+
+
+
+## for all disturbed
+
+## for algae disturbed
 
 
 

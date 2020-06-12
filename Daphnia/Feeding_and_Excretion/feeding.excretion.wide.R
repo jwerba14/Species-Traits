@@ -45,7 +45,7 @@ stan_wide_g <- ggplot(dat1, aes(chl1, chl_diff_cc)) + geom_point(alpha = 0.6, si
   geom_line(data = med_wide, linetype = "solid", lwd =1.25) + xlab("Chlorophyll a (ug/L)") +
   ylab("Chl (ug/L) per Daphnia*hr ") + ggtitle("Stan: Fit with Excretion Wide Priors")
 
-#print(stan_wide_g)
+print(stan_wide_g)
 
 ## graph excretion
 slope_exc_wide <- rbind(t_wide[,1,3],t_wide[,2,3], t_wide[,3,3], t_wide[,4,3])
@@ -66,7 +66,7 @@ stan_wideex_g <- ggplot(dat1, aes(chl_diff_cc, nh4_diff_cc)) + geom_point(alpha 
   geom_line(data = med_wide_x, linetype = "solid", lwd =1.25) + xlab("Change in Chlorophyll a (ug/L)/ Daphnia*hr") +
   ylab("Nh4 (mg/L) perDaphnia*hr ") + ggtitle("Stan: Fit with Excretion Wide Priors")
 
-#print(stan_wideex_g)
+print(stan_wideex_g)
 
 
 

@@ -1,4 +1,4 @@
-#source("set_up_fex.R")
+source("set_up_fex.R")
 
 ## fit in stan
 daph_feex_listj <- 

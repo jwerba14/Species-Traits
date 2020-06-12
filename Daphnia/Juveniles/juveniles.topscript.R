@@ -21,8 +21,8 @@ grid.arrange(growth_g, grg)
 ## set up for excretion and feeding
 source("set_up_fex.R")
 
-## feeding/excretion rates not constraining juvenile excretion
-source("juv_daphnia_feeding_and_excretion_stan.R")
+## feeding/excretion rates not constraining juvenile excretion # not sure this actually exisits. 
+#source("juv_daphnia_feeding_and_excretion_stan.R")
 
 
 ## feeding/excretion rates constraining juvenile excretion > 0
@@ -34,16 +34,17 @@ grid.arrange(stan_fej_g1, stan_wideexj_g1)
 
 
 ## make dataframe of params
+## put into day from hour and mg to ug N
 
-juv_p <- data.frame(hj_median_wide =fit_sum_param_fej0[1,6],
-hj_lwr_wide =fit_sum_param_fej0[1,4],
-hj_upr_wide = fit_sum_param_fej0[1,8],
+juv_p <- data.frame(hj_median_wide =fit_sum_param_fej0[1,6]*24,
+hj_lwr_wide =fit_sum_param_fej0[1,4]*24,
+hj_upr_wide = fit_sum_param_fej0[1,8]*24,
 g_median_wide = fit_sum_paramg[1,6] ,
 g_lwr_wide = fit_sum_paramg[1,4],
 g_upr_wide = fit_sum_paramg[1,8], 
-xj_median_wide = fit_sum_param_fej0[3,6],
-xj_lwr_wide = fit_sum_param_fej0[3,4],
-xj_upr_wide = fit_sum_param_fej0[3,8])
+xj_median_wide = fit_sum_param_fej0[3,6]*1000,
+xj_lwr_wide = fit_sum_param_fej0[3,4]*1000,
+xj_upr_wide = fit_sum_param_fej0[3,8]*1000)
 
 juv_param <- juv_p %>% 
   pivot_longer(cols= everything() , names_to = "param", values_to = "value") %>%

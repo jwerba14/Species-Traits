@@ -60,33 +60,35 @@ feed_exc_est <- list(
 )
 
 ## make into usable dataframe
+## make on day scale instead of hour and in microgram Nh4 not mg
 
-feed_exc <- data.frame(  ha_median_wide  = feed_exc_est$wide_prior[1,6],
-                         ha_lwr_wide =feed_exc_est$wide_prior[1,4] ,
-                         ha_upr_wide =feed_exc_est$wide_prior[1,8] ,  
-                         xa_median_wide  = feed_exc_est$wide_prior[3,6],
-                         xa_lwr_wide =feed_exc_est$wide_prior[3,4] ,
-                         xa_upr_wide =feed_exc_est$wide_prior[3,8] ,
-                         ha_median_mixvs  = feed_exc_est$mixed_model_vs[1,6],  
-                         ha_lwr_mixvs =feed_exc_est$mixed_model_vs[1,4] ,
-                         ha_upr_mixvs =feed_exc_est$mixed_model_vs[1,8] ,  
-                         xa_median_mixvs  = feed_exc_est$mixed_model_vs[4,6],
-                         xa_lwr_mixvs =feed_exc_est$mixed_model_vs[4,4] ,
-                         xa_upr_mixvs =feed_exc_est$mixed_model_vs[4,8] , 
-                         ha_median_litimp  = feed_exc_est$lit_imp[1,6],
-                         ha_lwr_litimp =feed_exc_est$lit_imp[1,4] ,
-                         ha_upr_litimp =feed_exc_est$lit_imp[1,8] ,  
-                         ha_median_litvs =feed_exc_est$lit_vs[1,6] ,
-                         ha_upr_litvs =feed_exc_est$lit_vs[1,8],
-                         ha_lwr_litvs =feed_exc_est$lit_vs[1,4],
-                         ha_median_mmimp =feed_exc_est$mixed_imp[1,6] ,
-                         ha_upr_mmimp =feed_exc_est$mixed_imp[1,8],
-                         ha_lwr_mmimp =feed_exc_est$mixed_imp[1,4],
-                         xa_median_mmimp = feed_exc_est$mixed_imp[4,6],
-                         xa_lwr_mmimp =feed_exc_est$mixed_imp[4,4],
-                         xa_upr_mmimp =feed_exc_est$mixed_imp[4,8])
+feed_exc <- data.frame(  ha_median_wide  = feed_exc_est$wide_prior[1,6]*24,
+                         ha_lwr_wide =feed_exc_est$wide_prior[1,4]*24 ,
+                         ha_upr_wide =feed_exc_est$wide_prior[1,8]*24 ,  
+                         xa_median_wide  = feed_exc_est$wide_prior[3,6]*1000,
+                         xa_lwr_wide =feed_exc_est$wide_prior[3,4]*1000 ,
+                         xa_upr_wide =feed_exc_est$wide_prior[3,8]*1000 ,
+                         ha_median_mixvs  = feed_exc_est$mixed_model_vs[1,6]*24,  
+                         ha_lwr_mixvs =feed_exc_est$mixed_model_vs[1,4]*24 ,
+                         ha_upr_mixvs =feed_exc_est$mixed_model_vs[1,8]*24 ,  
+                         xa_median_mixvs  = feed_exc_est$mixed_model_vs[4,6]*1000,
+                         xa_lwr_mixvs =feed_exc_est$mixed_model_vs[4,4]*1000 ,
+                         xa_upr_mixvs =feed_exc_est$mixed_model_vs[4,8]*1000 , 
+                         ha_median_litimp  = feed_exc_est$lit_imp[1,6]*24,
+                         ha_lwr_litimp =feed_exc_est$lit_imp[1,4]*24 ,
+                         ha_upr_litimp =feed_exc_est$lit_imp[1,8]*24 ,  
+                         ha_median_litvs =feed_exc_est$lit_vs[1,6]*24 ,
+                         ha_upr_litvs =feed_exc_est$lit_vs[1,8]*24,
+                         ha_lwr_litvs =feed_exc_est$lit_vs[1,4]*24,
+                         ha_median_mmimp =feed_exc_est$mixed_imp[1,6]*24 ,
+                         ha_upr_mmimp =feed_exc_est$mixed_imp[1,8]*24,
+                         ha_lwr_mmimp =feed_exc_est$mixed_imp[1,4]*24,
+                         xa_median_mmimp = feed_exc_est$mixed_imp[4,6]*1000,
+                         xa_lwr_mmimp =feed_exc_est$mixed_imp[4,4]*1000,
+                         xa_upr_mmimp =feed_exc_est$mixed_imp[4,8]*1000)
 
-feed_exc_a <- feed_exc%>% 
+
+feed_exc_a <- feed_exc %>% 
   pivot_longer(cols= everything() , names_to = "param", values_to = "value") %>%
   separate(col = param,into =c("param","quant", "method") ,sep = "_")
 
